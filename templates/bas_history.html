@@ -29,14 +29,18 @@
                 {% for record in records %}
                 <tr>
                     <td>
-                        <strong>{{ record.start_date }}</strong>
-                        <div class="table-subtext">to {{ record.end_date }}</div>
+                        <strong>{{ record.period_display }}</strong>
                     </td>
                     <td>${{ "{:,.2f}".format(record.g1) }}</td>
                     <td>${{ "{:,.2f}".format(record.payable) }}</td>
                     <td>{{ record.review_status or "Not reviewed" }}</td>
-                    <td><span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span></td>
-                    <td>{{ record.updated_at }}</td>
+                    <td>
+                        <span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span>
+                        {% if record.status_date %}
+                            <div class="table-status-date">{{ record.status_date_label }} {{ record.status_date }}</div>
+                        {% endif %}
+                    </td>
+                    <td>{{ record.updated_at_display }}</td>
                     <td class="table-action">
                         <a href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">View</a>
                     </td>
