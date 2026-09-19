@@ -1630,3 +1630,33 @@ button:hover,
     background: #e7f6e4;
     color: #176a27;
 }
+
+
+.current-bas-subsection {
+    margin-top: -4px;
+    margin-bottom: 30px;
+}
+
+.current-bas-subsection-heading {
+    margin: 0 0 10px;
+}
+
+.current-bas-subsection-title {
+    color: #1d2a22;
+    font-size: 17px;
+    font-weight: 750;
+}
+
+.current-bas-subsection-heading p {
+    margin: 4px 0 0;
+    color: var(--bas-muted);
+    font-size: 13px;
+}
+
+.active-bas-table-card {
+    border-left: 4px solid #8bcf80;
+}
+
+.active-bas-table-card .history-table th {
+    background: #f5faf3;
+}
