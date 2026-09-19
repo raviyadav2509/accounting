@@ -60,5 +60,54 @@
     {{ review_html|safe }}
 </div>
 
-<a class="button" href="/bas-review?start={{ bas.start }}&end={{ bas.end }}">Back to BAS</a>
+{% if status == "REVIEW REQUIRED" %}
+<div class="card resolution-card">
+    <h2>Resolve the flagged items</h2>
+    <p class="resolution-intro">
+        There are two ways to move forward. Choose the one that matches what you found.
+    </p>
+
+    <div class="resolution-paths">
+        <div class="resolution-path">
+            <div class="resolution-path-number">1</div>
+            <div class="resolution-path-content">
+                <h3>The transaction is wrong</h3>
+                <p>Correct it in QuickBooks, then run the AI review again so the BAS is checked using the updated data.</p>
+                <a class="button" href="/ai-review?start={{ bas.start }}&end={{ bas.end }}">Run AI Review Again</a>
+            </div>
+        </div>
+
+        <div class="resolution-path">
+            <div class="resolution-path-number">2</div>
+            <div class="resolution-path-content">
+                <h3>The transaction is correct</h3>
+                <p>If you checked the flagged item and no BAS change is needed, record why. This creates an audit note before approval.</p>
+
+                <form class="resolution-form" action="/resolve-review" method="post">
+                    <input type="hidden" name="start" value="{{ bas.start }}">
+                    <input type="hidden" name="end" value="{{ bas.end }}">
+
+                    <label for="resolution_note">Why is no BAS change required?</label>
+                    <textarea
+                        id="resolution_note"
+                        name="resolution_note"
+                        rows="3"
+                        required
+                        placeholder="Example: Checked the supplier tax invoice and GST is correctly charged."
+                    ></textarea>
+
+                    <label class="resolution-confirm">
+                        <input type="checkbox" name="confirm_reviewed" value="yes" required>
+                        I have reviewed the flagged items and confirm that no BAS change is required.
+                    </label>
+
+                    <button class="approve-button" type="submit">Mark review as resolved</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<a class="secondary-button" href="/bas-review?start={{ bas.start }}&end={{ bas.end }}">Back to BAS</a>
 {% endblock %}
