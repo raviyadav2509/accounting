@@ -622,3 +622,161 @@ li { margin-bottom: 7px; line-height: 1.5; }
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Collapsible current BAS card */
+.current-bas-disclosure {
+    padding: 0;
+    overflow: hidden;
+}
+
+.current-bas-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(220px, .8fr) minmax(220px, .7fr);
+    gap: 24px;
+    align-items: center;
+    padding: 26px 28px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.current-bas-summary::-webkit-details-marker {
+    display: none;
+}
+
+.current-bas-summary::marker {
+    content: "";
+}
+
+.current-bas-summary:hover {
+    background: #fbfdff;
+}
+
+.summary-period-title {
+    margin-top: 4px;
+    font-size: 24px;
+    font-weight: 750;
+    color: #111827;
+}
+
+.summary-amount {
+    padding-left: 24px;
+    border-left: 1px solid #e5e7eb;
+}
+
+.summary-amount-value {
+    margin-top: 5px;
+    font-size: 30px;
+    font-weight: 750;
+    color: #111827;
+    letter-spacing: -.02em;
+}
+
+.summary-status {
+    position: relative;
+    padding-right: 34px;
+    text-align: right;
+}
+
+.current-bas-summary::after {
+    content: "⌄";
+    position: absolute;
+    right: 28px;
+    color: #6b7280;
+    font-size: 24px;
+    line-height: 1;
+    transform: rotate(0deg);
+    transition: transform .18s ease;
+}
+
+.current-bas-disclosure[open] > .current-bas-summary::after {
+    transform: rotate(180deg);
+}
+
+.expand-hint {
+    margin-top: 8px;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.current-bas-expanded {
+    padding: 0 28px 28px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.expanded-intro {
+    padding-top: 22px;
+}
+
+.expanded-intro h3 {
+    margin: 0 0 5px;
+    font-size: 18px;
+}
+
+.expanded-intro p {
+    margin: 0;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.expanded-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.expanded-actions-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.expanded-actions-copy span {
+    color: #6b7280;
+    line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+    .current-bas-summary {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .summary-amount {
+        padding-left: 0;
+        border-left: none;
+    }
+
+    .summary-status {
+        text-align: left;
+        padding-right: 34px;
+    }
+
+    .current-bas-summary::after {
+        top: 28px;
+    }
+}
+
+@media (max-width: 640px) {
+    .current-bas-summary {
+        padding: 22px;
+    }
+
+    .current-bas-expanded {
+        padding: 0 22px 22px;
+    }
+
+    .expanded-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .expanded-actions .button {
+        width: 100%;
+        text-align: center;
+    }
+}
