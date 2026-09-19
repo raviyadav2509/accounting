@@ -676,42 +676,47 @@ li { margin-bottom: 7px; line-height: 1.5; }
     text-align: right;
 }
 
-.summary-status-row {
+.summary-toggle {
+    grid-column: 1 / -1;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    gap: 10px;
-}
-
-.collapse-indicator {
-    width: 28px;
-    height: 28px;
-    display: inline-flex;
-    align-items: center;
     justify-content: center;
-    border: 1px solid #dbe1ea;
-    border-radius: 7px;
+    gap: 8px;
+    margin: 2px -28px -26px;
+    padding: 12px 20px;
+    border-top: 1px solid #e5e7eb;
     background: #f8fafc;
-    color: #6b7280;
-    font-size: 20px;
-    line-height: 1;
-    transform: rotate(0deg);
-    transition: transform .18s ease, background .18s ease;
-}
-
-.current-bas-summary:hover .collapse-indicator {
-    background: #eef4ff;
     color: #2563eb;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .01em;
+    transition: background .18s ease;
 }
 
-.current-bas-disclosure[open] .collapse-indicator {
+.current-bas-summary:hover .summary-toggle {
+    background: #eff6ff;
+}
+
+.toggle-chevron {
+    font-size: 18px;
+    line-height: 1;
+    transition: transform .18s ease;
+}
+
+.toggle-label-close {
+    display: none;
+}
+
+.current-bas-disclosure[open] .toggle-label-open {
+    display: none;
+}
+
+.current-bas-disclosure[open] .toggle-label-close {
+    display: inline;
+}
+
+.current-bas-disclosure[open] .toggle-chevron {
     transform: rotate(180deg);
-}
-
-.expand-hint {
-    margin-top: 8px;
-    color: #6b7280;
-    font-size: 12px;
 }
 
 .current-bas-expanded {
@@ -769,10 +774,6 @@ li { margin-bottom: 7px; line-height: 1.5; }
     .summary-status {
         text-align: left;
     }
-
-    .summary-status-row {
-        justify-content: flex-start;
-    }
 }
 
 @media (max-width: 640px) {
@@ -806,4 +807,10 @@ li { margin-bottom: 7px; line-height: 1.5; }
 
 .section-heading .dashboard-section-title {
     margin-bottom: 8px;
+}
+
+
+.current-bas-summary:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .22);
+    outline-offset: 2px;
 }
