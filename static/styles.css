@@ -681,26 +681,32 @@ li { margin-bottom: 7px; line-height: 1.5; }
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
     margin: 2px -28px -26px;
-    padding: 12px 20px;
-    border-top: 1px solid #e5e7eb;
-    background: #f8fafc;
-    color: #2563eb;
+    padding: 13px 20px;
+    border-top: 1px solid #dbeafe;
+    background: #eef5ff;
+    color: #1d4ed8;
     font-size: 13px;
     font-weight: 700;
     letter-spacing: .01em;
-    transition: background .18s ease;
+    transition: background .18s ease, color .18s ease;
 }
 
 .current-bas-summary:hover .summary-toggle {
-    background: #eff6ff;
+    background: #e4efff;
+    color: #1e40af;
 }
 
 .toggle-chevron {
-    font-size: 18px;
-    line-height: 1;
+    width: 8px;
+    height: 8px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    border-radius: 1px;
+    transform: rotate(45deg) translateY(-1px);
     transition: transform .18s ease;
+    opacity: .72;
 }
 
 .toggle-label-close {
@@ -716,7 +722,7 @@ li { margin-bottom: 7px; line-height: 1.5; }
 }
 
 .current-bas-disclosure[open] .toggle-chevron {
-    transform: rotate(180deg);
+    transform: rotate(225deg) translate(-1px, -1px);
 }
 
 .current-bas-expanded {
