@@ -5,7 +5,7 @@
 <div class="page-heading">
     <div>
         <h1>BAS History</h1>
-        <div class="subtitle">A permanent record of BAS calculations, reviews and approvals.</div>
+        <div class="subtitle">Select any BAS period below to open its individual audit trail.</div>
     </div>
     <a class="secondary-button" href="{{ url_for('bas.dashboard') }}">Back to Dashboard</a>
 </div>
@@ -42,7 +42,7 @@
                     </td>
                     <td>{{ record.updated_at_display }}</td>
                     <td class="table-action">
-                        <a href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">View</a>
+                        <a href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">View audit trail</a>
                     </td>
                 </tr>
                 {% endfor %}
