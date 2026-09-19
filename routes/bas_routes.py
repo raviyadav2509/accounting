@@ -1,7 +1,7 @@
 import re
 
 import markdown
-from flask import Blueprint, render_template, request
+from flask import Blueprint, redirect, render_template, request, url_for
 
 from config import DEFAULT_BAS_END, DEFAULT_BAS_START
 from services.ai_review_service import run_ai_review
@@ -13,6 +13,7 @@ from services.bas_service import (
 )
 from services.review_store import (
     load_ai_review,
+    resolve_ai_review,
     save_ai_review,
     save_approval,
     save_rejection,
@@ -68,11 +69,16 @@ def bas_review():
     signature = bas_signature(bas)
     ai_review = load_ai_review(start, end, signature)
     ai_status = ai_review["status"] if ai_review else "NOT REVIEWED"
+    review_resolved = bool(
+        ai_review and ai_review.get("resolution_status") == "RESOLVED"
+    )
 
     return render_template(
         "bas_review.html",
         bas=bas,
         ai_status=ai_status,
+        ai_review=ai_review,
+        review_resolved=review_resolved,
         **_amount_display_data(bas["payable"]),
     )
 
@@ -111,6 +117,82 @@ def ai_review():
     )
 
 
+@bas_bp.route("/review-details")
+def review_details():
+    start, end = _period_from_request()
+    bas = calculate_bas(start, end)
+    signature = bas_signature(bas)
+    review = load_ai_review(start, end, signature)
+
+    if not review:
+        return redirect(url_for("bas.bas_review", start=start, end=end))
+
+    cleaned_review = re.sub(
+        r"REVIEW_STATUS:\s*(PASS|WARNING|REVIEW REQUIRED)",
+        "",
+        review.get("review_text", ""),
+    ).strip()
+
+    status = review.get("status", "WARNING")
+    if status == "REVIEW REQUIRED":
+        status_title = "These items need your decision"
+        status_message = (
+            "Review each flagged item below. Correct it in QuickBooks if it "
+            "is wrong, or record why no change is needed."
+        )
+        status_class = "review"
+    elif status == "WARNING":
+        status_title = "A few things are worth checking"
+        status_message = "Review these items before approving your BAS."
+        status_class = "warning"
+    else:
+        status_title = "No significant problems found"
+        status_message = "No material BAS issues were identified."
+        status_class = "pass"
+
+    return render_template(
+        "ai_review.html",
+        bas=bas,
+        review_html=markdown.markdown(cleaned_review, extensions=["tables"]),
+        status=status,
+        status_title=status_title,
+        status_message=status_message,
+        status_class=status_class,
+        saved_review=review,
+    )
+
+
+@bas_bp.route("/resolve-review", methods=["POST"])
+def resolve_review():
+    start, end = _period_from_request()
+    bas = calculate_bas(start, end)
+    signature = bas_signature(bas)
+    review = load_ai_review(start, end, signature)
+
+    if not review or review.get("status") != "REVIEW REQUIRED":
+        return redirect(url_for("bas.bas_review", start=start, end=end))
+
+    if request.form.get("confirm_reviewed") != "yes":
+        return render_template(
+            "message.html",
+            title="Confirmation required",
+            message="Confirm that you reviewed the flagged items before continuing.",
+            back_url=f"/bas-review?start={start}&end={end}",
+        ), 400
+
+    resolution_note = request.form.get("resolution_note", "").strip()
+    if not resolution_note:
+        return render_template(
+            "message.html",
+            title="Resolution note required",
+            message="Briefly record why no BAS change is required.",
+            back_url=f"/bas-review?start={start}&end={end}",
+        ), 400
+
+    resolve_ai_review(start, end, signature, resolution_note)
+    return redirect(url_for("bas.bas_review", start=start, end=end))
+
+
 @bas_bp.route("/approve-bas", methods=["POST"])
 def approve_bas():
     start, end = _period_from_request()
@@ -128,11 +210,14 @@ def approve_bas():
 
     status = review["status"]
 
-    if status == "REVIEW REQUIRED":
+    if (
+        status == "REVIEW REQUIRED"
+        and review.get("resolution_status") != "RESOLVED"
+    ):
         return render_template(
             "message.html",
             title="Approval blocked",
-            message="Resolve the review items before approving this BAS.",
+            message="Review and resolve the flagged items before approving this BAS.",
             back_url=f"/bas-review?start={start}&end={end}",
         ), 400
 
@@ -144,7 +229,11 @@ def approve_bas():
             back_url=f"/bas-review?start={start}&end={end}",
         ), 400
 
-    save_approval(start, end, status, signature)
+    approval_status = status
+    if status == "REVIEW REQUIRED":
+        approval_status = "REVIEW REQUIRED - HUMAN RESOLVED"
+
+    save_approval(start, end, approval_status, signature)
 
     return render_template(
         "message.html",
