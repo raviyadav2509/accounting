@@ -7,7 +7,37 @@
         <h1>BAS Dashboard</h1>
         <div class="subtitle">Prepare, review and track your Business Activity Statements.</div>
     </div>
-    <a class="secondary-button" href="{{ url_for('bas.bas_history') }}">All BAS records</a>
+    <div class="page-heading-actions">
+        <details class="new-bas-menu">
+            <summary class="button new-bas-trigger">
+                <span class="new-bas-plus" aria-hidden="true">+</span>
+                Calculate new BAS
+            </summary>
+
+            <div class="new-bas-popover">
+                <div class="new-bas-popover-heading">
+                    <strong>Calculate a new BAS</strong>
+                    <span>Select the reporting period to calculate from QuickBooks.</span>
+                </div>
+
+                <form class="new-bas-form" action="{{ url_for('bas.calculate_new_bas') }}" method="post">
+                    <div class="date-field">
+                        <label for="new-bas-start">Start date</label>
+                        <input id="new-bas-start" name="start" type="date" required>
+                    </div>
+
+                    <div class="date-field">
+                        <label for="new-bas-end">End date</label>
+                        <input id="new-bas-end" name="end" type="date" required>
+                    </div>
+
+                    <button class="button" type="submit">Calculate BAS</button>
+                </form>
+            </div>
+        </details>
+
+        <a class="secondary-button" href="{{ url_for('bas.bas_history') }}">All BAS records</a>
+    </div>
 </div>
 
 <details class="card current-bas-card current-bas-disclosure">
