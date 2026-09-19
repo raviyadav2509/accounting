@@ -66,3 +66,18 @@ def save_rejection(start, end):
         json.dump(rejection, f, indent=2)
 
     return rejection
+
+
+def resolve_ai_review(start, end, signature, resolution_note):
+    review = load_ai_review(start, end, signature)
+    if not review:
+        return None
+
+    review["resolution_status"] = "RESOLVED"
+    review["resolution_note"] = resolution_note.strip()
+    review["resolved_at"] = datetime.now().isoformat()
+
+    with open(REVIEW_FILE, "w") as f:
+        json.dump(review, f, indent=2)
+
+    return review
