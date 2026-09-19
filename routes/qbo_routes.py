@@ -16,11 +16,6 @@ from services.qbo_service import (
 qbo_bp = Blueprint("qbo", __name__)
 
 
-@qbo_bp.route("/")
-def home():
-    return '<a href="/connect">Connect QuickBooks</a>'
-
-
 @qbo_bp.route("/connect")
 def connect():
     state = secrets.token_urlsafe(32)
