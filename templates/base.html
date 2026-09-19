@@ -18,7 +18,7 @@
             </a>
 
             <nav class="side-nav-links" aria-label="Primary">
-                <a href="{{ url_for('bas.dashboard') }}">
+                <a class="{% if request.endpoint == 'bas.dashboard' %}active{% endif %}" href="{{ url_for('bas.dashboard') }}">
                     <span class="nav-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none">
                             <path d="M4 13h6V4H4v9Zm10 7h6v-9h-6v9ZM4 20h6v-3H4v3Zm10-13h6V4h-6v3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
@@ -27,7 +27,7 @@
                     <span>Dashboard</span>
                 </a>
 
-                <a href="{{ url_for('bas.bas_history') }}">
+                <a class="{% if request.endpoint in ['bas.bas_history', 'bas.bas_history_detail'] %}active{% endif %}" href="{{ url_for('bas.bas_history') }}">
                     <span class="nav-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none">
                             <path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -36,7 +36,7 @@
                     <span>BAS history</span>
                 </a>
 
-                <a href="{{ url_for('qbo.connect') }}">
+                <a class="{% if request.blueprint == 'qbo' %}active{% endif %}" href="{{ url_for('qbo.connect') }}">
                     <span class="nav-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none">
                             <path d="M8.5 8.5 6 11a4 4 0 0 0 5.7 5.7l2.5-2.5M15.5 15.5 18 13a4 4 0 1 0-5.7-5.7L9.8 9.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
