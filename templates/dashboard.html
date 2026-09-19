@@ -24,16 +24,18 @@
         </div>
 
         <div class="summary-status">
-            <div class="summary-status-row">
-                <span class="status-badge {{ current.status_class }}">{{ current.display_status }}</span>
-                <span class="collapse-indicator" aria-hidden="true">⌄</span>
-            </div>
+            <span class="status-badge {{ current.status_class }}">{{ current.display_status }}</span>
             {% if current.status_date %}
                 <div class="status-date">
                     {{ current.status_date_label }} {{ current.status_date }}
                 </div>
             {% endif %}
-            <div class="expand-hint">Expand for summary details</div>
+        </div>
+
+        <div class="summary-toggle">
+            <span class="toggle-label toggle-label-open">Show BAS summary</span>
+            <span class="toggle-label toggle-label-close">Hide BAS summary</span>
+            <span class="toggle-chevron" aria-hidden="true">⌄</span>
         </div>
     </summary>
 
