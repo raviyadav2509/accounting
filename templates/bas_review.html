@@ -67,9 +67,27 @@
         Run the AI review first. Once the review is complete, the approval option will appear here when appropriate.
     </div>
 
-    {% if ai_status == "REVIEW REQUIRED" %}
-        <div class="approval-alert">
-            Approval is unavailable until the review items are resolved.
+    {% if ai_status == "REVIEW REQUIRED" and not review_resolved %}
+        <div class="resolution-summary">
+            <div>
+                <div class="resolution-summary-title">AI found items that need your decision</div>
+                <div class="resolution-summary-text">
+                    Open the review to see exactly what was flagged. You can either correct the transaction in QuickBooks and run the review again, or confirm that no BAS change is required.
+                </div>
+            </div>
+            <a class="secondary-button" href="/review-details?start={{ bas.start }}&end={{ bas.end }}">
+                Review flagged items
+            </a>
+        </div>
+    {% elif ai_status == "REVIEW REQUIRED" and review_resolved %}
+        <div class="resolved-banner">
+            <div>
+                <strong>Review items resolved by you</strong>
+                {% if ai_review and ai_review.resolution_note %}
+                    <div class="resolved-note">{{ ai_review.resolution_note }}</div>
+                {% endif %}
+            </div>
+            <a class="text-link" href="/review-details?start={{ bas.start }}&end={{ bas.end }}">View review</a>
         </div>
     {% endif %}
 
@@ -83,7 +101,7 @@
                 </button>
             </form>
 
-            {% if ai_status == "PASS" %}
+            {% if ai_status == "PASS" or (ai_status == "REVIEW REQUIRED" and review_resolved) %}
                 <form action="/approve-bas" method="post">
                     <input type="hidden" name="start" value="{{ bas.start }}">
                     <input type="hidden" name="end" value="{{ bas.end }}">
