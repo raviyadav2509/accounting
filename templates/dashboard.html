@@ -182,7 +182,15 @@
                 {% for record in previous %}
                 <tr>
                     <td>
-                        <strong>{{ record.period_display }}</strong>
+                        {% if record.is_lodged %}
+                            <a class="bas-period-link" href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">
+                                {{ record.period_display }}
+                            </a>
+                        {% else %}
+                            <a class="bas-period-link" href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">
+                                {{ record.period_display }}
+                            </a>
+                        {% endif %}
                     </td>
                     <td>${{ "{:,.2f}".format(record.payable) }}</td>
                     <td>
@@ -194,7 +202,16 @@
                         {% endif %}
                     </td>
                     <td class="table-action">
-                        <a href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">View audit trail</a>
+                        {% if record.is_lodged %}
+                            <a href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">View details</a>
+                            <div class="table-action-note">Read only</div>
+                        {% elif not record.review_status %}
+                            <a href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">Review BAS</a>
+                            <div class="table-action-note">Not yet reviewed</div>
+                        {% else %}
+                            <a href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">Continue BAS</a>
+                            <div class="table-action-note">Editable until lodged</div>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
