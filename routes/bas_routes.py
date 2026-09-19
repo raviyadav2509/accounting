@@ -11,6 +11,11 @@ from services.bas_service import (
     calculate_bas,
     get_payroll_bas,
 )
+from services.database import (
+    get_history,
+    get_record_by_id,
+    save_bas_snapshot,
+)
 from services.review_store import (
     load_ai_review,
     resolve_ai_review,
@@ -27,6 +32,12 @@ def _period_from_request():
         request.values.get("start", DEFAULT_BAS_START),
         request.values.get("end", DEFAULT_BAS_END),
     )
+
+
+def _persist_bas(bas):
+    signature = bas_signature(bas)
+    record = save_bas_snapshot(bas, signature)
+    return signature, record
 
 
 def _amount_display_data(payable):
@@ -50,10 +61,119 @@ def _amount_display_data(payable):
     }
 
 
+def _record_status(record):
+    approval_status = record.get("approval_status")
+    review_status = record.get("review_status")
+    resolution_status = record.get("resolution_status")
+
+    if approval_status == "APPROVED":
+        return "Approved - Ready to Lodge", "approved"
+
+    if approval_status == "REJECTED":
+        return "Rejected", "rejected"
+
+    if review_status == "REVIEW REQUIRED":
+        if resolution_status == "RESOLVED":
+            return "Resolved - Ready to Approve", "resolved"
+        return "Review Required", "review-required"
+
+    if review_status == "WARNING":
+        return "Warning", "warning"
+
+    if review_status == "PASS":
+        return "Ready to Approve", "pass"
+
+    return "Not Reviewed", "not-reviewed"
+
+
+def _decorate_record(record):
+    item = dict(record)
+    label, css_class = _record_status(item)
+    item["display_status"] = label
+    item["status_class"] = css_class
+    return item
+
+
+@bas_bp.route("/")
+def dashboard():
+    bas = calculate_bas(DEFAULT_BAS_START, DEFAULT_BAS_END)
+    signature, current_record = _persist_bas(bas)
+
+    ai_review = load_ai_review(
+        bas["start"],
+        bas["end"],
+        signature,
+    )
+    ai_status = ai_review["status"] if ai_review else "NOT REVIEWED"
+    review_resolved = bool(
+        ai_review and ai_review.get("resolution_status") == "RESOLVED"
+    )
+
+    previous = []
+    for record in get_history(limit=20):
+        if current_record and record["id"] == current_record["id"]:
+            continue
+        previous.append(_decorate_record(record))
+        if len(previous) == 5:
+            break
+
+    current_display = _decorate_record(current_record)
+
+    return render_template(
+        "dashboard.html",
+        bas=bas,
+        current=current_display,
+        ai_status=ai_status,
+        review_resolved=review_resolved,
+        previous=previous,
+        **_amount_display_data(bas["payable"]),
+    )
+
+
+@bas_bp.route("/bas-history")
+def bas_history():
+    records = [_decorate_record(record) for record in get_history(limit=100)]
+    return render_template("bas_history.html", records=records)
+
+
+@bas_bp.route("/bas-history/<int:record_id>")
+def bas_history_detail(record_id):
+    record = get_record_by_id(record_id)
+
+    if not record:
+        return render_template(
+            "message.html",
+            title="BAS record not found",
+            message="The requested BAS history record could not be found.",
+            back_url=url_for("bas.bas_history"),
+        ), 404
+
+    review_text = record.get("review_text") or ""
+    cleaned_review = re.sub(
+        r"REVIEW_STATUS:\s*(PASS|WARNING|REVIEW REQUIRED)",
+        "",
+        review_text,
+    ).strip()
+
+    review_html = (
+        markdown.markdown(cleaned_review, extensions=["tables"])
+        if cleaned_review
+        else None
+    )
+
+    return render_template(
+        "bas_history_detail.html",
+        record=_decorate_record(record),
+        review_html=review_html,
+    )
+
+
 @bas_bp.route("/bas-summary")
 def bas_summary():
     start, end = _period_from_request()
-    return bas_summary_payload(calculate_bas(start, end))
+    bas = calculate_bas(start, end)
+    _persist_bas(bas)
+    return bas_summary_payload(bas)
 
 
 @bas_bp.route("/payroll-bas")
@@ -66,7 +186,8 @@ def payroll_bas():
 def bas_review():
     start, end = _period_from_request()
     bas = calculate_bas(start, end)
-    signature = bas_signature(bas)
+    signature, _ = _persist_bas(bas)
+
     ai_review = load_ai_review(start, end, signature)
     ai_status = ai_review["status"] if ai_review else "NOT REVIEWED"
     review_resolved = bool(
@@ -87,8 +208,9 @@ def bas_review():
 def ai_review():
     start, end = _period_from_request()
     bas = calculate_bas(start, end)
+    signature, _ = _persist_bas(bas)
+
     result = run_ai_review(bas)
-    signature = bas_signature(bas)
 
     save_ai_review(
         start,
@@ -121,7 +243,7 @@ def ai_review():
 def review_details():
     start, end = _period_from_request()
     bas = calculate_bas(start, end)
-    signature = bas_signature(bas)
+    signature, _ = _persist_bas(bas)
     review = load_ai_review(start, end, signature)
 
     if not review:
@@ -134,6 +256,7 @@ def review_details():
     ).strip()
 
     status = review.get("status", "WARNING")
+
     if status == "REVIEW REQUIRED":
         status_title = "These items need your decision"
         status_message = (
@@ -166,7 +289,7 @@ def review_details():
 def resolve_review():
     start, end = _period_from_request()
     bas = calculate_bas(start, end)
-    signature = bas_signature(bas)
+    signature, _ = _persist_bas(bas)
     review = load_ai_review(start, end, signature)
 
     if not review or review.get("status") != "REVIEW REQUIRED":
@@ -181,6 +304,7 @@ def resolve_review():
         ), 400
 
     resolution_note = request.form.get("resolution_note", "").strip()
+
     if not resolution_note:
         return render_template(
             "message.html",
@@ -197,7 +321,7 @@ def resolve_review():
 def approve_bas():
     start, end = _period_from_request()
     bas = calculate_bas(start, end)
-    signature = bas_signature(bas)
+    signature, _ = _persist_bas(bas)
     review = load_ai_review(start, end, signature)
 
     if not review:
@@ -242,17 +366,21 @@ def approve_bas():
             "Your approval has been recorded. The BAS has not been "
             "lodged with the ATO yet. Status: Ready to Lodge."
         ),
-        back_url=f"/bas-review?start={start}&end={end}",
+        back_url=url_for("bas.dashboard"),
     )
 
 
 @bas_bp.route("/reject-bas", methods=["POST"])
 def reject_bas():
     start, end = _period_from_request()
-    save_rejection(start, end)
+    bas = calculate_bas(start, end)
+    signature, _ = _persist_bas(bas)
+
+    save_rejection(start, end, signature)
+
     return render_template(
         "message.html",
         title="BAS Rejected",
         message="The BAS has been marked as rejected.",
-        back_url=f"/bas-review?start={start}&end={end}",
+        back_url=url_for("bas.dashboard"),
     )
