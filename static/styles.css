@@ -1605,3 +1605,28 @@ button:hover,
         grid-template-columns: 1fr;
     }
 }
+
+
+.bas-period-link {
+    color: #17211b;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.bas-period-link:hover {
+    color: var(--bas-green-dark);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.table-action-note {
+    margin-top: 4px;
+    color: var(--bas-muted);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.status-badge.lodged {
+    background: #e7f6e4;
+    color: #176a27;
+}
