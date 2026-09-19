@@ -14,9 +14,70 @@
     <div class="current-bas-header">
         <div>
             <div class="eyebrow">Current BAS</div>
-            <h2>{{ bas.start }} to {{ bas.end }}</h2>
+            <h2>{{ current.period_display }}</h2>
+            <div class="period-caption">Reporting period {{ bas.start }} to {{ bas.end }}</div>
         </div>
-        <span class="status-badge {{ current.status_class }}">{{ current.display_status }}</span>
+
+        <div class="current-status">
+            <span class="status-badge {{ current.status_class }}">{{ current.display_status }}</span>
+            {% if current.status_date %}
+                <div class="status-date">
+                    {{ current.status_date_label }} {{ current.status_date }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="bas-progress">
+        <div class="progress-step complete">
+            <div class="progress-marker">✓</div>
+            <div>
+                <div class="progress-label">BAS calculated</div>
+                <div class="progress-date">{{ current.created_at_display or "Saved" }}</div>
+            </div>
+        </div>
+
+        <div class="progress-step {% if current.reviewed_at %}complete{% else %}pending{% endif %}">
+            <div class="progress-marker">{% if current.reviewed_at %}✓{% else %}2{% endif %}</div>
+            <div>
+                <div class="progress-label">AI review</div>
+                <div class="progress-date">
+                    {% if current.reviewed_at %}{{ current.reviewed_at_display }}{% else %}Pending{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="progress-step {% if current.resolved_at or current.review_status in ["PASS", "WARNING"] %}complete{% elif current.review_status == "REVIEW REQUIRED" %}attention{% else %}pending{% endif %}">
+            <div class="progress-marker">
+                {% if current.resolved_at or current.review_status in ["PASS", "WARNING"] %}✓{% else %}3{% endif %}
+            </div>
+            <div>
+                <div class="progress-label">
+                    {% if current.review_status == "REVIEW REQUIRED" %}Issues resolved{% else %}Review checks{% endif %}
+                </div>
+                <div class="progress-date">
+                    {% if current.resolved_at %}
+                        {{ current.resolved_at_display }}
+                    {% elif current.review_status in ["PASS", "WARNING"] %}
+                        Complete
+                    {% elif current.review_status == "REVIEW REQUIRED" %}
+                        Action required
+                    {% else %}
+                        Pending
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="progress-step {% if current.approved_at %}complete{% else %}pending{% endif %}">
+            <div class="progress-marker">{% if current.approved_at %}✓{% else %}4{% endif %}</div>
+            <div>
+                <div class="progress-label">Approval</div>
+                <div class="progress-date">
+                    {% if current.approved_at %}{{ current.approved_at_display }}{% else %}Pending{% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="dashboard-amount-row">
@@ -69,13 +130,12 @@
 {% if previous %}
 <div class="card table-card">
     <div class="responsive-table">
-        <table class="history-table">
+        <table class="history-table dashboard-history">
             <thead>
                 <tr>
-                    <th>Period</th>
+                    <th>BAS period</th>
                     <th>Amount</th>
                     <th>Status</th>
-                    <th>Last updated</th>
                     <th></th>
                 </tr>
             </thead>
@@ -83,14 +143,17 @@
                 {% for record in previous %}
                 <tr>
                     <td>
-                        <strong>{{ record.start_date }}</strong>
-                        <div class="table-subtext">to {{ record.end_date }}</div>
+                        <strong>{{ record.period_display }}</strong>
                     </td>
                     <td>${{ "{:,.2f}".format(record.payable) }}</td>
                     <td>
                         <span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span>
+                        {% if record.status_date %}
+                            <div class="table-status-date">
+                                {{ record.status_date_label }} {{ record.status_date }}
+                            </div>
+                        {% endif %}
                     </td>
-                    <td>{{ record.updated_at }}</td>
                     <td class="table-action">
                         <a href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">View</a>
                     </td>
