@@ -7,8 +7,19 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <div class="container">
+    <header class="app-header">
+        <div class="app-header-inner">
+            <a class="app-brand" href="{{ url_for('bas.dashboard') }}">BAS Automation</a>
+            <nav class="app-nav">
+                <a href="{{ url_for('bas.dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('bas.bas_history') }}">History</a>
+                <a href="{{ url_for('qbo.connect') }}">QuickBooks</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
         {% block content %}{% endblock %}
-    </div>
+    </main>
 </body>
 </html>
