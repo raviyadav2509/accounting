@@ -159,10 +159,66 @@
         </div>
     </div>
 </details>
+
+{% if current_others %}
+<div class="current-bas-subsection">
+    <div class="current-bas-subsection-heading">
+        <div>
+            <div class="current-bas-subsection-title">Other BAS in progress</div>
+            <p>These BAS periods have been calculated but have not been lodged yet.</p>
+        </div>
+    </div>
+
+    <div class="card table-card active-bas-table-card">
+        <div class="responsive-table">
+            <table class="history-table dashboard-history">
+                <thead>
+                    <tr>
+                        <th>BAS period</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in current_others %}
+                    <tr>
+                        <td>
+                            <a class="bas-period-link" href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">
+                                {{ record.period_display }}
+                            </a>
+                        </td>
+                        <td>${{ "{:,.2f}".format(record.payable) }}</td>
+                        <td>
+                            <span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span>
+                            {% if record.status_date %}
+                                <div class="table-status-date">
+                                    {{ record.status_date_label }} {{ record.status_date }}
+                                </div>
+                            {% endif %}
+                        </td>
+                        <td class="table-action">
+                            {% if not record.review_status %}
+                                <a href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">Review BAS</a>
+                                <div class="table-action-note">Not yet reviewed</div>
+                            {% else %}
+                                <a href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">Continue BAS</a>
+                                <div class="table-action-note">Editable until lodged</div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="section-heading">
     <div>
         <div class="dashboard-section-title">Previous BAS</div>
-        <p>Your latest saved BAS periods and their current status.</p>
+        <p>Only lodged BAS periods appear here.</p>
     </div>
 </div>
 
@@ -182,15 +238,9 @@
                 {% for record in previous %}
                 <tr>
                     <td>
-                        {% if record.is_lodged %}
-                            <a class="bas-period-link" href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">
-                                {{ record.period_display }}
-                            </a>
-                        {% else %}
-                            <a class="bas-period-link" href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">
-                                {{ record.period_display }}
-                            </a>
-                        {% endif %}
+                        <a class="bas-period-link" href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">
+                            {{ record.period_display }}
+                        </a>
                     </td>
                     <td>${{ "{:,.2f}".format(record.payable) }}</td>
                     <td>
@@ -202,16 +252,8 @@
                         {% endif %}
                     </td>
                     <td class="table-action">
-                        {% if record.is_lodged %}
-                            <a href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">View details</a>
-                            <div class="table-action-note">Read only</div>
-                        {% elif not record.review_status %}
-                            <a href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">Review BAS</a>
-                            <div class="table-action-note">Not yet reviewed</div>
-                        {% else %}
-                            <a href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">Continue BAS</a>
-                            <div class="table-action-note">Editable until lodged</div>
-                        {% endif %}
+                        <a href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">View details</a>
+                        <div class="table-action-note">Read only</div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -221,8 +263,8 @@
 </div>
 {% else %}
 <div class="card empty-state">
-    <strong>No previous BAS records yet.</strong>
-    <p>Completed and reviewed BAS periods will appear here automatically.</p>
+    <strong>No lodged BAS records yet.</strong>
+    <p>Once a BAS is lodged, it will move from Current BAS to Previous BAS automatically.</p>
 </div>
 {% endif %}
 {% endblock %}
