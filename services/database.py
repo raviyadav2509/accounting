@@ -244,17 +244,18 @@ def get_history(limit=50):
     with get_connection() as connection:
         rows = connection.execute(
             """
-            SELECT b.*
-            FROM bas_records b
-            INNER JOIN (
-                SELECT start_date, end_date, MAX(updated_at) AS latest_updated
-                FROM bas_records
-                GROUP BY start_date, end_date
-            ) latest
-              ON latest.start_date = b.start_date
-             AND latest.end_date = b.end_date
-             AND latest.latest_updated = b.updated_at
-            ORDER BY b.end_date DESC, b.updated_at DESC
+            SELECT *
+            FROM (
+                SELECT
+                    b.*,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY start_date, end_date
+                        ORDER BY updated_at DESC, id DESC
+                    ) AS period_rank
+                FROM bas_records b
+            )
+            WHERE period_rank = 1
+            ORDER BY end_date DESC, updated_at DESC, id DESC
             LIMIT ?
             """,
             (limit,),
