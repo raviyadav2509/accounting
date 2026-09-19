@@ -62,36 +62,45 @@
 </div>
 
 <div class="card actions">
-    <div class="actions-title">Ready to review?</div>
-    <div class="actions-description">Run the AI review first. It will check the underlying QuickBooks transactions and tell you if anything should be looked at before approval.</div>
+    <div class="actions-title">Review and approve</div>
+    <div class="actions-description">
+        Run the AI review first. Once the review is complete, the approval option will appear here when appropriate.
+    </div>
 
-    <div class="button-row">
-        <form action="/ai-review" method="get">
-            <input type="hidden" name="start" value="{{ bas.start }}">
-            <input type="hidden" name="end" value="{{ bas.end }}">
-            <button class="ai-button" type="submit">{% if ai_status == "NOT REVIEWED" %}Run AI Review{% else %}Run AI Review Again{% endif %}</button>
-        </form>
+    {% if ai_status == "REVIEW REQUIRED" %}
+        <div class="approval-alert">
+            Approval is unavailable until the review items are resolved.
+        </div>
+    {% endif %}
 
-        {% if ai_status == "PASS" %}
-            <form action="/approve-bas" method="post">
+    <div class="action-bar">
+        <div class="primary-actions">
+            <form action="/ai-review" method="get">
                 <input type="hidden" name="start" value="{{ bas.start }}">
                 <input type="hidden" name="end" value="{{ bas.end }}">
-                <button class="approve-button" type="submit">Approve BAS</button>
+                <button class="ai-button" type="submit">
+                    {% if ai_status == "NOT REVIEWED" %}Run AI Review{% else %}Run AI Review Again{% endif %}
+                </button>
             </form>
-        {% elif ai_status == "WARNING" %}
-            <form action="/approve-bas" method="post">
-                <input type="hidden" name="start" value="{{ bas.start }}">
-                <input type="hidden" name="end" value="{{ bas.end }}">
-                <label class="warning-ack"><input type="checkbox" name="acknowledge_warning" value="yes" required> I have reviewed the AI warnings</label>
-                <button class="approve-button" type="submit">Approve BAS</button>
-            </form>
-        {% elif ai_status == "REVIEW REQUIRED" %}
-            <button class="disabled-button" disabled>Resolve Issues Before Approval</button>
-        {% else %}
-            <div class="approval-status">
-                Approval locked — complete the AI review first
-            </div>
-        {% endif %}
+
+            {% if ai_status == "PASS" %}
+                <form action="/approve-bas" method="post">
+                    <input type="hidden" name="start" value="{{ bas.start }}">
+                    <input type="hidden" name="end" value="{{ bas.end }}">
+                    <button class="approve-button" type="submit">Approve BAS</button>
+                </form>
+            {% elif ai_status == "WARNING" %}
+                <form class="warning-form" action="/approve-bas" method="post">
+                    <input type="hidden" name="start" value="{{ bas.start }}">
+                    <input type="hidden" name="end" value="{{ bas.end }}">
+                    <label class="warning-ack">
+                        <input type="checkbox" name="acknowledge_warning" value="yes" required>
+                        I have reviewed the AI warnings
+                    </label>
+                    <button class="approve-button" type="submit">Approve BAS</button>
+                </form>
+            {% endif %}
+        </div>
 
         <form action="/reject-bas" method="post">
             <input type="hidden" name="start" value="{{ bas.start }}">
@@ -100,6 +109,8 @@
         </form>
     </div>
 
-    <div class="info-box"><strong>Important:</strong> Approving here currently records your approval only. It does not lodge anything with the ATO yet.</div>
+    <div class="info-box">
+        <strong>Note:</strong> Approval is recorded in this app only. Nothing is lodged with the ATO yet.
+    </div>
 </div>
 {% endblock %}
