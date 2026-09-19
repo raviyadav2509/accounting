@@ -10,116 +10,120 @@
     <a class="secondary-button" href="{{ url_for('bas.bas_history') }}">All BAS records</a>
 </div>
 
-<div class="card current-bas-card">
-    <div class="current-bas-header">
-        <div>
+<details class="card current-bas-card current-bas-disclosure">
+    <summary class="current-bas-summary">
+        <div class="summary-period">
             <div class="eyebrow">Current BAS</div>
-            <h2>{{ current.period_display }}</h2>
+            <div class="summary-period-title">{{ current.period_display }}</div>
             <div class="period-caption">Reporting period {{ bas.start }} to {{ bas.end }}</div>
         </div>
 
-        <div class="current-status">
+        <div class="summary-amount">
+            <div class="dashboard-amount-label">{{ amount_heading }}</div>
+            <div class="summary-amount-value">{{ amount_display }}</div>
+        </div>
+
+        <div class="summary-status">
             <span class="status-badge {{ current.status_class }}">{{ current.display_status }}</span>
             {% if current.status_date %}
                 <div class="status-date">
                     {{ current.status_date_label }} {{ current.status_date }}
                 </div>
             {% endif %}
+            <div class="expand-hint">Expand for summary details</div>
         </div>
-    </div>
+    </summary>
 
-    <div class="bas-progress">
-        <div class="progress-step complete">
-            <div class="progress-marker">✓</div>
+    <div class="current-bas-expanded">
+        <div class="expanded-intro">
             <div>
-                <div class="progress-label">BAS calculated</div>
-                <div class="progress-date">{{ current.created_at_display or "Saved" }}</div>
+                <h3>BAS summary</h3>
+                <p>{{ amount_note }}</p>
             </div>
         </div>
 
-        <div class="progress-step {% if current.reviewed_at %}complete{% else %}pending{% endif %}">
-            <div class="progress-marker">{% if current.reviewed_at %}✓{% else %}2{% endif %}</div>
-            <div>
-                <div class="progress-label">AI review</div>
-                <div class="progress-date">
-                    {% if current.reviewed_at %}{{ current.reviewed_at_display }}{% else %}Pending{% endif %}
+        <div class="bas-progress">
+            <div class="progress-step complete">
+                <div class="progress-marker">✓</div>
+                <div>
+                    <div class="progress-label">BAS calculated</div>
+                    <div class="progress-date">{{ current.created_at_display or "Saved" }}</div>
+                </div>
+            </div>
+
+            <div class="progress-step {% if current.reviewed_at %}complete{% else %}pending{% endif %}">
+                <div class="progress-marker">{% if current.reviewed_at %}✓{% else %}2{% endif %}</div>
+                <div>
+                    <div class="progress-label">AI review</div>
+                    <div class="progress-date">
+                        {% if current.reviewed_at %}{{ current.reviewed_at_display }}{% else %}Pending{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-step {% if current.resolved_at or current.review_status in ["PASS", "WARNING"] %}complete{% elif current.review_status == "REVIEW REQUIRED" %}attention{% else %}pending{% endif %}">
+                <div class="progress-marker">
+                    {% if current.resolved_at or current.review_status in ["PASS", "WARNING"] %}✓{% else %}3{% endif %}
+                </div>
+                <div>
+                    <div class="progress-label">
+                        {% if current.review_status == "REVIEW REQUIRED" %}Issues resolved{% else %}Review checks{% endif %}
+                    </div>
+                    <div class="progress-date">
+                        {% if current.resolved_at %}
+                            {{ current.resolved_at_display }}
+                        {% elif current.review_status in ["PASS", "WARNING"] %}
+                            Complete
+                        {% elif current.review_status == "REVIEW REQUIRED" %}
+                            Action required
+                        {% else %}
+                            Pending
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-step {% if current.approved_at %}complete{% else %}pending{% endif %}">
+                <div class="progress-marker">{% if current.approved_at %}✓{% else %}4{% endif %}</div>
+                <div>
+                    <div class="progress-label">Approval</div>
+                    <div class="progress-date">
+                        {% if current.approved_at %}{{ current.approved_at_display }}{% else %}Pending{% endif %}
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="progress-step {% if current.resolved_at or current.review_status in ["PASS", "WARNING"] %}complete{% elif current.review_status == "REVIEW REQUIRED" %}attention{% else %}pending{% endif %}">
-            <div class="progress-marker">
-                {% if current.resolved_at or current.review_status in ["PASS", "WARNING"] %}✓{% else %}3{% endif %}
+        <div class="dashboard-metrics">
+            <div class="dashboard-metric">
+                <span>Sales</span>
+                <strong>${{ "{:,.2f}".format(bas.g1) }}</strong>
             </div>
-            <div>
-                <div class="progress-label">
-                    {% if current.review_status == "REVIEW REQUIRED" %}Issues resolved{% else %}Review checks{% endif %}
-                </div>
-                <div class="progress-date">
-                    {% if current.resolved_at %}
-                        {{ current.resolved_at_display }}
-                    {% elif current.review_status in ["PASS", "WARNING"] %}
-                        Complete
-                    {% elif current.review_status == "REVIEW REQUIRED" %}
-                        Action required
-                    {% else %}
-                        Pending
-                    {% endif %}
-                </div>
+            <div class="dashboard-metric">
+                <span>GST collected</span>
+                <strong>${{ "{:,.2f}".format(bas.gst_sales) }}</strong>
+            </div>
+            <div class="dashboard-metric">
+                <span>GST credits</span>
+                <strong>${{ "{:,.2f}".format(bas.gst_purchases) }}</strong>
+            </div>
+            <div class="dashboard-metric">
+                <span>PAYG withheld</span>
+                <strong>${{ "{:,.2f}".format(bas.w2) }}</strong>
             </div>
         </div>
 
-        <div class="progress-step {% if current.approved_at %}complete{% else %}pending{% endif %}">
-            <div class="progress-marker">{% if current.approved_at %}✓{% else %}4{% endif %}</div>
-            <div>
-                <div class="progress-label">Approval</div>
-                <div class="progress-date">
-                    {% if current.approved_at %}{{ current.approved_at_display }}{% else %}Pending{% endif %}
-                </div>
+        <div class="expanded-actions">
+            <div class="expanded-actions-copy">
+                <strong>Need the full BAS?</strong>
+                <span>Open the detailed view to see all BAS figures, calculations and run the AI review.</span>
             </div>
-        </div>
-    </div>
-
-    <div class="dashboard-amount-row">
-        <div>
-            <div class="dashboard-amount-label">{{ amount_heading }}</div>
-            <div class="dashboard-amount">{{ amount_display }}</div>
-            <div class="dashboard-amount-note">{{ amount_note }}</div>
-        </div>
-
-        <div class="dashboard-actions">
             <a class="button" href="{{ url_for('bas.bas_review', start=bas.start, end=bas.end) }}">
-                {% if ai_status == "NOT REVIEWED" %}
-                    Review BAS
-                {% elif ai_status == "REVIEW REQUIRED" and not review_resolved %}
-                    Continue Review
-                {% else %}
-                    Open BAS
-                {% endif %}
+                View detailed BAS
             </a>
         </div>
     </div>
-
-    <div class="dashboard-metrics">
-        <div class="dashboard-metric">
-            <span>Sales</span>
-            <strong>${{ "{:,.2f}".format(bas.g1) }}</strong>
-        </div>
-        <div class="dashboard-metric">
-            <span>GST collected</span>
-            <strong>${{ "{:,.2f}".format(bas.gst_sales) }}</strong>
-        </div>
-        <div class="dashboard-metric">
-            <span>GST credits</span>
-            <strong>${{ "{:,.2f}".format(bas.gst_purchases) }}</strong>
-        </div>
-        <div class="dashboard-metric">
-            <span>PAYG withheld</span>
-            <strong>${{ "{:,.2f}".format(bas.w2) }}</strong>
-        </div>
-    </div>
-</div>
-
+</details>
 <div class="section-heading">
     <div>
         <h2>Previous BAS records</h2>
