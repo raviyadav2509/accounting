@@ -5,3 +5,5 @@ bas_approval.json
 __pycache__/
 *.pyc
 .venv/
+bas_history.db
+*.db-journal
