@@ -7,7 +7,7 @@
         <h1>BAS Dashboard</h1>
         <div class="subtitle">Prepare, review and track your Business Activity Statements.</div>
     </div>
-    <a class="secondary-button" href="{{ url_for('bas.bas_history') }}">View BAS History</a>
+    <a class="secondary-button" href="{{ url_for('bas.bas_history') }}">All BAS records</a>
 </div>
 
 <div class="card current-bas-card">
@@ -155,7 +155,7 @@
                         {% endif %}
                     </td>
                     <td class="table-action">
-                        <a href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">View</a>
+                        <a href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">View audit trail</a>
                     </td>
                 </tr>
                 {% endfor %}
