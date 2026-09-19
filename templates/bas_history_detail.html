@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}BAS Audit Record{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <div class="eyebrow">BAS Audit Record</div>
+        <h1>{{ record.start_date }} to {{ record.end_date }}</h1>
+        <div class="subtitle">Saved snapshot #{{ record.id }}</div>
+    </div>
+    <a class="secondary-button" href="{{ url_for('bas.bas_history') }}">Back to History</a>
+</div>
+
+<div class="card audit-summary">
+    <div class="audit-summary-header">
+        <div>
+            <div class="dashboard-amount-label">BAS amount</div>
+            <div class="dashboard-amount">${{ "{:,.2f}".format(record.payable) }}</div>
+        </div>
+        <span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span>
+    </div>
+</div>
+
+<h2>Saved BAS figures</h2>
+<div class="grid">
+    <div class="metric">
+        <div class="metric-code">G1</div>
+        <div class="metric-name">Total sales</div>
+        <div class="metric-value">${{ "{:,.2f}".format(record.g1) }}</div>
+    </div>
+    <div class="metric">
+        <div class="metric-code">1A</div>
+        <div class="metric-name">GST collected</div>
+        <div class="metric-value">${{ "{:,.2f}".format(record.gst_sales) }}</div>
+    </div>
+    <div class="metric">
+        <div class="metric-code">1B</div>
+        <div class="metric-name">GST credits</div>
+        <div class="metric-value">${{ "{:,.2f}".format(record.gst_purchases) }}</div>
+    </div>
+    <div class="metric">
+        <div class="metric-code">W1</div>
+        <div class="metric-name">Gross wages</div>
+        <div class="metric-value">${{ "{:,.2f}".format(record.w1) }}</div>
+    </div>
+    <div class="metric">
+        <div class="metric-code">W2</div>
+        <div class="metric-name">PAYG withheld</div>
+        <div class="metric-value">${{ "{:,.2f}".format(record.w2) }}</div>
+    </div>
+</div>
+
+<h2>Audit trail</h2>
+<div class="card audit-timeline">
+    <div class="audit-event">
+        <div class="audit-dot"></div>
+        <div>
+            <strong>BAS snapshot created</strong>
+            <div class="table-subtext">{{ record.created_at }}</div>
+        </div>
+    </div>
+
+    {% if record.reviewed_at %}
+    <div class="audit-event">
+        <div class="audit-dot"></div>
+        <div>
+            <strong>AI review completed — {{ record.review_status }}</strong>
+            <div class="table-subtext">{{ record.reviewed_at }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if record.resolved_at %}
+    <div class="audit-event">
+        <div class="audit-dot"></div>
+        <div>
+            <strong>Review items resolved by user</strong>
+            <div class="table-subtext">{{ record.resolved_at }}</div>
+            {% if record.resolution_note %}
+                <div class="audit-note">{{ record.resolution_note }}</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if record.approved_at %}
+    <div class="audit-event">
+        <div class="audit-dot success"></div>
+        <div>
+            <strong>BAS approved</strong>
+            <div class="table-subtext">{{ record.approved_at }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if record.rejected_at %}
+    <div class="audit-event">
+        <div class="audit-dot danger"></div>
+        <div>
+            <strong>BAS rejected</strong>
+            <div class="table-subtext">{{ record.rejected_at }}</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if review_html %}
+<h2>Saved AI review</h2>
+<div class="card review-content">
+    {{ review_html|safe }}
+</div>
+{% endif %}
+
+<div class="card technical-record">
+    <strong>Record integrity</strong>
+    <p>This record is tied to the BAS data signature below. If the BAS figures change, a new snapshot is created rather than silently replacing this one.</p>
+    <code>{{ record.signature }}</code>
+</div>
+{% endblock %}
