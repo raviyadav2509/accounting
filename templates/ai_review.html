@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}AI BAS Review{% endblock %}
+
+{% block content %}
+<h1>Your BAS Review</h1>
+<div class="subtitle">{{ bas.start }} to {{ bas.end }}</div>
+
+<div class="card amount-card">
+    <div class="amount-label">Estimated amount payable to the ATO</div>
+    <div class="amount">${{ "{:,.2f}".format(bas.payable) }}</div>
+    <div class="amount-description">This combines your GST position and PAYG tax withheld from wages.</div>
+</div>
+
+<div class="card status {{ status_class }}">
+    <div class="status-title">{{ status_title }}</div>
+    <div>{{ status_message }}</div>
+</div>
+
+<h2>Your BAS at a glance</h2>
+<div class="grid">
+    <div class="metric">
+        <div class="metric-name">Sales</div>
+        <div class="metric-value">${{ "{:,.2f}".format(bas.g1) }}</div>
+        <div class="metric-help">Total sales being reported. This is called G1.</div>
+    </div>
+    <div class="metric">
+        <div class="metric-name">GST you collected</div>
+        <div class="metric-value">${{ "{:,.2f}".format(bas.gst_sales) }}</div>
+        <div class="metric-help">GST charged to customers. This is called 1A.</div>
+    </div>
+    <div class="metric">
+        <div class="metric-name">GST you can claim back</div>
+        <div class="metric-value">${{ "{:,.2f}".format(bas.gst_purchases) }}</div>
+        <div class="metric-help">GST on eligible purchases. This is called 1B.</div>
+    </div>
+    <div class="metric">
+        <div class="metric-name">Employee wages</div>
+        <div class="metric-value">${{ "{:,.2f}".format(bas.w1) }}</div>
+        <div class="metric-help">Gross wages. This is called W1.</div>
+    </div>
+    <div class="metric">
+        <div class="metric-name">Employee tax withheld</div>
+        <div class="metric-value">${{ "{:,.2f}".format(bas.w2) }}</div>
+        <div class="metric-help">Tax withheld from wages. This is called W2.</div>
+    </div>
+</div>
+
+<div class="card calculation">
+    <strong>How the estimated payment was calculated</strong>
+    <p>
+        GST collected <strong>${{ "{:,.2f}".format(bas.gst_sales) }}</strong>
+        - GST credits <strong>${{ "{:,.2f}".format(bas.gst_purchases) }}</strong>
+        + PAYG withheld <strong>${{ "{:,.2f}".format(bas.w2) }}</strong>
+    </p>
+    <p>= <strong>${{ "{:,.2f}".format(bas.payable) }} payable</strong></p>
+</div>
+
+<div class="card review-content">
+    <h2>AI transaction review</h2>
+    {{ review_html|safe }}
+</div>
+
+<a class="button" href="/bas-review?start={{ bas.start }}&end={{ bas.end }}">Back to BAS</a>
+{% endblock %}
