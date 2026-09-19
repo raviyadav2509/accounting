@@ -1434,3 +1434,29 @@ button:hover,
         font-size: 29px;
     }
 }
+
+
+.side-nav-links a.active {
+    background: var(--bas-mint);
+    color: var(--bas-green-deep);
+}
+
+.side-nav-links a.active .nav-icon {
+    color: var(--bas-green);
+}
+
+.status-badge::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: .72;
+}
+
+.secondary-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
