@@ -67,6 +67,9 @@ def _record_status(record):
     review_status = record.get("review_status")
     resolution_status = record.get("resolution_status")
 
+    if approval_status == "LODGED":
+        return "Lodged", "lodged"
+
     if approval_status == "APPROVED":
         return "Approved - Ready to Lodge", "approved"
 
@@ -145,6 +148,10 @@ def _decorate_record(record):
     label, css_class = _record_status(item)
     item["display_status"] = label
     item["status_class"] = css_class
+    item["is_lodged"] = (
+        item.get("approval_status") == "LODGED"
+        or bool(item.get("lodged_at"))
+    )
     item["period_display"] = _format_period(
         item["start_date"],
         item["end_date"],
