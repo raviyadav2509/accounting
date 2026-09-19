@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 
 import markdown
 from flask import Blueprint, redirect, render_template, request, url_for
@@ -86,11 +87,95 @@ def _record_status(record):
     return "Not Reviewed", "not-reviewed"
 
 
+def _format_date(value):
+    if not value:
+        return None
+
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        try:
+            parsed = datetime.strptime(value, "%Y-%m-%d")
+        except ValueError:
+            return value
+
+    return f"{parsed.day} {parsed.strftime('%b %Y')}"
+
+
+def _format_datetime(value):
+    if not value:
+        return None
+
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return value
+
+    hour = parsed.strftime("%I").lstrip("0") or "0"
+    return f"{parsed.day} {parsed.strftime('%b %Y')}, {hour}:{parsed.strftime('%M %p')}"
+
+
+def _format_period(start, end):
+    try:
+        start_date = datetime.strptime(start, "%Y-%m-%d")
+        end_date = datetime.strptime(end, "%Y-%m-%d")
+    except ValueError:
+        return f"{start} to {end}"
+
+    if start_date.year == end_date.year and start_date.month == end_date.month:
+        return (
+            f"{start_date.day}–{end_date.day} "
+            f"{end_date.strftime('%B %Y')}"
+        )
+
+    if start_date.year == end_date.year:
+        return (
+            f"{start_date.day} {start_date.strftime('%b')} – "
+            f"{end_date.day} {end_date.strftime('%b %Y')}"
+        )
+
+    return (
+        f"{start_date.day} {start_date.strftime('%b %Y')} – "
+        f"{end_date.day} {end_date.strftime('%b %Y')}"
+    )
+
+
 def _decorate_record(record):
     item = dict(record)
     label, css_class = _record_status(item)
     item["display_status"] = label
     item["status_class"] = css_class
+    item["period_display"] = _format_period(
+        item["start_date"],
+        item["end_date"],
+    )
+
+    for field in (
+        "created_at",
+        "updated_at",
+        "reviewed_at",
+        "resolved_at",
+        "approved_at",
+        "rejected_at",
+    ):
+        item[f"{field}_display"] = _format_datetime(item.get(field))
+
+    if item.get("approved_at"):
+        item["status_date_label"] = "Approved"
+        item["status_date"] = _format_date(item["approved_at"])
+    elif item.get("rejected_at"):
+        item["status_date_label"] = "Rejected"
+        item["status_date"] = _format_date(item["rejected_at"])
+    elif item.get("resolved_at"):
+        item["status_date_label"] = "Resolved"
+        item["status_date"] = _format_date(item["resolved_at"])
+    elif item.get("reviewed_at"):
+        item["status_date_label"] = "Reviewed"
+        item["status_date"] = _format_date(item["reviewed_at"])
+    else:
+        item["status_date_label"] = "Created"
+        item["status_date"] = _format_date(item.get("created_at"))
+
     return item
 
 
