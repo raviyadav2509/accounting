@@ -201,20 +201,30 @@ def dashboard():
         ai_review and ai_review.get("resolution_status") == "RESOLVED"
     )
 
-    previous = []
-    for record in get_history(limit=20):
-        if current_record and record["id"] == current_record["id"]:
-            continue
-        previous.append(_decorate_record(record))
-        if len(previous) == 5:
-            break
-
     current_display = _decorate_record(current_record)
+    records = [
+        _decorate_record(record)
+        for record in get_history(limit=100)
+    ]
+
+    current_others = [
+        record
+        for record in records
+        if not record["is_lodged"]
+        and record["id"] != current_display["id"]
+    ]
+
+    previous = [
+        record
+        for record in records
+        if record["is_lodged"]
+    ][:5]
 
     return render_template(
         "dashboard.html",
         bas=bas,
         current=current_display,
+        current_others=current_others,
         ai_status=ai_status,
         review_resolved=review_resolved,
         previous=previous,
@@ -246,13 +256,34 @@ def calculate_new_bas():
             back_url=url_for("bas.dashboard"),
         ), 400
 
-    if start == DEFAULT_BAS_START and end == DEFAULT_BAS_END:
+    matching_record = next(
+        (
+            _decorate_record(record)
+            for record in get_history(limit=100)
+            if record["start_date"] == start
+            and record["end_date"] == end
+        ),
+        None,
+    )
+
+    if matching_record:
+        if matching_record["is_lodged"]:
+            return render_template(
+                "message.html",
+                title="BAS already lodged",
+                message=(
+                    "A BAS for this reporting period has already been lodged "
+                    "and is available under Previous BAS."
+                ),
+                back_url=url_for("bas.dashboard"),
+            )
+
         return render_template(
             "message.html",
             title="BAS already calculated",
             message=(
                 "A BAS for this reporting period has already been calculated "
-                "and is shown as the Current BAS on the Dashboard."
+                "and is listed under Current BAS on the Dashboard."
             ),
             back_url=url_for("bas.dashboard"),
         )
