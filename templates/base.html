@@ -7,19 +7,68 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <header class="app-header">
-        <div class="app-header-inner">
-            <a class="app-brand" href="{{ url_for('bas.dashboard') }}">BAS Automation</a>
-            <nav class="app-nav">
-                <a href="{{ url_for('bas.dashboard') }}">Dashboard</a>
-                <a href="{{ url_for('bas.bas_history') }}">History</a>
-                <a href="{{ url_for('qbo.connect') }}">QuickBooks</a>
-            </nav>
-        </div>
-    </header>
+    <div class="app-shell">
+        <aside class="side-nav">
+            <a class="brand-lockup" href="{{ url_for('bas.dashboard') }}">
+                <span class="brand-mark">B</span>
+                <span>
+                    <strong>BAS</strong>
+                    <small>Automation</small>
+                </span>
+            </a>
 
-    <main class="container">
-        {% block content %}{% endblock %}
-    </main>
+            <nav class="side-nav-links" aria-label="Primary">
+                <a href="{{ url_for('bas.dashboard') }}">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M4 13h6V4H4v9Zm10 7h6v-9h-6v9ZM4 20h6v-3H4v3Zm10-13h6V4h-6v3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="{{ url_for('bas.bas_history') }}">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <span>BAS history</span>
+                </a>
+
+                <a href="{{ url_for('qbo.connect') }}">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M8.5 8.5 6 11a4 4 0 0 0 5.7 5.7l2.5-2.5M15.5 15.5 18 13a4 4 0 1 0-5.7-5.7L9.8 9.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                    <span>QuickBooks</span>
+                </a>
+            </nav>
+
+            <div class="side-nav-footer">
+                <div class="connection-dot"></div>
+                <span>Accounting workspace</span>
+            </div>
+        </aside>
+
+        <div class="workspace">
+            <header class="top-bar">
+                <div class="top-bar-title">Business Activity Statement</div>
+                <div class="top-bar-actions">
+                    <a class="icon-button" href="{{ url_for('bas.bas_history') }}" title="BAS history" aria-label="BAS history">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M12 8v4l2.5 1.5M4.9 6.9A8 8 0 1 1 4 16M4 8V4m0 0h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </a>
+                    <span class="workspace-chip">BAS</span>
+                </div>
+            </header>
+
+            <main class="container">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
 </body>
 </html>
