@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}BAS Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <h1>BAS Dashboard</h1>
+        <div class="subtitle">Prepare, review and track your Business Activity Statements.</div>
+    </div>
+    <a class="secondary-button" href="{{ url_for('bas.bas_history') }}">View BAS History</a>
+</div>
+
+<div class="card current-bas-card">
+    <div class="current-bas-header">
+        <div>
+            <div class="eyebrow">Current BAS</div>
+            <h2>{{ bas.start }} to {{ bas.end }}</h2>
+        </div>
+        <span class="status-badge {{ current.status_class }}">{{ current.display_status }}</span>
+    </div>
+
+    <div class="dashboard-amount-row">
+        <div>
+            <div class="dashboard-amount-label">{{ amount_heading }}</div>
+            <div class="dashboard-amount">{{ amount_display }}</div>
+            <div class="dashboard-amount-note">{{ amount_note }}</div>
+        </div>
+
+        <div class="dashboard-actions">
+            <a class="button" href="{{ url_for('bas.bas_review', start=bas.start, end=bas.end) }}">
+                {% if ai_status == "NOT REVIEWED" %}
+                    Review BAS
+                {% elif ai_status == "REVIEW REQUIRED" and not review_resolved %}
+                    Continue Review
+                {% else %}
+                    Open BAS
+                {% endif %}
+            </a>
+        </div>
+    </div>
+
+    <div class="dashboard-metrics">
+        <div class="dashboard-metric">
+            <span>Sales</span>
+            <strong>${{ "{:,.2f}".format(bas.g1) }}</strong>
+        </div>
+        <div class="dashboard-metric">
+            <span>GST collected</span>
+            <strong>${{ "{:,.2f}".format(bas.gst_sales) }}</strong>
+        </div>
+        <div class="dashboard-metric">
+            <span>GST credits</span>
+            <strong>${{ "{:,.2f}".format(bas.gst_purchases) }}</strong>
+        </div>
+        <div class="dashboard-metric">
+            <span>PAYG withheld</span>
+            <strong>${{ "{:,.2f}".format(bas.w2) }}</strong>
+        </div>
+    </div>
+</div>
+
+<div class="section-heading">
+    <div>
+        <h2>Previous BAS records</h2>
+        <p>Your latest saved BAS periods and their current status.</p>
+    </div>
+</div>
+
+{% if previous %}
+<div class="card table-card">
+    <div class="responsive-table">
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Last updated</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in previous %}
+                <tr>
+                    <td>
+                        <strong>{{ record.start_date }}</strong>
+                        <div class="table-subtext">to {{ record.end_date }}</div>
+                    </td>
+                    <td>${{ "{:,.2f}".format(record.payable) }}</td>
+                    <td>
+                        <span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span>
+                    </td>
+                    <td>{{ record.updated_at }}</td>
+                    <td class="table-action">
+                        <a href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card empty-state">
+    <strong>No previous BAS records yet.</strong>
+    <p>Completed and reviewed BAS periods will appear here automatically.</p>
+</div>
+{% endif %}
+{% endblock %}
