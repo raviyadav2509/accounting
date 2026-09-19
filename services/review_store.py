@@ -1,83 +1,108 @@
 import json
 import os
-from datetime import datetime
 
-from config import APPROVAL_FILE, REVIEW_FILE
+from config import REVIEW_FILE
+from services.database import (
+    get_bas_record,
+    mark_approved,
+    mark_rejected,
+    resolve_review,
+    update_review,
+)
+
+
+def _review_from_record(record):
+    if not record or not record.get("review_status"):
+        return None
+
+    return {
+        "start": record["start_date"],
+        "end": record["end_date"],
+        "status": record["review_status"],
+        "signature": record["signature"],
+        "reviewed_at": record.get("reviewed_at"),
+        "review_text": record.get("review_text"),
+        "resolution_status": record.get("resolution_status"),
+        "resolution_note": record.get("resolution_note"),
+        "resolved_at": record.get("resolved_at"),
+    }
 
 
 def save_ai_review(start, end, status, signature, review_text=None):
-    data = {
-        "start": start,
-        "end": end,
-        "status": status,
-        "signature": signature,
-        "reviewed_at": datetime.now().isoformat(),
-    }
-    if review_text is not None:
-        data["review_text"] = review_text
-
-    with open(REVIEW_FILE, "w") as f:
-        json.dump(data, f, indent=2)
-
-    return data
+    record = update_review(
+        start,
+        end,
+        signature,
+        status,
+        review_text or "",
+    )
+    return _review_from_record(record)
 
 
 def load_ai_review(start, end, signature):
+    record = get_bas_record(start, end, signature)
+    review = _review_from_record(record)
+
+    if review:
+        return review
+
+    # One-time compatibility with the earlier JSON-based implementation.
     if not os.path.exists(REVIEW_FILE):
         return None
 
     with open(REVIEW_FILE, "r") as f:
-        data = json.load(f)
+        legacy = json.load(f)
 
-    if data.get("start") != start or data.get("end") != end:
+    if legacy.get("start") != start or legacy.get("end") != end:
         return None
 
-    if data.get("signature") != signature:
+    if legacy.get("signature") != signature:
         return None
 
-    return data
+    record = update_review(
+        start,
+        end,
+        signature,
+        legacy.get("status", "WARNING"),
+        legacy.get("review_text", ""),
+    )
+
+    if legacy.get("resolution_status") == "RESOLVED":
+        record = resolve_review(
+            start,
+            end,
+            signature,
+            legacy.get("resolution_note", "Resolved in previous version."),
+        )
+
+    return _review_from_record(record)
 
 
 def save_approval(start, end, ai_status, signature):
-    approval = {
+    record = mark_approved(start, end, signature, ai_status)
+
+    return {
         "status": "APPROVED",
         "start": start,
         "end": end,
         "ai_status": ai_status,
-        "approved_at": datetime.now().isoformat(),
+        "approved_at": record.get("approved_at") if record else None,
         "signature": signature,
     }
 
-    with open(APPROVAL_FILE, "w") as f:
-        json.dump(approval, f, indent=2)
 
-    return approval
+def save_rejection(start, end, signature):
+    record = mark_rejected(start, end, signature)
 
-
-def save_rejection(start, end):
-    rejection = {
+    return {
         "status": "REJECTED",
         "start": start,
         "end": end,
-        "rejected_at": datetime.now().isoformat(),
+        "rejected_at": record.get("rejected_at") if record else None,
+        "signature": signature,
     }
-
-    with open(APPROVAL_FILE, "w") as f:
-        json.dump(rejection, f, indent=2)
-
-    return rejection
 
 
 def resolve_ai_review(start, end, signature, resolution_note):
-    review = load_ai_review(start, end, signature)
-    if not review:
-        return None
-
-    review["resolution_status"] = "RESOLVED"
-    review["resolution_note"] = resolution_note.strip()
-    review["resolved_at"] = datetime.now().isoformat()
-
-    with open(REVIEW_FILE, "w") as f:
-        json.dump(review, f, indent=2)
-
-    return review
+    record = resolve_review(start, end, signature, resolution_note)
+    return _review_from_record(record)
