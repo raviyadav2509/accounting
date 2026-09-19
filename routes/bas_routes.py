@@ -239,6 +239,17 @@ def calculate_new_bas():
             back_url=url_for("bas.dashboard"),
         ), 400
 
+    if start == DEFAULT_BAS_START and end == DEFAULT_BAS_END:
+        return render_template(
+            "message.html",
+            title="BAS already calculated",
+            message=(
+                "A BAS for this reporting period has already been calculated "
+                "and is shown as the Current BAS on the Dashboard."
+            ),
+            back_url=url_for("bas.dashboard"),
+        )
+
     return redirect(url_for("bas.bas_review", start=start, end=end))
 
 
