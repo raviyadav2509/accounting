@@ -215,6 +215,33 @@ def dashboard():
     )
 
 
+@bas_bp.route("/calculate-bas", methods=["POST"])
+def calculate_new_bas():
+    start = request.form.get("start", "").strip()
+    end = request.form.get("end", "").strip()
+
+    try:
+        start_date = datetime.strptime(start, "%Y-%m-%d")
+        end_date = datetime.strptime(end, "%Y-%m-%d")
+    except ValueError:
+        return render_template(
+            "message.html",
+            title="Invalid BAS dates",
+            message="Enter a valid start date and end date.",
+            back_url=url_for("bas.dashboard"),
+        ), 400
+
+    if start_date > end_date:
+        return render_template(
+            "message.html",
+            title="Invalid BAS period",
+            message="The BAS start date must be before or the same as the end date.",
+            back_url=url_for("bas.dashboard"),
+        ), 400
+
+    return redirect(url_for("bas.bas_review", start=start, end=end))
+
+
 @bas_bp.route("/bas-history")
 def bas_history():
     records = [_decorate_record(record) for record in get_history(limit=100)]
