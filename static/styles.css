@@ -1460,3 +1460,148 @@ button:hover,
     align-items: center;
     gap: 8px;
 }
+
+
+/* New BAS calculator */
+.page-heading-actions {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.new-bas-menu {
+    position: relative;
+}
+
+.new-bas-trigger {
+    list-style: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.new-bas-trigger::-webkit-details-marker {
+    display: none;
+}
+
+.new-bas-trigger::marker {
+    content: "";
+}
+
+.new-bas-plus {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,.18);
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.new-bas-popover {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 30;
+    width: 430px;
+    padding: 20px;
+    border: 1px solid var(--bas-border);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 18px 45px rgba(20, 43, 31, .16);
+}
+
+.new-bas-popover-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+}
+
+.new-bas-popover-heading strong {
+    color: #17211b;
+    font-size: 16px;
+}
+
+.new-bas-popover-heading span {
+    color: var(--bas-muted);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.new-bas-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: end;
+}
+
+.new-bas-form .button {
+    grid-column: 1 / -1;
+    width: 100%;
+}
+
+.date-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.date-field label {
+    color: #34423a;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.date-field input {
+    width: 100%;
+    min-height: 42px;
+    padding: 8px 10px;
+    border: 1px solid #cfd8d2;
+    border-radius: 7px;
+    background: #fff;
+    color: #1f2937;
+    font: inherit;
+}
+
+.date-field input:focus {
+    outline: none;
+    border-color: var(--bas-green);
+    box-shadow: 0 0 0 3px rgba(44, 160, 28, .12);
+}
+
+.new-bas-menu[open] > .new-bas-trigger {
+    background: #258b18;
+}
+
+@media (max-width: 760px) {
+    .page-heading-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .new-bas-menu {
+        width: 100%;
+    }
+
+    .new-bas-trigger,
+    .page-heading-actions > .secondary-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .new-bas-popover {
+        position: static;
+        width: 100%;
+        margin-top: 10px;
+        box-shadow: var(--bas-shadow);
+    }
+
+    .new-bas-form {
+        grid-template-columns: 1fr;
+    }
+}
