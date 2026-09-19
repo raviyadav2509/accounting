@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}BAS History{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <h1>BAS History</h1>
+        <div class="subtitle">A permanent record of BAS calculations, reviews and approvals.</div>
+    </div>
+    <a class="secondary-button" href="{{ url_for('bas.dashboard') }}">Back to Dashboard</a>
+</div>
+
+{% if records %}
+<div class="card table-card">
+    <div class="responsive-table">
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th>Sales</th>
+                    <th>BAS amount</th>
+                    <th>AI review</th>
+                    <th>Status</th>
+                    <th>Last updated</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td>
+                        <strong>{{ record.start_date }}</strong>
+                        <div class="table-subtext">to {{ record.end_date }}</div>
+                    </td>
+                    <td>${{ "{:,.2f}".format(record.g1) }}</td>
+                    <td>${{ "{:,.2f}".format(record.payable) }}</td>
+                    <td>{{ record.review_status or "Not reviewed" }}</td>
+                    <td><span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span></td>
+                    <td>{{ record.updated_at }}</td>
+                    <td class="table-action">
+                        <a href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card empty-state">
+    <strong>No BAS history yet.</strong>
+    <p>Once you open or review a BAS, its snapshot will be saved here.</p>
+</div>
+{% endif %}
+{% endblock %}
