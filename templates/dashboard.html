@@ -13,7 +13,7 @@
 <details class="card current-bas-card current-bas-disclosure">
     <summary class="current-bas-summary">
         <div class="summary-period">
-            <div class="eyebrow">Current BAS</div>
+            <div class="dashboard-section-title">Current BAS</div>
             <div class="summary-period-title">{{ current.period_display }}</div>
             <div class="period-caption">Reporting period {{ bas.start }} to {{ bas.end }}</div>
         </div>
@@ -24,7 +24,10 @@
         </div>
 
         <div class="summary-status">
-            <span class="status-badge {{ current.status_class }}">{{ current.display_status }}</span>
+            <div class="summary-status-row">
+                <span class="status-badge {{ current.status_class }}">{{ current.display_status }}</span>
+                <span class="collapse-indicator" aria-hidden="true">⌄</span>
+            </div>
             {% if current.status_date %}
                 <div class="status-date">
                     {{ current.status_date_label }} {{ current.status_date }}
@@ -126,7 +129,7 @@
 </details>
 <div class="section-heading">
     <div>
-        <h2>Previous BAS records</h2>
+        <div class="dashboard-section-title">Previous BAS</div>
         <p>Your latest saved BAS periods and their current status.</p>
     </div>
 </div>
