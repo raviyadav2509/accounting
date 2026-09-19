@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Your BAS{% endblock %}
+
+{% block content %}
+<h1>Your BAS</h1>
+<div class="subtitle">Reporting period: {{ bas.start }} to {{ bas.end }}</div>
+
+<div class="card amount-card">
+    <div class="amount-label">{{ amount_heading }}</div>
+    <div class="amount">{{ amount_display }}</div>
+    <div class="amount-description">{{ amount_note }}</div>
+</div>
+
+<h2>Your BAS at a glance</h2>
+<div class="grid">
+    <div class="metric">
+        <div class="metric-code">G1</div>
+        <div class="metric-name">Total sales</div>
+        <div class="metric-value">${{ "{:,.2f}".format(bas.g1) }}</div>
+        <div class="metric-help">Total sales being reported for this BAS period.</div>
+    </div>
+    <div class="metric">
+        <div class="metric-code">1A</div>
+        <div class="metric-name">GST you collected</div>
+        <div class="metric-value">${{ "{:,.2f}".format(bas.gst_sales) }}</div>
+        <div class="metric-help">GST charged to your customers.</div>
+    </div>
+    <div class="metric">
+        <div class="metric-code">1B</div>
+        <div class="metric-name">GST you can claim back</div>
+        <div class="metric-value">${{ "{:,.2f}".format(bas.gst_purchases) }}</div>
+        <div class="metric-help">GST paid on eligible business purchases.</div>
+    </div>
+    <div class="metric">
+        <div class="metric-code">W1</div>
+        <div class="metric-name">Employee wages</div>
+        <div class="metric-value">${{ "{:,.2f}".format(bas.w1) }}</div>
+        <div class="metric-help">Gross wages before employee tax was deducted.</div>
+    </div>
+    <div class="metric">
+        <div class="metric-code">W2</div>
+        <div class="metric-name">Employee tax withheld</div>
+        <div class="metric-value">${{ "{:,.2f}".format(bas.w2) }}</div>
+        <div class="metric-help">Employee tax withheld that needs to go to the ATO.</div>
+    </div>
+</div>
+
+<h2>How this amount was calculated</h2>
+<div class="card calculation">
+    <div class="calculation-row"><span>GST collected from customers</span><strong>${{ "{:,.2f}".format(bas.gst_sales) }}</strong></div>
+    <div class="calculation-row"><span>Less GST you can claim back</span><strong>-${{ "{:,.2f}".format(bas.gst_purchases) }}</strong></div>
+    <div class="calculation-row"><span>Your GST position</span><strong>${{ "{:,.2f}".format(bas.gst_position) }}</strong></div>
+    <div class="calculation-row"><span>Add employee tax withheld</span><strong>${{ "{:,.2f}".format(bas.w2) }}</strong></div>
+    <div class="calculation-row"><span>Estimated BAS amount</span><strong>${{ "{:,.2f}".format(bas.payable) }}</strong></div>
+</div>
+
+<h2>What happens next</h2>
+<div class="process">
+    <div class="step"><div class="step-number">Step 1</div><div class="step-title">BAS calculated</div><div class="step-text">QuickBooks transactions have been used to calculate your BAS.</div></div>
+    <div class="step"><div class="step-number">Step 2</div><div class="step-title">Run AI review</div><div class="step-text">AI checks transactions for unusual GST, duplicates and other possible problems.</div></div>
+    <div class="step"><div class="step-number">Step 3</div><div class="step-title">You approve</div><div class="step-text">Review the numbers and AI findings before approving the BAS.</div></div>
+</div>
+
+<div class="card actions">
+    <div class="actions-title">Ready to review?</div>
+    <div class="actions-description">Run the AI review first. It will check the underlying QuickBooks transactions and tell you if anything should be looked at before approval.</div>
+
+    <div class="button-row">
+        <form action="/ai-review" method="get">
+            <input type="hidden" name="start" value="{{ bas.start }}">
+            <input type="hidden" name="end" value="{{ bas.end }}">
+            <button class="ai-button" type="submit">{% if ai_status == "NOT REVIEWED" %}Run AI Review{% else %}Run AI Review Again{% endif %}</button>
+        </form>
+
+        {% if ai_status == "PASS" %}
+            <form action="/approve-bas" method="post">
+                <input type="hidden" name="start" value="{{ bas.start }}">
+                <input type="hidden" name="end" value="{{ bas.end }}">
+                <button class="approve-button" type="submit">Approve BAS</button>
+            </form>
+        {% elif ai_status == "WARNING" %}
+            <form action="/approve-bas" method="post">
+                <input type="hidden" name="start" value="{{ bas.start }}">
+                <input type="hidden" name="end" value="{{ bas.end }}">
+                <label class="warning-ack"><input type="checkbox" name="acknowledge_warning" value="yes" required> I have reviewed the AI warnings</label>
+                <button class="approve-button" type="submit">Approve BAS</button>
+            </form>
+        {% elif ai_status == "REVIEW REQUIRED" %}
+            <button class="disabled-button" disabled>Resolve Issues Before Approval</button>
+        {% else %}
+            <button class="disabled-button" disabled>Run AI Review Before Approval</button>
+        {% endif %}
+
+        <form action="/reject-bas" method="post">
+            <input type="hidden" name="start" value="{{ bas.start }}">
+            <input type="hidden" name="end" value="{{ bas.end }}">
+            <button class="reject-button" type="submit">Reject</button>
+        </form>
+    </div>
+
+    <div class="info-box"><strong>Important:</strong> Approving here currently records your approval only. It does not lodge anything with the ATO yet.</div>
+</div>
+{% endblock %}
