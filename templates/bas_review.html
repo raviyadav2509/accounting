@@ -88,7 +88,9 @@
         {% elif ai_status == "REVIEW REQUIRED" %}
             <button class="disabled-button" disabled>Resolve Issues Before Approval</button>
         {% else %}
-            <button class="disabled-button" disabled>Run AI Review Before Approval</button>
+            <div class="approval-status">
+                Approval locked — complete the AI review first
+            </div>
         {% endif %}
 
         <form action="/reject-bas" method="post">
