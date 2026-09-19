@@ -16,6 +16,7 @@ QBO_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer"
 TOKEN_FILE = "tokens.json"
 REVIEW_FILE = "bas_review_status.json"
 APPROVAL_FILE = "bas_approval.json"
+DATABASE_FILE = os.getenv("BAS_DATABASE_FILE", "bas_history.db")
 
 # Sandbox defaults only. Move these to .env before production.
 WAGE_ACCOUNT_ID = os.getenv("QBO_WAGE_ACCOUNT_ID", "66")
