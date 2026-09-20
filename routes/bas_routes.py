@@ -282,13 +282,16 @@ def dashboard():
         for record in get_history(limit=100)
     ]
 
-    current_others = [
+    current_records = [
         record
         for record in records
         if not record["is_lodged"]
-        and record["id"] != current_display["id"]
     ]
-    current_records = [current_display] + current_others
+    current_others = [
+        record
+        for record in current_records
+        if record["id"] != current_display["id"]
+    ]
 
     previous = [
         record
