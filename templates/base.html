@@ -133,18 +133,29 @@
                     {% endif %}
 
                     {% if g.user %}
-                    <div class="user-menu">
-                        <div class="user-avatar" aria-hidden="true">
-                            {{ g.user.first_name[:1]|upper }}{{ g.user.last_name[:1]|upper }}
+                    <details class="user-menu-dropdown">
+                        <summary class="user-menu-trigger" aria-label="Account menu">
+                            <div class="user-avatar" aria-hidden="true">
+                                {{ g.user.first_name[:1]|upper }}{{ g.user.last_name[:1]|upper }}
+                            </div>
+                            <div class="user-summary">
+                                <strong>{{ g.user.first_name }} {{ g.user.last_name }}</strong>
+                                <span>{{ g.user.email }}</span>
+                            </div>
+                            <span class="user-menu-chevron" aria-hidden="true"></span>
+                        </summary>
+
+                        <div class="user-menu-panel">
+                            <div class="user-menu-panel-identity">
+                                <strong>{{ g.user.first_name }} {{ g.user.last_name }}</strong>
+                                <span>{{ g.user.email }}</span>
+                            </div>
+                            <a href="{{ url_for('auth.firm_profile') }}">Settings</a>
+                            <form action="{{ url_for('auth.logout') }}" method="post">
+                                <button type="submit">Sign out</button>
+                            </form>
                         </div>
-                        <div class="user-summary">
-                            <strong>{{ g.user.first_name }} {{ g.user.last_name }}</strong>
-                            <span>{{ g.user.email }}</span>
-                        </div>
-                        <form action="{{ url_for('auth.logout') }}" method="post">
-                            <button class="logout-button" type="submit">Sign out</button>
-                        </form>
-                    </div>
+                    </details>
                     {% endif %}
                 </div>
             </header>
