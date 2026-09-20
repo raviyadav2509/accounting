@@ -1,13 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Accounting Firm Profile | BAS Automation{% endblock %}
+{% block title %}Settings | BAS Automation{% endblock %}
 
 {% block content %}
 <div class="page-heading">
     <div>
-        <h1>Accounting Firm Profile</h1>
-        <div class="subtitle">Manage the practice details shown across your BAS workspace.</div>
+        <h1>Settings</h1>
+        <div class="subtitle">Manage your accounting firm profile and platform details.</div>
     </div>
     <a class="secondary-button" href="{{ url_for('clients.index') }}">Back to clients</a>
+</div>
+
+<div class="settings-section-heading">
+    <div class="eyebrow">Firm profile</div>
+    <h2>Accounting firm details</h2>
+    <p>These details identify your practice across the BAS platform.</p>
 </div>
 
 <div class="card firm-profile-card">
