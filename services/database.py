@@ -62,6 +62,26 @@ def init_db():
             ON bas_records(updated_at)
             """
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                first_name TEXT NOT NULL,
+                last_name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                password_hash TEXT NOT NULL,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                last_login_at TEXT
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_users_email
+            ON users(email)
+            """
+        )
 
 
 def save_bas_snapshot(bas, signature):
@@ -272,3 +292,79 @@ def get_record_by_id(record_id):
         ).fetchone()
 
     return dict(row) if row else None
+
+
+
+def create_user(first_name, last_name, email, password_hash):
+    now = _now()
+
+    try:
+        with get_connection() as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO users (
+                    first_name,
+                    last_name,
+                    email,
+                    password_hash,
+                    created_at
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    first_name.strip(),
+                    last_name.strip(),
+                    email.strip().lower(),
+                    password_hash,
+                    now,
+                ),
+            )
+            user_id = cursor.lastrowid
+    except sqlite3.IntegrityError:
+        return None
+
+    return get_user_by_id(user_id)
+
+
+def get_user_by_email(email):
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT *
+            FROM users
+            WHERE email = ?
+            LIMIT 1
+            """,
+            (email.strip().lower(),),
+        ).fetchone()
+
+    return dict(row) if row else None
+
+
+def get_user_by_id(user_id):
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT *
+            FROM users
+            WHERE id = ?
+            LIMIT 1
+            """,
+            (user_id,),
+        ).fetchone()
+
+    return dict(row) if row else None
+
+
+def update_last_login(user_id):
+    now = _now()
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE users
+            SET last_login_at = ?
+            WHERE id = ?
+            """,
+            (now, user_id),
+        )
