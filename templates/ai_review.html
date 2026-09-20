@@ -5,7 +5,7 @@
 <div class="workspace-breadcrumbs">
     <a href="{{ url_for('clients.index') }}">Clients</a>
     <span>›</span>
-    <a href="{{ url_for('bas.client_dashboard', client_id=client.id) }}">{{ client.company_name }}</a>
+    <a href="{{ url_for('bas.active_bas', client_id=client.id) }}">Active BAS</a>
     <span>›</span>
     <a href="{{ url_for('bas.bas_review', start=bas.start, end=bas.end) }}">BAS review</a>
     <span>›</span>
@@ -14,8 +14,8 @@
 
 <div class="page-heading bas-review-heading">
     <div>
-        <div class="eyebrow">AI transaction review</div>
-        <h1>{{ client.company_name }}</h1>
+        <div class="eyebrow">Client BAS</div>
+        <h1>AI Transaction Review</h1>
         <div class="subtitle">Reporting period {{ bas.start }} to {{ bas.end }}</div>
     </div>
     <a class="secondary-button" href="{{ url_for('bas.bas_review', start=bas.start, end=bas.end) }}">Back to BAS</a>
