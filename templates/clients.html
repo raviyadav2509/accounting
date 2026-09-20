@@ -11,43 +11,56 @@
 </div>
 
 {% if clients %}
-<div class="client-grid">
-    {% for client in clients %}
-    <div class="card firm-client-card {% if active_client_id == client.id %}active-client-card{% endif %}">
-        <div class="firm-client-header">
-            <div class="client-avatar">{{ client.company_name[:1]|upper }}</div>
-            <div>
-                <div class="firm-client-name">{{ client.company_name }}</div>
-                {% if client.abn %}
-                    <div class="firm-client-meta">ABN {{ client.abn }}</div>
+<div class="card client-list-card">
+    <div class="client-list-header">
+        <div>Client</div>
+        <div>ABN</div>
+        <div>QuickBooks</div>
+        <div></div>
+    </div>
+
+    <div class="client-list">
+        {% for client in clients %}
+        <div class="client-list-row {% if active_client_id == client.id %}active-client-row{% endif %}">
+            <div class="client-list-identity">
+                <div class="client-list-avatar">{{ client.company_name[:1]|upper }}</div>
+                <div class="client-list-copy">
+                    <strong>{{ client.company_name }}</strong>
+                    <span>
+                        {% if client.legal_name and client.legal_name != client.company_name %}
+                            {{ client.legal_name }}
+                        {% elif client.email %}
+                            {{ client.email }}
+                        {% else %}
+                            Registered BAS client
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            <div class="client-list-abn">
+                <span class="mobile-client-label">ABN</span>
+                <strong>{{ client.abn or "Not provided" }}</strong>
+            </div>
+
+            <div class="client-list-status">
+                <span class="mobile-client-label">QuickBooks</span>
+                {% if client.qbo_connected %}
+                    <span class="status-badge pass">Connected</span>
+                {% else %}
+                    <span class="status-badge warning">Not connected</span>
                 {% endif %}
             </div>
-        </div>
 
-        <div class="firm-client-details">
-            {% if client.legal_name and client.legal_name != client.company_name %}
-                <div><span>Legal name</span><strong>{{ client.legal_name }}</strong></div>
-            {% endif %}
-            {% if client.email %}
-                <div><span>Email</span><strong>{{ client.email }}</strong></div>
-            {% endif %}
+            <div class="client-list-action">
+                <a class="secondary-button client-details-button"
+                   href="{{ url_for('clients.client_home', client_id=client.id) }}">
+                    View client
+                </a>
+            </div>
         </div>
-
-        <div class="firm-client-status">
-            {% if client.qbo_connected %}
-                <span class="status-badge pass">QuickBooks connected</span>
-            {% else %}
-                <span class="status-badge warning">QuickBooks not connected</span>
-            {% endif %}
-        </div>
-
-        <form action="{{ url_for('clients.select_client', client_id=client.id) }}" method="post">
-            <button class="button client-open-button" type="submit">
-                {% if client.qbo_connected %}Open client{% else %}Set up client{% endif %}
-            </button>
-        </form>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>
 {% else %}
 <div class="card empty-state clients-empty-state">
