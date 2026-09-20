@@ -234,6 +234,12 @@ def review_company_return(tax_return, adjustments):
 
 
 def tax_return_status(tax_return):
+    if (
+        tax_return.get("approval_status") == "LODGED"
+        or bool(tax_return.get("lodged_at"))
+    ):
+        return "Lodged", "lodged"
+
     if tax_return.get("approval_status") == "APPROVED":
         return "Approved - Ready to Lodge", "approved"
 
