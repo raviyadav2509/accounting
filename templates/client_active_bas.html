@@ -137,17 +137,26 @@
                 </div>
 
                 <div class="record-action-buttons">
-                    <a class="button" href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">
-                        Open detailed BAS
-                    </a>
+                    {% if record.approval_status == "APPROVED" %}
+                    <form method="post" action="{{ url_for('bas.reopen_approved_bas') }}">
+                        <input type="hidden" name="start" value="{{ record.start_date }}">
+                        <input type="hidden" name="end" value="{{ record.end_date }}">
+                        <input type="hidden" name="signature" value="{{ record.signature }}">
+                        <button class="secondary-button edit-before-lodgement-button" type="submit">Edit BAS</button>
+                    </form>
 
-                    {% if mock_ato_lodgement_enabled and record.approval_status == "APPROVED" %}
+                    {% if mock_ato_lodgement_enabled %}
                     <form method="post" action="{{ url_for('bas.mock_lodge_bas') }}">
                         <input type="hidden" name="start" value="{{ record.start_date }}">
                         <input type="hidden" name="end" value="{{ record.end_date }}">
                         <input type="hidden" name="signature" value="{{ record.signature }}">
                         <button class="mock-lodge-button" type="submit">Simulate ATO Lodgement</button>
                     </form>
+                    {% endif %}
+                    {% else %}
+                    <a class="button" href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">
+                        Open detailed BAS
+                    </a>
                     {% endif %}
                 </div>
             </div>
