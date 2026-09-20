@@ -10,6 +10,16 @@ QBO_BASE_URL = os.getenv("QBO_BASE_URL")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-only-change-me")
 
+
+def _env_flag(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+ENABLE_MOCK_ATO_LODGEMENT = _env_flag("ENABLE_MOCK_ATO_LODGEMENT", False)
+
 QBO_AUTH_URL = "https://appcenter.intuit.com/connect/oauth2"
 QBO_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer"
 
