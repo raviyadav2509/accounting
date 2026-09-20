@@ -55,11 +55,15 @@
 </div>
 
 <section class="client-workspace-details">
-    <div class="section-heading">
+    <div class="section-heading client-details-heading">
         <div>
             <div class="dashboard-section-title">Client details</div>
             <p>Registered business information used for this client's BAS workspace.</p>
         </div>
+        <a class="secondary-button client-edit-button"
+           href="{{ url_for('clients.edit_client', client_id=client.id) }}">
+            Edit client details
+        </a>
     </div>
 
     <div class="card client-card">
