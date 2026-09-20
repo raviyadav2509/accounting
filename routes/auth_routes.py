@@ -154,8 +154,8 @@ def signup():
     )
 
 
-@auth_bp.route("/settings", methods=["GET", "POST"])
 @auth_bp.route("/firm-profile", methods=["GET", "POST"])
+@auth_bp.route("/settings", methods=["GET", "POST"])
 def firm_profile():
     if g.user is None:
         return redirect(url_for("auth.login"))
