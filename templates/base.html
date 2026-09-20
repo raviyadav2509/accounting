@@ -18,7 +18,7 @@
             </a>
 
             {% if g.user and g.user.firm_name %}
-            <a class="sidebar-firm-card" href="{{ url_for('bas.dashboard') }}" title="{{ g.user.firm_name }}">
+            <a class="sidebar-firm-card" href="{{ url_for('auth.firm_profile') }}" title="{{ g.user.firm_name }}">
                 <span class="sidebar-firm-label">Accounting firm</span>
                 <strong>{{ g.user.firm_name }}</strong>
             </a>
@@ -71,6 +71,15 @@
                     </div>
                 </details>
 
+                <a class="{% if request.endpoint == 'auth.firm_profile' %}active{% endif %}" href="{{ url_for('auth.firm_profile') }}">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7-3.5 2-1.2-2-3.4-2.3.8a7.5 7.5 0 0 0-1.5-.9L14.7 5h-4l-.5 2.3c-.5.2-1 .5-1.5.9L6.4 7.4l-2 3.4 2 1.2a7 7 0 0 0 0 1.8l-2 1.2 2 3.4 2.3-.8c.5.4 1 .7 1.5.9l.5 2.3h4l.5-2.3c.5-.2 1-.5 1.5-.9l2.3.8 2-3.4-2-1.2a7 7 0 0 0 0-1.8Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                        </svg>
+                    </span>
+                    <span>Settings</span>
+                </a>
+
                 {% if g.client %}
                 <a class="{% if request.endpoint in ['bas.bas_history', 'bas.bas_history_detail'] %}active{% endif %}" href="{{ url_for('bas.bas_history') }}">
                     <span class="nav-icon" aria-hidden="true">
@@ -115,11 +124,13 @@
                     {% endif %}
                 </div>
                 <div class="top-bar-actions">
+                    {% if g.client %}
                     <a class="icon-button" href="{{ url_for('bas.bas_history') }}" title="BAS history" aria-label="BAS history">
                         <svg viewBox="0 0 24 24" fill="none">
                             <path d="M12 8v4l2.5 1.5M4.9 6.9A8 8 0 1 1 4 16M4 8V4m0 0h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </a>
+                    {% endif %}
 
                     {% if g.user %}
                     <div class="user-menu">
