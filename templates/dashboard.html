@@ -59,7 +59,7 @@
         {% for item in attention_items %}
         <a class="dashboard-attention-row" href="{{ item.url }}">
             <div class="dashboard-attention-client">
-                <span class="dashboard-attention-avatar">{{ item.client.company_name[:1]|upper }}</span>
+                <span class="dashboard-attention-avatar">{{ item.client.company_name|client_initials }}</span>
                 <div>
                     <strong>{{ item.client.company_name }}</strong>
                     <span>{{ item.title }}{% if item.detail %} · {{ item.detail }}{% endif %}</span>
