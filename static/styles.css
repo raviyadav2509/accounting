@@ -3551,8 +3551,8 @@ a.firm-dashboard-metric:hover {
     text-align: center;
 }
 
-.dashboard-attention-client strong,
-.dashboard-attention-client span {
+.dashboard-attention-client > div strong,
+.dashboard-attention-client > div > span {
     display: block;
 }
 
