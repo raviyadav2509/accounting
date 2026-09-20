@@ -23,6 +23,7 @@ from services.tax_return_service import (
     calculate_company_return,
     current_completed_financial_year,
     financial_year_dates,
+    recent_completed_financial_years,
     format_money,
     import_accounting_profit,
     review_company_return,
@@ -161,14 +162,22 @@ def client_tax_returns(client_id):
         if item["is_lodged"]
     ]
 
+    existing_years = {item["financial_year"] for item in records}
+    financial_year_options = [
+        year
+        for year in recent_completed_financial_years(count=10)
+        if year not in existing_years
+    ]
+
     requested_year = request.args.get("year", "").strip()
-    default_financial_year = current_completed_financial_year()
-    if requested_year:
-        try:
-            financial_year_dates(requested_year)
-            default_financial_year = requested_year
-        except ValueError:
-            pass
+    default_financial_year = (
+        financial_year_options[0]
+        if financial_year_options
+        else current_completed_financial_year()
+    )
+
+    if requested_year in financial_year_options:
+        default_financial_year = requested_year
 
     return render_template(
         "client_tax_returns.html",
@@ -176,6 +185,7 @@ def client_tax_returns(client_id):
         records=records,
         active_records=active_records,
         historical_records=historical_records,
+        financial_year_options=financial_year_options,
         default_financial_year=default_financial_year,
         supported_entity_type=SUPPORTED_ENTITY_TYPE,
         mock_ato_lodgement_enabled=ENABLE_MOCK_ATO_LODGEMENT,
