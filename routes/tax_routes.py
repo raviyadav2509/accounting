@@ -551,6 +551,60 @@ def review_tax_return(client_id, tax_return_id):
 
 
 @tax_bp.route(
+    "/clients/<int:client_id>/tax-returns/<int:tax_return_id>/reopen",
+    methods=["POST"],
+)
+def reopen_tax_return(client_id, tax_return_id):
+    client = _client(client_id)
+    tax_return = _return_for_client(client, tax_return_id)
+
+    if not client or not tax_return:
+        return redirect(url_for("clients.index"))
+
+    if (
+        tax_return.get("approval_status") == "LODGED"
+        or tax_return.get("lodged_at")
+    ):
+        return render_template(
+            "message.html",
+            title="Tax return is lodged",
+            message=(
+                "A lodged annual tax return is read-only and cannot be reopened "
+                "from this workflow."
+            ),
+            back_url=url_for(
+                "tax.company_tax_return",
+                client_id=client_id,
+                tax_return_id=tax_return_id,
+            ),
+        ), 400
+
+    if tax_return.get("approval_status") != "APPROVED":
+        return redirect(
+            url_for(
+                "tax.company_tax_return",
+                client_id=client_id,
+                tax_return_id=tax_return_id,
+            )
+        )
+
+    update_tax_return(
+        client_id,
+        tax_return_id,
+        approval_status=None,
+        approved_at=None,
+    )
+
+    return redirect(
+        url_for(
+            "tax.company_tax_return",
+            client_id=client_id,
+            tax_return_id=tax_return_id,
+        )
+    )
+
+
+@tax_bp.route(
     "/clients/<int:client_id>/tax-returns/<int:tax_return_id>/mock-lodge",
     methods=["POST"],
 )
