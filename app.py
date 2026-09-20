@@ -10,6 +10,10 @@ from services.database import init_db
 def create_app():
     app = Flask(__name__)
     app.secret_key = FLASK_SECRET_KEY
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+    )
     init_db()
 
     app.register_blueprint(auth_bp)
