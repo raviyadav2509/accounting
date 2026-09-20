@@ -236,7 +236,11 @@ def _lodged_period_response(client, start, end):
     record = _record_for_period(client["id"], start, end)
     if record and record["is_lodged"]:
         return redirect(
-            url_for("bas.bas_history_detail", record_id=record["id"])
+            url_for(
+                "bas.bas_history_detail",
+                record_id=record["id"],
+                client_context=1,
+            )
         )
     return None
 
@@ -334,6 +338,7 @@ def client_dashboard(client_id):
         return redirect(url_for("clients.index"))
 
     session["client_id"] = client_id
+    g.client = client
 
     if not client.get("qbo_connected"):
         return redirect(
