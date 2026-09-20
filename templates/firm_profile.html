@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Accounting Firm Profile | BAS Automation{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <h1>Accounting Firm Profile</h1>
+        <div class="subtitle">Manage the practice details shown across your BAS workspace.</div>
+    </div>
+    <a class="secondary-button" href="{{ url_for('clients.index') }}">Back to clients</a>
+</div>
+
+<div class="card firm-profile-card">
+    {% if error %}
+        <div class="auth-alert">{{ error }}</div>
+    {% endif %}
+
+    <form class="client-form" method="post">
+        <div class="client-form-grid">
+            <div class="auth-field client-form-wide">
+                <label for="firm_name">Accounting firm name</label>
+                <input id="firm_name" name="firm_name" value="{{ values.firm_name }}" required>
+            </div>
+
+            <div class="auth-field client-form-wide">
+                <label for="director_name">Director / principal</label>
+                <input id="director_name" name="director_name" value="{{ values.director_name }}" required>
+            </div>
+
+            <div class="auth-field">
+                <label for="abn">Firm ABN</label>
+                <input id="abn" name="abn" value="{{ values.abn }}">
+            </div>
+
+            <div class="auth-field">
+                <label for="acn">Firm ACN</label>
+                <input id="acn" name="acn" value="{{ values.acn }}">
+            </div>
+
+            <div class="auth-field client-form-wide">
+                <label for="address">Firm address</label>
+                <input id="address" name="address" value="{{ values.address }}">
+            </div>
+
+            <div class="auth-field">
+                <label for="email">Firm email</label>
+                <input id="email" name="email" type="email" value="{{ values.email }}">
+            </div>
+
+            <div class="auth-field">
+                <label for="phone">Firm phone</label>
+                <input id="phone" name="phone" value="{{ values.phone }}">
+            </div>
+        </div>
+
+        <div class="client-form-actions">
+            <a class="secondary-button" href="{{ url_for('clients.index') }}">Cancel</a>
+            <button class="button" type="submit">Save firm details</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
