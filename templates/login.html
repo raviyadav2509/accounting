@@ -1,0 +1,53 @@
+{% extends "auth_base.html" %}
+{% block title %}Sign in | BAS Automation{% endblock %}
+
+{% block content %}
+<div class="auth-form-header">
+    <div class="auth-mobile-brand">
+        <span class="brand-mark">B</span>
+        <strong>BAS Automation</strong>
+    </div>
+
+    <h2>Welcome back</h2>
+    <p>Sign in to access your BAS dashboard.</p>
+</div>
+
+{% if error %}
+<div class="auth-alert">{{ error }}</div>
+{% endif %}
+
+<form class="auth-form" method="post" action="{{ url_for('auth.login') }}">
+    <div class="auth-field">
+        <label for="email">Email address</label>
+        <input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            value="{{ email }}"
+            placeholder="you@company.com"
+            required
+            autofocus
+        >
+    </div>
+
+    <div class="auth-field">
+        <label for="password">Password</label>
+        <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Enter your password"
+            required
+        >
+    </div>
+
+    <button class="auth-primary-button" type="submit">Sign in</button>
+</form>
+
+<div class="auth-switch">
+    <span>New to BAS Automation?</span>
+    <a href="{{ url_for('auth.signup') }}">Create an account</a>
+</div>
+{% endblock %}
