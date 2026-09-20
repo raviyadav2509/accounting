@@ -2,12 +2,18 @@
 {% block title %}BAS History{% endblock %}
 
 {% block content %}
+<div class="page-back-row">
+    <a class="page-back-link" href="{{ url_for('bas.client_dashboard', client_id=client.id) }}">
+        <span aria-hidden="true">←</span>
+        Back to client
+    </a>
+</div>
+
 <div class="page-heading">
     <div>
         <h1>BAS History</h1>
         <div class="subtitle">{{ client.company_name }} · Select any BAS period below to open its individual audit trail.</div>
     </div>
-    <a class="secondary-button" href="{{ url_for('bas.client_dashboard', client_id=client.id) }}">Back to Client</a>
 </div>
 
 {% if records %}
