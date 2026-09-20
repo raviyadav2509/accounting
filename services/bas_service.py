@@ -8,8 +8,8 @@ def _entities(data, entity_name):
     return data.get("QueryResponse", {}).get(entity_name, [])
 
 
-def get_payroll_bas(start, end):
-    journals = _entities(query("JournalEntry", start, end), "JournalEntry")
+def get_payroll_bas(client_id, start, end):
+    journals = _entities(query(client_id, "JournalEntry", start, end), "JournalEntry")
 
     w1 = 0.0
     w2 = 0.0
@@ -38,13 +38,13 @@ def get_payroll_bas(start, end):
     }
 
 
-def calculate_bas(start, end):
-    invoices = _entities(query("Invoice", start, end), "Invoice")
+def calculate_bas(client_id, start, end):
+    invoices = _entities(query(client_id, "Invoice", start, end), "Invoice")
     sales_receipts = _entities(
-        query("SalesReceipt", start, end), "SalesReceipt"
+        query(client_id, "SalesReceipt", start, end), "SalesReceipt"
     )
-    bills = _entities(query("Bill", start, end), "Bill")
-    purchases = _entities(query("Purchase", start, end), "Purchase")
+    bills = _entities(query(client_id, "Bill", start, end), "Bill")
+    purchases = _entities(query(client_id, "Purchase", start, end), "Purchase")
 
     sales = invoices + sales_receipts
     all_purchases = bills + purchases
@@ -59,7 +59,7 @@ def calculate_bas(start, end):
         for x in all_purchases
     )
 
-    payroll = get_payroll_bas(start, end)
+    payroll = get_payroll_bas(client_id, start, end)
     w1 = payroll["W1_gross_wages"]
     w2 = payroll["W2_PAYG_withheld"]
 
