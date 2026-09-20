@@ -23,7 +23,7 @@
         {% for client in clients %}
         <div class="client-list-row {% if active_client_id == client.id %}active-client-row{% endif %}">
             <div class="client-list-identity">
-                <div class="client-list-avatar">{{ client.company_name[:1]|upper }}</div>
+                <div class="client-list-avatar">{{ client.company_name|client_initials }}</div>
                 <div class="client-list-copy">
                     <strong>{{ client.company_name }}</strong>
                     <span>
