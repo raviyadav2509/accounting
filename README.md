@@ -1,75 +1,99 @@
-# QuickBooks BAS Automation
+# BAS Automation
 
-A Flask application that reads QuickBooks Online data, calculates BAS figures deterministically, uses AI to review underlying transactions, and requires human approval before a BAS can move to a ready-to-lodge state.
+A Flask application for accounting firms to manage multiple client BAS workflows from QuickBooks Online.
 
-## Application structure
-
-- `app.py` - creates the Flask application and initializes the database
-- `config.py` - environment and application configuration
-- `routes/qbo_routes.py` - QuickBooks OAuth and diagnostic endpoints
-- `routes/bas_routes.py` - dashboard, BAS review, AI review, approval and history routes
-- `services/qbo_service.py` - QuickBooks API and token refresh
-- `services/bas_service.py` - deterministic BAS calculation
-- `services/ai_review_service.py` - AI transaction review
-- `services/database.py` - SQLite BAS snapshots and audit history
-- `services/review_store.py` - review/resolution/approval persistence facade
-- `templates/` - dashboard and review pages
-- `static/styles.css` - shared UI styling
-
-## Data flow
+## Current product model
 
 ```text
-QuickBooks
-   |
-   v
-Deterministic BAS calculation
-   |
-   v
-Saved BAS snapshot
-   |
-   v
-AI transaction review
-   |
-   v
-Human review / resolution
-   |
-   v
-Human approval
-   |
-   v
-Ready to Lodge
+Accounting firm user
+        |
+        +-- Client A
+        |     |
+        |     +-- QuickBooks connection
+        |     +-- BAS calculations
+        |     +-- AI reviews
+        |     +-- approvals / audit history
+        |
+        +-- Client B
+        |     |
+        |     +-- separate QuickBooks connection
+        |     +-- separate BAS records
+        |
+        +-- Client C
+              |
+              +-- separate QuickBooks connection
+              +-- separate BAS records
 ```
 
-AI does not replace the BAS calculation. It reviews the underlying transactions and flags issues for human attention.
+A signed-in user can register multiple clients. Each client has an independent QuickBooks OAuth connection and client-scoped BAS records.
 
-## SQLite BAS history
+## Main workflow
 
-The application creates:
+1. Sign up or sign in.
+2. Open **Clients**.
+3. Add a client.
+4. Connect that client's QuickBooks company.
+5. Open the client dashboard.
+6. Calculate BAS periods.
+7. Run the AI transaction review.
+8. Resolve review items where required.
+9. Approve the BAS.
+10. Lodgement integration will be added separately once a supported ATO/SBR mechanism is implemented.
+
+## Main routes
 
 ```text
-bas_history.db
+/login                  Sign in
+/signup                 Create user account
+/clients/               Accounting firm client list
+/clients/new            Add a client
+/                       Selected client's BAS dashboard
+/bas-history            Selected client's BAS history
+/connect                Connect selected client to QuickBooks
 ```
 
-automatically when it starts.
+## Data isolation
 
-Each BAS snapshot stores:
+The SQLite database contains:
 
-- reporting period
-- G1, 1A, 1B, W1 and W2
-- GST position and estimated BAS payable
-- BAS data signature
-- AI review status and review text
-- human resolution notes
-- approval/rejection status
-- review, resolution and approval timestamps
+- `users` — accounting firm user accounts
+- `clients` — businesses registered under a user
+- `qbo_connections` — one QuickBooks connection per client
+- `bas_records` — BAS records scoped by `client_id`
 
-The database is intentionally excluded from Git because it contains business records.
+All BAS history, AI review state, approval state and QuickBooks API calls are scoped to the selected client.
 
-The earlier JSON review file is still read as a one-time compatibility fallback when its period and BAS signature match.
+Existing BAS records from the earlier single-client schema are migrated with a nullable client ID. When the first client is created, any legacy unassigned BAS records are attached to that first client.
+
+## QuickBooks
+
+OAuth tokens are now stored per client rather than in one global `tokens.json` connection.
+
+For production, OAuth token material should be encrypted at rest rather than stored as plain JSON in SQLite.
+
+## BAS calculation
+
+The BAS calculator remains deterministic. AI does not replace BAS figures; it reviews underlying transactions for potential issues.
+
+Current simplified BAS calculation includes:
+
+- G1 total sales
+- 1A GST on sales
+- 1B GST on purchases
+- W1 gross wages
+- W2 PAYG withheld
+- estimated GST/PAYG amount
+
+The current payroll account IDs are still sandbox defaults configured through:
+
+```text
+QBO_WAGE_ACCOUNT_ID
+QBO_PAYG_ACCOUNT_ID
+```
+
+These must become client-specific mappings before multi-client production use.
 
 ## Run locally
-
-Copy your existing `.env` and `tokens.json` into the project folder, then:
 
 ```cmd
 py -m pip install -r requirements.txt
@@ -82,29 +106,19 @@ Open:
 http://127.0.0.1:8000/
 ```
 
-The home page is now the BAS Dashboard.
+Unauthenticated users are redirected to the login page.
 
-## Main pages
+## Production work still required
 
-```text
-/                       BAS Dashboard
-/bas-review             Current BAS review
-/ai-review              Run AI transaction review
-/bas-history             BAS history
-/connect                 Connect QuickBooks
-```
+Before production use:
 
-## Sandbox payroll configuration
-
-These defaults are currently configured for the sandbox:
-
-```text
-QBO_WAGE_ACCOUNT_ID=66
-QBO_PAYG_ACCOUNT_ID=49
-```
-
-Configure the correct production account IDs before connecting real company data.
-
-## Current limitation
-
-Approval currently records a BAS as ready to lodge. It does not submit anything to the ATO. A supported ATO/SBR lodgement mechanism must be implemented and verified separately before automated lodgement is enabled.
+- encrypt QuickBooks OAuth tokens at rest
+- add CSRF protection
+- set a strong `FLASK_SECRET_KEY`
+- set secure cookies under HTTPS
+- add password reset and email verification
+- make payroll/tax account mappings client-specific
+- support proper BAS obligation/period discovery instead of sandbox defaults
+- implement and verify supported ATO/SBR lodgement
+- store immutable lodgement receipts and references
+- add firm/team roles if multiple staff users will share the same accounting practice
