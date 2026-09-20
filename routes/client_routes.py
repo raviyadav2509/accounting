@@ -43,7 +43,7 @@ def new_client():
     error = None
     values = {
         "company_name": "",
-        "entity_type": "COMPANY",
+        "entity_type": "",
         "legal_name": "",
         "abn": "",
         "acn": "",
@@ -102,7 +102,7 @@ def edit_client(client_id):
     error = None
     values = {
         "company_name": client.get("company_name") or "",
-        "entity_type": client.get("entity_type") or "COMPANY",
+        "entity_type": client.get("entity_type") or "UNSPECIFIED",
         "legal_name": client.get("legal_name") or "",
         "abn": client.get("abn") or "",
         "acn": client.get("acn") or "",
