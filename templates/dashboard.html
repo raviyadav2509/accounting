@@ -2,96 +2,130 @@
 {% block title %}Dashboard | BAS Automation{% endblock %}
 
 {% block content %}
-<div class="page-heading">
+<div class="dashboard-welcome">
     <div>
-        <h1>Dashboard</h1>
-        <div class="subtitle">Your accounting firm workspace.</div>
+        <div class="dashboard-eyebrow">{{ firm.firm_name if firm else "Accounting firm workspace" }}</div>
+        <h1 id="dashboard-greeting" data-user-name="{{ g.user.first_name }}">Welcome, {{ g.user.first_name }}</h1>
+        <div class="subtitle dashboard-welcome-subtitle">
+            Here is an overview of your clients and BAS work that needs attention.
+        </div>
     </div>
-    <a class="secondary-button" href="{{ url_for('auth.firm_profile') }}">
-        {% if firm %}Edit firm details{% else %}Complete firm profile{% endif %}
-    </a>
+
+    <div class="page-heading-actions">
+        <a class="button" href="{{ url_for('clients.new_client') }}">+ Add client</a>
+        <a class="secondary-button" href="{{ url_for('clients.index') }}">View all clients</a>
+    </div>
 </div>
 
-<section class="dashboard-identity-section">
-    <div class="section-heading identity-section-heading">
-        <div>
-            <div class="dashboard-section-title">Accounting Firm Details</div>
-            <p>Your practice details used across the BAS platform.</p>
-        </div>
+<div class="firm-dashboard-metrics">
+    <a class="card firm-dashboard-metric" href="{{ url_for('clients.index') }}">
+        <div class="firm-dashboard-metric-label">Registered clients</div>
+        <div class="firm-dashboard-metric-value">{{ total_clients }}</div>
+        <div class="firm-dashboard-metric-help">Businesses registered under your firm</div>
+    </a>
+
+    <div class="card firm-dashboard-metric">
+        <div class="firm-dashboard-metric-label">Active BAS</div>
+        <div class="firm-dashboard-metric-value">{{ active_bas_count }}</div>
+        <div class="firm-dashboard-metric-help">BAS periods not yet lodged</div>
     </div>
 
-    {% if firm %}
-    <div class="card firm-details-card">
-        <div class="firm-details-header">
-            <div class="firm-context-icon" aria-hidden="true">
-                {{ firm.firm_name[:1]|upper }}
-            </div>
+    <div class="card firm-dashboard-metric attention">
+        <div class="firm-dashboard-metric-label">Review required</div>
+        <div class="firm-dashboard-metric-value">{{ review_required_count }}</div>
+        <div class="firm-dashboard-metric-help">BAS periods requiring action</div>
+    </div>
 
-            <div>
-                <div class="firm-context-label">Accounting practice</div>
-                <div class="firm-context-name">{{ firm.firm_name }}</div>
-                <div class="firm-context-subtitle">Director / Principal: {{ firm.director_name }}</div>
-            </div>
+    <div class="card firm-dashboard-metric ready">
+        <div class="firm-dashboard-metric-label">Ready to lodge</div>
+        <div class="firm-dashboard-metric-value">{{ ready_to_lodge_count }}</div>
+        <div class="firm-dashboard-metric-help">Approved BAS awaiting lodgement</div>
+    </div>
+</div>
+
+<section class="firm-dashboard-section">
+    <div class="section-heading firm-dashboard-section-heading">
+        <div>
+            <div class="dashboard-section-title">Needs attention</div>
+            <p>Items that may require action across your client portfolio.</p>
         </div>
+        {% if qbo_attention_count %}
+            <span class="section-count warning-count">{{ qbo_attention_count }} connection issue{% if qbo_attention_count != 1 %}s{% endif %}</span>
+        {% endif %}
+    </div>
 
-        <div class="firm-details-grid">
-            <div class="firm-detail">
-                <span>Firm name</span>
-                <strong>{{ firm.firm_name }}</strong>
+    {% if attention_items %}
+    <div class="card dashboard-attention-card">
+        {% for item in attention_items %}
+        <a class="dashboard-attention-row" href="{{ item.url }}">
+            <div class="dashboard-attention-client">
+                <span class="dashboard-attention-avatar">{{ item.client.company_name[:1]|upper }}</span>
+                <div>
+                    <strong>{{ item.client.company_name }}</strong>
+                    <span>{{ item.title }}{% if item.detail %} · {{ item.detail }}{% endif %}</span>
+                </div>
             </div>
 
-            <div class="firm-detail">
-                <span>Director / Principal</span>
-                <strong>{{ firm.director_name }}</strong>
+            <div class="dashboard-attention-status">
+                <span class="status-badge {{ item.status_class }}">{{ item.status }}</span>
+                <span class="dashboard-attention-arrow" aria-hidden="true">›</span>
             </div>
-
-            <div class="firm-detail">
-                <span>ABN</span>
-                <strong>{{ firm.abn or "Not provided" }}</strong>
-            </div>
-
-            <div class="firm-detail">
-                <span>ACN</span>
-                <strong>{{ firm.acn or "Not provided" }}</strong>
-            </div>
-
-            <div class="firm-detail firm-detail-wide">
-                <span>Business address</span>
-                <strong>{{ firm.address or "Not provided" }}</strong>
-            </div>
-
-            <div class="firm-detail">
-                <span>Email</span>
-                <strong>{{ firm.email or "Not provided" }}</strong>
-            </div>
-
-            <div class="firm-detail">
-                <span>Phone</span>
-                <strong>{{ firm.phone or "Not provided" }}</strong>
-            </div>
-        </div>
+        </a>
+        {% endfor %}
     </div>
     {% else %}
-    <div class="card firm-context-card firm-context-missing">
+    <div class="card dashboard-clear-state">
+        <div class="dashboard-clear-icon">✓</div>
         <div>
-            <div class="firm-context-label">Accounting firm profile</div>
-            <div class="firm-context-name">Complete your firm details</div>
-            <div class="firm-context-subtitle">Add your accounting firm name, director, ABN, ACN, address and contact details.</div>
+            <strong>No urgent items right now</strong>
+            <p>There are no BAS reviews, lodgements or QuickBooks connections currently requiring attention.</p>
         </div>
-        <a class="button" href="{{ url_for('auth.firm_profile') }}">Complete firm profile</a>
     </div>
     {% endif %}
 </section>
 
-<div class="card dashboard-client-guide">
-    <div class="dashboard-client-guide-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none">
-            <path d="M16 20v-1.5A3.5 3.5 0 0 0 12.5 15h-5A3.5 3.5 0 0 0 4 18.5V20M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm6.5-1.5a3 3 0 0 0 0-5.8M17 15c1.8.3 3 1.5 3 3.2V20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-        </svg>
+<section class="firm-dashboard-section">
+    <div class="section-heading firm-dashboard-section-heading">
+        <div>
+            <div class="dashboard-section-title">Quick access</div>
+            <p>Common actions for managing your accounting practice.</p>
+        </div>
     </div>
-    <div>
-        <strong>Open a client from the Clients menu</strong>
-        <p>Expand <b>Clients</b> in the left sidebar and select a registered client to view that client's details, active BAS and historical BAS.</p>
+
+    <div class="dashboard-quick-actions">
+        <a class="card dashboard-quick-action" href="{{ url_for('clients.index') }}">
+            <strong>Clients</strong>
+            <span>Open the client list and access individual BAS workspaces.</span>
+        </a>
+
+        <a class="card dashboard-quick-action" href="{{ url_for('clients.new_client') }}">
+            <strong>Add client</strong>
+            <span>Register a new business under your accounting firm.</span>
+        </a>
+
+        <a class="card dashboard-quick-action" href="{{ url_for('auth.firm_profile') }}">
+            <strong>Settings</strong>
+            <span>Manage accounting firm details and profile information.</span>
+        </a>
     </div>
-</div>
+</section>
+
+<script>
+(function () {
+    const heading = document.getElementById("dashboard-greeting");
+    if (!heading) return;
+
+    const name = heading.dataset.userName || "";
+    const hour = new Date().getHours();
+    let greeting = "Good evening";
+
+    if (hour < 12) {
+        greeting = "Good morning";
+    } else if (hour < 17) {
+        greeting = "Good afternoon";
+    }
+
+    heading.textContent = greeting + (name ? ", " + name : "");
+})();
+</script>
 {% endblock %}
