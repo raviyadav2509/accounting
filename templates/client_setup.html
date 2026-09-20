@@ -14,7 +14,10 @@
         <h1>{{ client.company_name }}</h1>
         <div class="subtitle">Connect this client's accounting data before calculating BAS.</div>
     </div>
-    <a class="secondary-button" href="{{ url_for('clients.index') }}">Back to clients</a>
+    <div class="page-heading-actions">
+        <a class="secondary-button" href="{{ url_for('clients.edit_client', client_id=client.id) }}">Edit client details</a>
+        <a class="secondary-button" href="{{ url_for('clients.index') }}">Back to clients</a>
+    </div>
 </div>
 
 <div class="card setup-card">
