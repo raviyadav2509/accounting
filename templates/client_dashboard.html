@@ -2,11 +2,23 @@
 {% block title %}{{ client.company_name }} | BAS Automation{% endblock %}
 
 {% block content %}
-<div class="page-heading">
+<div class="workspace-breadcrumbs">
+    <a href="{{ url_for('clients.index') }}">Clients</a>
+    <span>›</span>
+    <span>{{ client.company_name }}</span>
+</div>
+
+<div class="page-heading client-workspace-heading">
     <div>
-        <div class="eyebrow">Client BAS Workspace</div>
+        <div class="eyebrow">Client BAS workspace</div>
         <h1>{{ client.company_name }}</h1>
-        <div class="subtitle">Client details, active BAS and lodged BAS history.</div>
+        <div class="subtitle">Review this client's details, active BAS and lodged history.</div>
+        <div class="client-workspace-badges">
+            <span class="status-badge pass">QuickBooks connected</span>
+            {% if client.abn %}
+                <span class="client-inline-meta">ABN {{ client.abn }}</span>
+            {% endif %}
+        </div>
     </div>
 
     <div class="page-heading-actions">
@@ -45,8 +57,8 @@
 <section class="client-workspace-details">
     <div class="section-heading">
         <div>
-            <div class="dashboard-section-title">Client Details</div>
-            <p>Business details for the selected BAS client.</p>
+            <div class="dashboard-section-title">Client details</div>
+            <p>Registered business information used for this client's BAS workspace.</p>
         </div>
     </div>
 
@@ -203,7 +215,7 @@
     <div class="section-heading bas-section-heading">
         <div>
             <div class="dashboard-section-title">Historical BAS</div>
-            <p>Lodged BAS periods are retained here as read-only records.</p>
+            <p>Lodged BAS periods are retained here as read-only records and audit history.</p>
         </div>
         {% if previous %}
             <span class="section-count">{{ previous|length }} shown</span>
