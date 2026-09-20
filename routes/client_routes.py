@@ -11,6 +11,14 @@ from services.database import (
 
 clients_bp = Blueprint("clients", __name__, url_prefix="/clients")
 
+ENTITY_TYPES = {
+    "COMPANY",
+    "TRUST",
+    "PARTNERSHIP",
+    "INDIVIDUAL",
+    "SMSF",
+}
+
 
 @clients_bp.route("/")
 def index():
@@ -35,6 +43,7 @@ def new_client():
     error = None
     values = {
         "company_name": "",
+        "entity_type": "COMPANY",
         "legal_name": "",
         "abn": "",
         "acn": "",
@@ -49,13 +58,18 @@ def new_client():
             for key in values
         }
 
+        values["entity_type"] = values["entity_type"].upper()
+
         if not values["company_name"]:
             error = "Enter the client's company or business name."
+        elif values["entity_type"] not in ENTITY_TYPES:
+            error = "Select a valid client entity type."
         else:
             existing_clients = get_clients_for_user(g.user["id"])
             client = create_client(
                 g.user["id"],
                 values["company_name"],
+                entity_type=values["entity_type"],
                 legal_name=values["legal_name"],
                 abn=values["abn"],
                 acn=values["acn"],
@@ -88,6 +102,7 @@ def edit_client(client_id):
     error = None
     values = {
         "company_name": client.get("company_name") or "",
+        "entity_type": client.get("entity_type") or "COMPANY",
         "legal_name": client.get("legal_name") or "",
         "abn": client.get("abn") or "",
         "acn": client.get("acn") or "",
@@ -102,8 +117,12 @@ def edit_client(client_id):
             for key in values
         }
 
+        values["entity_type"] = values["entity_type"].upper()
+
         if not values["company_name"]:
             error = "Enter the client's company or business name."
+        elif values["entity_type"] not in ENTITY_TYPES:
+            error = "Select a valid client entity type."
         elif values["email"] and "@" not in values["email"]:
             error = "Enter a valid client email address."
         else:
@@ -111,6 +130,7 @@ def edit_client(client_id):
                 client_id,
                 g.user["id"],
                 company_name=values["company_name"],
+                entity_type=values["entity_type"],
                 legal_name=values["legal_name"],
                 abn=values["abn"],
                 acn=values["acn"],
