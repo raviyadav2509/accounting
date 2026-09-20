@@ -68,7 +68,7 @@ def new_client():
                 claim_legacy_bas_records(client["id"])
 
             session["client_id"] = client["id"]
-            return redirect(url_for("clients.client_home", client_id=client["id"]))
+            return redirect(url_for("clients.business_details", client_id=client["id"]))
 
     return render_template(
         "client_new.html",
@@ -119,7 +119,7 @@ def edit_client(client_id):
                 phone=values["phone"],
             )
             session["client_id"] = client_id
-            return redirect(url_for("clients.client_home", client_id=client_id))
+            return redirect(url_for("clients.business_details", client_id=client_id))
 
     return render_template(
         "client_edit.html",
@@ -135,13 +135,22 @@ def client_home(client_id):
     if not client:
         return redirect(url_for("clients.index"))
 
+    return redirect(url_for("clients.business_details", client_id=client_id))
+
+
+@clients_bp.route("/<int:client_id>/details")
+def business_details(client_id):
+    client = get_client_for_user(client_id, g.user["id"])
+    if not client:
+        return redirect(url_for("clients.index"))
+
     session["client_id"] = client_id
     g.client = client
 
-    if not client.get("qbo_connected"):
-        return render_template("client_setup.html", client=client)
-
-    return redirect(url_for("bas.client_dashboard", client_id=client_id))
+    return render_template(
+        "client_business_details.html",
+        client=client,
+    )
 
 
 @clients_bp.route("/<int:client_id>/quickbooks")
@@ -168,4 +177,4 @@ def select_client(client_id):
         return redirect(url_for("clients.index"))
 
     session["client_id"] = client_id
-    return redirect(url_for("clients.client_home", client_id=client_id))
+    return redirect(url_for("clients.business_details", client_id=client_id))
