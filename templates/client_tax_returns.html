@@ -32,13 +32,26 @@
         <p>The prototype uses a standard 1 July to 30 June financial year and can import accounting profit from QuickBooks.</p>
     </div>
 
+    {% if financial_year_options %}
     <form class="tax-return-new-form" method="post" action="{{ url_for('tax.new_tax_return', client_id=client.id) }}">
         <div class="auth-field">
             <label for="financial_year">Financial year</label>
-            <input id="financial_year" name="financial_year" value="{{ default_financial_year }}" placeholder="2025-26" required>
+            <select id="financial_year" name="financial_year" required>
+                {% for financial_year in financial_year_options %}
+                <option value="{{ financial_year }}" {% if financial_year == default_financial_year %}selected{% endif %}>
+                    FY {{ financial_year }}
+                </option>
+                {% endfor %}
+            </select>
         </div>
         <button class="button" type="submit">Prepare return</button>
     </form>
+    {% else %}
+    <div class="tax-return-years-complete">
+        <span class="status-badge pass">Up to date</span>
+        <small>Returns already exist for all available financial years.</small>
+    </div>
+    {% endif %}
 </div>
 {% endif %}
 
