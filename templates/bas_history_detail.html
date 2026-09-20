@@ -12,19 +12,13 @@
     <span>{{ record.period_display }}</span>
 </div>
 
-<div class="page-back-row">
-    <a class="page-back-link" href="{{ url_for('bas.bas_history') }}">
-        <span aria-hidden="true">←</span>
-        Back to history
-    </a>
-</div>
-
 <div class="page-heading">
     <div>
         <div class="eyebrow">BAS Audit Record</div>
         <h1>{{ record.period_display }}</h1>
         <div class="subtitle">{{ client.company_name }} · Saved BAS snapshot #{{ record.id }}</div>
     </div>
+    <a class="secondary-button" href="{{ url_for('bas.bas_history') }}">Back to History</a>
 </div>
 
 <div class="card audit-summary">
