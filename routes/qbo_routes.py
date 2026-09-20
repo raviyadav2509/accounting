@@ -105,7 +105,7 @@ def callback():
     )
 
     session["client_id"] = client_id
-    return redirect(url_for("bas.client_dashboard", client_id=client_id))
+    return redirect(url_for("clients.quickbooks_client", client_id=client_id))
 
 
 @qbo_bp.route("/company")
