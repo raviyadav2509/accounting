@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Tax Returns | BAS Automation{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <h1>Tax Returns</h1>
+        <div class="subtitle">Annual tax return drafts across all clients in your accounting firm.</div>
+    </div>
+</div>
+
+{% if records %}
+<div class="card table-card">
+    <div class="responsive-table">
+        <table class="history-table tax-return-table">
+            <thead>
+                <tr>
+                    <th>Client</th>
+                    <th>Financial year</th>
+                    <th>Entity</th>
+                    <th>Taxable income</th>
+                    <th>Estimated tax</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td>
+                        <a class="history-client-link"
+                           href="{{ url_for('tax.client_tax_returns', client_id=record.client_id) }}">
+                            <span class="history-client-avatar">{{ record.client_name|client_initials }}</span>
+                            <span class="history-client-copy">
+                                <strong>{{ record.client_name }}</strong>
+                                {% if record.client_abn %}<small>ABN {{ record.client_abn }}</small>{% endif %}
+                            </span>
+                        </a>
+                    </td>
+                    <td><strong>FY {{ record.financial_year }}</strong></td>
+                    <td>{{ record.entity_type|title }}</td>
+                    <td>{{ record.taxable_income_display }}</td>
+                    <td>{{ record.estimated_tax_display }}</td>
+                    <td><span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span></td>
+                    <td class="table-action">
+                        <a href="{{ url_for('tax.company_tax_return', client_id=record.client_id, tax_return_id=record.id) }}">Open return</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card empty-state">
+    <strong>No annual tax returns yet.</strong>
+    <p>Open a client and choose Annual Tax Return to prepare the first draft.</p>
+</div>
+{% endif %}
+{% endblock %}
