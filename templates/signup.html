@@ -1,0 +1,96 @@
+{% extends "auth_base.html" %}
+{% block title %}Create account | BAS Automation{% endblock %}
+
+{% block content %}
+<div class="auth-form-header">
+    <div class="auth-mobile-brand">
+        <span class="brand-mark">B</span>
+        <strong>BAS Automation</strong>
+    </div>
+
+    <h2>Create your account</h2>
+    <p>Set up your login to access the BAS workspace.</p>
+</div>
+
+{% if error %}
+<div class="auth-alert">{{ error }}</div>
+{% endif %}
+
+<form class="auth-form" method="post" action="{{ url_for('auth.signup') }}">
+    <div class="auth-name-grid">
+        <div class="auth-field">
+            <label for="first_name">First name</label>
+            <input
+                id="first_name"
+                name="first_name"
+                type="text"
+                autocomplete="given-name"
+                value="{{ values.first_name }}"
+                placeholder="First name"
+                required
+                autofocus
+            >
+        </div>
+
+        <div class="auth-field">
+            <label for="last_name">Last name</label>
+            <input
+                id="last_name"
+                name="last_name"
+                type="text"
+                autocomplete="family-name"
+                value="{{ values.last_name }}"
+                placeholder="Last name"
+                required
+            >
+        </div>
+    </div>
+
+    <div class="auth-field">
+        <label for="email">Email address</label>
+        <input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            value="{{ values.email }}"
+            placeholder="you@company.com"
+            required
+        >
+    </div>
+
+    <div class="auth-field">
+        <label for="password">Password</label>
+        <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="new-password"
+            minlength="8"
+            placeholder="At least 8 characters"
+            required
+        >
+        <div class="auth-field-help">Use at least 8 characters.</div>
+    </div>
+
+    <div class="auth-field">
+        <label for="confirm_password">Confirm password</label>
+        <input
+            id="confirm_password"
+            name="confirm_password"
+            type="password"
+            autocomplete="new-password"
+            minlength="8"
+            placeholder="Re-enter your password"
+            required
+        >
+    </div>
+
+    <button class="auth-primary-button" type="submit">Create account</button>
+</form>
+
+<div class="auth-switch">
+    <span>Already have an account?</span>
+    <a href="{{ url_for('auth.login') }}">Sign in</a>
+</div>
+{% endblock %}
