@@ -1,9 +1,25 @@
 {% extends "base.html" %}
-{% block title %}AI BAS Review{% endblock %}
+{% block title %}AI BAS Review | {{ client.company_name }}{% endblock %}
 
 {% block content %}
-<h1>Your BAS Review</h1>
-<div class="subtitle">{{ bas.start }} to {{ bas.end }}</div>
+<div class="workspace-breadcrumbs">
+    <a href="{{ url_for('clients.index') }}">Clients</a>
+    <span>›</span>
+    <a href="{{ url_for('bas.client_dashboard', client_id=client.id) }}">{{ client.company_name }}</a>
+    <span>›</span>
+    <a href="{{ url_for('bas.bas_review', start=bas.start, end=bas.end) }}">BAS review</a>
+    <span>›</span>
+    <span>AI review</span>
+</div>
+
+<div class="page-heading bas-review-heading">
+    <div>
+        <div class="eyebrow">AI transaction review</div>
+        <h1>{{ client.company_name }}</h1>
+        <div class="subtitle">Reporting period {{ bas.start }} to {{ bas.end }}</div>
+    </div>
+    <a class="secondary-button" href="{{ url_for('bas.bas_review', start=bas.start, end=bas.end) }}">Back to BAS</a>
+</div>
 
 <div class="card amount-card">
     <div class="amount-label">Estimated amount payable to the ATO</div>
@@ -16,7 +32,12 @@
     <div>{{ status_message }}</div>
 </div>
 
-<h2>Your BAS at a glance</h2>
+<div class="section-heading bas-review-section-heading">
+    <div>
+        <div class="dashboard-section-title">BAS at a glance</div>
+        <p>Key figures used for this review.</p>
+    </div>
+</div>
 <div class="grid">
     <div class="metric">
         <div class="metric-name">Sales</div>
@@ -24,22 +45,22 @@
         <div class="metric-help">Total sales being reported. This is called G1.</div>
     </div>
     <div class="metric">
-        <div class="metric-name">GST you collected</div>
+        <div class="metric-name">GST collected</div>
         <div class="metric-value">${{ "{:,.2f}".format(bas.gst_sales) }}</div>
         <div class="metric-help">GST charged to customers. This is called 1A.</div>
     </div>
     <div class="metric">
-        <div class="metric-name">GST you can claim back</div>
+        <div class="metric-name">GST credits</div>
         <div class="metric-value">${{ "{:,.2f}".format(bas.gst_purchases) }}</div>
         <div class="metric-help">GST on eligible purchases. This is called 1B.</div>
     </div>
     <div class="metric">
-        <div class="metric-name">Employee wages</div>
+        <div class="metric-name">Gross wages</div>
         <div class="metric-value">${{ "{:,.2f}".format(bas.w1) }}</div>
         <div class="metric-help">Gross wages. This is called W1.</div>
     </div>
     <div class="metric">
-        <div class="metric-name">Employee tax withheld</div>
+        <div class="metric-name">PAYG withheld</div>
         <div class="metric-value">${{ "{:,.2f}".format(bas.w2) }}</div>
         <div class="metric-help">Tax withheld from wages. This is called W2.</div>
     </div>
@@ -73,7 +94,7 @@
             <div class="resolution-path-content">
                 <h3>The transaction is wrong</h3>
                 <p>Correct it in QuickBooks, then run the AI review again so the BAS is checked using the updated data.</p>
-                <a class="button" href="/ai-review?start={{ bas.start }}&end={{ bas.end }}">Run AI Review Again</a>
+                <a class="button" href="{{ url_for('bas.ai_review', start=bas.start, end=bas.end) }}">Run AI Review Again</a>
             </div>
         </div>
 
@@ -83,7 +104,7 @@
                 <h3>The transaction is correct</h3>
                 <p>If you checked the flagged item and no BAS change is needed, record why. This creates an audit note before approval.</p>
 
-                <form class="resolution-form" action="/resolve-review" method="post">
+                <form class="resolution-form" action="{{ url_for('bas.resolve_review') }}" method="post">
                     <input type="hidden" name="start" value="{{ bas.start }}">
                     <input type="hidden" name="end" value="{{ bas.end }}">
 
@@ -109,5 +130,5 @@
 </div>
 {% endif %}
 
-<a class="secondary-button" href="/bas-review?start={{ bas.start }}&end={{ bas.end }}">Back to BAS</a>
+<a class="secondary-button" href="{{ url_for('bas.bas_review', start=bas.start, end=bas.end) }}">Back to BAS</a>
 {% endblock %}
