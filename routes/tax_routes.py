@@ -131,11 +131,20 @@ def client_tax_returns(client_id):
         for item in get_tax_returns_for_client(client_id, limit=50)
     ]
 
+    requested_year = request.args.get("year", "").strip()
+    default_financial_year = current_completed_financial_year()
+    if requested_year:
+        try:
+            financial_year_dates(requested_year)
+            default_financial_year = requested_year
+        except ValueError:
+            pass
+
     return render_template(
         "client_tax_returns.html",
         client=client,
         records=records,
-        default_financial_year=current_completed_financial_year(),
+        default_financial_year=default_financial_year,
         supported_entity_type=SUPPORTED_ENTITY_TYPE,
     )
 
