@@ -142,6 +142,7 @@ def init_db():
             """
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                firm_id INTEGER,
                 first_name TEXT NOT NULL,
                 last_name TEXT NOT NULL,
                 email TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -156,6 +157,34 @@ def init_db():
             """
             CREATE INDEX IF NOT EXISTS idx_users_email
             ON users(email)
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS accounting_firms (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                firm_name TEXT NOT NULL,
+                director_name TEXT NOT NULL,
+                abn TEXT,
+                acn TEXT,
+                address TEXT,
+                email TEXT,
+                phone TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+
+        if "firm_id" not in _column_names(connection, "users"):
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN firm_id INTEGER"
+            )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_users_firm
+            ON users(firm_id)
             """
         )
 
@@ -213,23 +242,66 @@ def init_db():
         )
 
 
-def create_user(first_name, last_name, email, password_hash):
+def create_user(
+    first_name,
+    last_name,
+    email,
+    password_hash,
+    firm_name,
+    director_name,
+    firm_abn=None,
+    firm_acn=None,
+    firm_address=None,
+    firm_email=None,
+    firm_phone=None,
+):
     now = _now()
 
     try:
         with get_connection() as connection:
+            firm_cursor = connection.execute(
+                """
+                INSERT INTO accounting_firms (
+                    firm_name,
+                    director_name,
+                    abn,
+                    acn,
+                    address,
+                    email,
+                    phone,
+                    created_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    firm_name.strip(),
+                    director_name.strip(),
+                    (firm_abn or "").strip() or None,
+                    (firm_acn or "").strip() or None,
+                    (firm_address or "").strip() or None,
+                    (firm_email or "").strip().lower() or None,
+                    (firm_phone or "").strip() or None,
+                    now,
+                    now,
+                ),
+            )
+            firm_id = firm_cursor.lastrowid
+
             cursor = connection.execute(
                 """
                 INSERT INTO users (
+                    firm_id,
                     first_name,
                     last_name,
                     email,
                     password_hash,
                     created_at
                 )
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
+                    firm_id,
                     first_name.strip(),
                     last_name.strip(),
                     email.strip().lower(),
@@ -248,9 +320,18 @@ def get_user_by_email(email):
     with get_connection() as connection:
         row = connection.execute(
             """
-            SELECT *
-            FROM users
-            WHERE email = ?
+            SELECT
+                u.*,
+                f.firm_name,
+                f.director_name,
+                f.abn AS firm_abn,
+                f.acn AS firm_acn,
+                f.address AS firm_address,
+                f.email AS firm_email,
+                f.phone AS firm_phone
+            FROM users u
+            LEFT JOIN accounting_firms f ON f.id = u.firm_id
+            WHERE u.email = ?
             LIMIT 1
             """,
             (email.strip().lower(),),
@@ -266,15 +347,117 @@ def get_user_by_id(user_id):
     with get_connection() as connection:
         row = connection.execute(
             """
-            SELECT *
-            FROM users
-            WHERE id = ?
+            SELECT
+                u.*,
+                f.firm_name,
+                f.director_name,
+                f.abn AS firm_abn,
+                f.acn AS firm_acn,
+                f.address AS firm_address,
+                f.email AS firm_email,
+                f.phone AS firm_phone
+            FROM users u
+            LEFT JOIN accounting_firms f ON f.id = u.firm_id
+            WHERE u.id = ?
             LIMIT 1
             """,
             (user_id,),
         ).fetchone()
 
     return dict(row) if row else None
+
+
+def get_firm_for_user(user_id):
+    user = get_user_by_id(user_id)
+    if not user or not user.get("firm_id"):
+        return None
+
+    return {
+        "id": user["firm_id"],
+        "firm_name": user.get("firm_name"),
+        "director_name": user.get("director_name"),
+        "abn": user.get("firm_abn"),
+        "acn": user.get("firm_acn"),
+        "address": user.get("firm_address"),
+        "email": user.get("firm_email"),
+        "phone": user.get("firm_phone"),
+    }
+
+
+def update_firm_for_user(
+    user_id,
+    firm_name,
+    director_name,
+    abn=None,
+    acn=None,
+    address=None,
+    email=None,
+    phone=None,
+):
+    now = _now()
+    user = get_user_by_id(user_id)
+
+    with get_connection() as connection:
+        if user and user.get("firm_id"):
+            connection.execute(
+                """
+                UPDATE accounting_firms
+                SET firm_name = ?,
+                    director_name = ?,
+                    abn = ?,
+                    acn = ?,
+                    address = ?,
+                    email = ?,
+                    phone = ?,
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    firm_name.strip(),
+                    director_name.strip(),
+                    (abn or "").strip() or None,
+                    (acn or "").strip() or None,
+                    (address or "").strip() or None,
+                    (email or "").strip().lower() or None,
+                    (phone or "").strip() or None,
+                    now,
+                    user["firm_id"],
+                ),
+            )
+        else:
+            cursor = connection.execute(
+                """
+                INSERT INTO accounting_firms (
+                    firm_name,
+                    director_name,
+                    abn,
+                    acn,
+                    address,
+                    email,
+                    phone,
+                    created_at,
+                    updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    firm_name.strip(),
+                    director_name.strip(),
+                    (abn or "").strip() or None,
+                    (acn or "").strip() or None,
+                    (address or "").strip() or None,
+                    (email or "").strip().lower() or None,
+                    (phone or "").strip() or None,
+                    now,
+                    now,
+                ),
+            )
+            connection.execute(
+                "UPDATE users SET firm_id = ? WHERE id = ?",
+                (cursor.lastrowid, user_id),
+            )
+
+    return get_firm_for_user(user_id)
 
 
 def update_last_login(user_id):
