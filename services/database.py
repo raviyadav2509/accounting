@@ -194,6 +194,7 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 owner_user_id INTEGER NOT NULL,
                 company_name TEXT NOT NULL,
+                entity_type TEXT NOT NULL DEFAULT 'COMPANY',
                 legal_name TEXT,
                 abn TEXT,
                 acn TEXT,
@@ -210,6 +211,64 @@ def init_db():
             """
             CREATE INDEX IF NOT EXISTS idx_clients_owner
             ON clients(owner_user_id)
+            """
+        )
+
+        if "entity_type" not in _column_names(connection, "clients"):
+            connection.execute(
+                "ALTER TABLE clients ADD COLUMN entity_type TEXT NOT NULL DEFAULT 'COMPANY'"
+            )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tax_returns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id INTEGER NOT NULL,
+                financial_year TEXT NOT NULL,
+                start_date TEXT NOT NULL,
+                end_date TEXT NOT NULL,
+                entity_type TEXT NOT NULL,
+                accounting_profit REAL,
+                tax_rate REAL,
+                taxable_income REAL,
+                estimated_tax REAL,
+                review_status TEXT,
+                review_text TEXT,
+                reviewed_at TEXT,
+                approval_status TEXT,
+                approved_at TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+                UNIQUE(client_id, financial_year, entity_type)
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_tax_returns_client_year
+            ON tax_returns(client_id, financial_year)
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tax_return_adjustments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tax_return_id INTEGER NOT NULL,
+                adjustment_type TEXT NOT NULL,
+                category TEXT NOT NULL,
+                description TEXT NOT NULL,
+                amount REAL NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (tax_return_id) REFERENCES tax_returns(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_tax_adjustments_return
+            ON tax_return_adjustments(tax_return_id, id)
             """
         )
 
@@ -474,8 +533,8 @@ def update_last_login(user_id):
         )
 
 
-def create_client(owner_user_id, company_name, legal_name=None, abn=None, acn=None,
-                  address=None, email=None, phone=None):
+def create_client(owner_user_id, company_name, entity_type="COMPANY", legal_name=None,
+                  abn=None, acn=None, address=None, email=None, phone=None):
     now = _now()
 
     with get_connection() as connection:
@@ -484,6 +543,7 @@ def create_client(owner_user_id, company_name, legal_name=None, abn=None, acn=No
             INSERT INTO clients (
                 owner_user_id,
                 company_name,
+                entity_type,
                 legal_name,
                 abn,
                 acn,
@@ -493,11 +553,12 @@ def create_client(owner_user_id, company_name, legal_name=None, abn=None, acn=No
                 created_at,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 owner_user_id,
                 company_name.strip(),
+                (entity_type or "COMPANY").strip().upper(),
                 (legal_name or "").strip() or None,
                 (abn or "").strip() or None,
                 (acn or "").strip() or None,
@@ -516,6 +577,7 @@ def create_client(owner_user_id, company_name, legal_name=None, abn=None, acn=No
 def update_client(client_id, owner_user_id, **fields):
     allowed = {
         "company_name",
+        "entity_type",
         "legal_name",
         "abn",
         "acn",
@@ -967,3 +1029,243 @@ def get_record_for_user(owner_user_id, record_id):
         ).fetchone()
 
     return dict(row) if row else None
+
+
+
+def create_tax_return(client_id, financial_year, start_date, end_date, entity_type):
+    now = _now()
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            INSERT INTO tax_returns (
+                client_id,
+                financial_year,
+                start_date,
+                end_date,
+                entity_type,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(client_id, financial_year, entity_type)
+            DO NOTHING
+            """,
+            (
+                client_id,
+                financial_year,
+                start_date,
+                end_date,
+                entity_type,
+                now,
+                now,
+            ),
+        )
+
+    return get_tax_return_by_year(client_id, financial_year, entity_type)
+
+
+def get_tax_return_by_year(client_id, financial_year, entity_type="COMPANY"):
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT *
+            FROM tax_returns
+            WHERE client_id = ?
+              AND financial_year = ?
+              AND entity_type = ?
+            LIMIT 1
+            """,
+            (client_id, financial_year, entity_type),
+        ).fetchone()
+
+    return dict(row) if row else None
+
+
+def get_tax_return(client_id, tax_return_id):
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT *
+            FROM tax_returns
+            WHERE id = ?
+              AND client_id = ?
+            LIMIT 1
+            """,
+            (tax_return_id, client_id),
+        ).fetchone()
+
+    return dict(row) if row else None
+
+
+def get_tax_returns_for_client(client_id, limit=50):
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT *
+            FROM tax_returns
+            WHERE client_id = ?
+            ORDER BY end_date DESC, updated_at DESC, id DESC
+            LIMIT ?
+            """,
+            (client_id, limit),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+def get_tax_returns_for_user(owner_user_id, limit=250):
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT
+                t.*,
+                c.company_name AS client_name,
+                c.abn AS client_abn
+            FROM tax_returns t
+            JOIN clients c ON c.id = t.client_id
+            WHERE c.owner_user_id = ?
+            ORDER BY t.end_date DESC, t.updated_at DESC, t.id DESC
+            LIMIT ?
+            """,
+            (owner_user_id, limit),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+def update_tax_return(client_id, tax_return_id, **fields):
+    allowed = {
+        "accounting_profit",
+        "tax_rate",
+        "taxable_income",
+        "estimated_tax",
+        "review_status",
+        "review_text",
+        "reviewed_at",
+        "approval_status",
+        "approved_at",
+    }
+    updates = []
+    values = []
+
+    for key, value in fields.items():
+        if key not in allowed:
+            continue
+        updates.append(f"{key} = ?")
+        values.append(value)
+
+    if not updates:
+        return get_tax_return(client_id, tax_return_id)
+
+    updates.append("updated_at = ?")
+    values.append(_now())
+    values.extend([tax_return_id, client_id])
+
+    with get_connection() as connection:
+        connection.execute(
+            f"""
+            UPDATE tax_returns
+            SET {", ".join(updates)}
+            WHERE id = ?
+              AND client_id = ?
+            """,
+            values,
+        )
+
+    return get_tax_return(client_id, tax_return_id)
+
+
+def get_tax_adjustments(client_id, tax_return_id):
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT a.*
+            FROM tax_return_adjustments a
+            JOIN tax_returns t ON t.id = a.tax_return_id
+            WHERE a.tax_return_id = ?
+              AND t.client_id = ?
+            ORDER BY a.id
+            """,
+            (tax_return_id, client_id),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+def add_tax_adjustment(
+    client_id,
+    tax_return_id,
+    adjustment_type,
+    category,
+    description,
+    amount,
+):
+    now = _now()
+
+    with get_connection() as connection:
+        parent = connection.execute(
+            """
+            SELECT id
+            FROM tax_returns
+            WHERE id = ?
+              AND client_id = ?
+            LIMIT 1
+            """,
+            (tax_return_id, client_id),
+        ).fetchone()
+
+        if not parent:
+            return None
+
+        cursor = connection.execute(
+            """
+            INSERT INTO tax_return_adjustments (
+                tax_return_id,
+                adjustment_type,
+                category,
+                description,
+                amount,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                tax_return_id,
+                adjustment_type,
+                category,
+                description,
+                amount,
+                now,
+                now,
+            ),
+        )
+        adjustment_id = cursor.lastrowid
+
+    return adjustment_id
+
+
+def delete_tax_adjustment(client_id, tax_return_id, adjustment_id):
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            DELETE FROM tax_return_adjustments
+            WHERE id = ?
+              AND tax_return_id = ?
+              AND tax_return_id IN (
+                  SELECT id
+                  FROM tax_returns
+                  WHERE id = ?
+                    AND client_id = ?
+              )
+            """,
+            (
+                adjustment_id,
+                tax_return_id,
+                tax_return_id,
+                client_id,
+            ),
+        )
+
+    return cursor.rowcount > 0
