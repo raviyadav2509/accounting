@@ -17,7 +17,6 @@ from services.database import (
     get_firm_for_user,
     get_history,
     get_history_for_user,
-    get_record_by_id,
     get_record_for_user,
     save_bas_snapshot,
 )
