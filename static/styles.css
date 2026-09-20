@@ -4116,3 +4116,43 @@ textarea:focus-visible {
         text-align: center;
     }
 }
+
+
+/* Inline client edit action */
+.client-name-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.client-name-row .client-name {
+    min-width: 0;
+}
+
+.client-name-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex: 0 0 auto;
+    color: var(--bas-green-dark);
+    font-size: 11px;
+    font-weight: 750;
+    line-height: 1;
+    text-decoration: none;
+}
+
+.client-name-edit svg {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+}
+
+.client-name-edit:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.client-name-edit:focus-visible {
+    border-radius: 4px;
+}
