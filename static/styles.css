@@ -4528,3 +4528,109 @@ textarea:focus-visible {
         text-align: center;
     }
 }
+
+
+/* Collapsible client secondary pane */
+.client-context-header {
+    position: relative;
+    padding-right: 38px;
+}
+
+.client-pane-toggle {
+    position: absolute;
+    top: 9px;
+    right: 4px;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid #d8e0da;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    color: #66746b;
+    cursor: pointer;
+    transition: background .14s ease, border-color .14s ease, color .14s ease;
+}
+
+.client-pane-toggle:hover {
+    border-color: #bdd3ba;
+    background: var(--bas-mint-soft);
+    color: var(--bas-green-dark);
+}
+
+.client-pane-toggle svg {
+    width: 16px;
+    height: 16px;
+    transition: transform .16s ease;
+}
+
+@media (min-width: 941px) {
+    .app-shell.has-client-context.client-pane-collapsed {
+        grid-template-columns: 224px 64px minmax(0, 1fr);
+    }
+
+    .client-pane-collapsed .client-context-nav {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .client-pane-collapsed .client-context-header {
+        justify-content: center;
+        padding: 4px 0 46px;
+    }
+
+    .client-pane-collapsed .client-context-avatar {
+        width: 36px;
+        height: 36px;
+        flex-basis: 36px;
+        font-size: 11px;
+    }
+
+    .client-pane-collapsed .client-context-identity,
+    .client-pane-collapsed .client-context-links a > span:not(.client-context-icon),
+    .client-pane-collapsed .client-context-footer {
+        display: none;
+    }
+
+    .client-pane-collapsed .client-pane-toggle {
+        top: auto;
+        right: 50%;
+        bottom: 8px;
+        transform: translateX(50%);
+    }
+
+    .client-pane-collapsed .client-pane-toggle svg {
+        transform: rotate(180deg);
+    }
+
+    .client-pane-collapsed .client-context-links {
+        align-items: center;
+        padding-top: 12px;
+    }
+
+    .client-pane-collapsed .client-context-links a {
+        width: 42px;
+        min-height: 42px;
+        justify-content: center;
+        gap: 0;
+        padding: 9px;
+    }
+
+    .client-pane-collapsed .client-context-links a.active {
+        box-shadow: inset 3px 0 0 var(--bas-green);
+    }
+
+    .client-pane-collapsed .client-context-icon {
+        width: 20px;
+        height: 20px;
+        flex-basis: 20px;
+    }
+}
+
+@media (max-width: 940px) {
+    .client-pane-toggle {
+        display: none;
+    }
+}
