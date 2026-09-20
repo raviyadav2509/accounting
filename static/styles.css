@@ -4156,3 +4156,60 @@ textarea:focus-visible {
 .client-name-edit:focus-visible {
     border-radius: 4px;
 }
+
+
+/* Consistent previous-screen navigation */
+.page-back-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin: 0 0 12px;
+}
+
+.page-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--bas-green-dark);
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.2;
+    text-decoration: none;
+}
+
+.page-back-link > span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    line-height: 1;
+    transform: translateY(-1px);
+}
+
+.page-back-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.client-form-actions > .secondary-button:first-child {
+    margin-right: auto;
+}
+
+.message-card {
+    margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+    .page-back-row {
+        margin-bottom: 10px;
+    }
+
+    .client-form-actions {
+        align-items: stretch;
+        flex-wrap: wrap;
+    }
+
+    .client-form-actions > .secondary-button:first-child {
+        margin-right: 0;
+    }
+}
