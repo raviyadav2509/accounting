@@ -41,6 +41,61 @@
     </div>
 </div>
 
+{% if firm %}
+<div class="card firm-context-card">
+    <div class="firm-context-main">
+        <div class="firm-context-icon" aria-hidden="true">
+            {{ firm.firm_name[:1]|upper }}
+        </div>
+
+        <div>
+            <div class="firm-context-label">Accounting firm</div>
+            <div class="firm-context-name">{{ firm.firm_name }}</div>
+            <div class="firm-context-subtitle">Director / Principal: {{ firm.director_name }}</div>
+        </div>
+    </div>
+
+    <div class="firm-context-details">
+        <div>
+            <span>ABN</span>
+            <strong>{{ firm.abn or "Not provided" }}</strong>
+        </div>
+
+        {% if firm.acn %}
+        <div>
+            <span>ACN</span>
+            <strong>{{ firm.acn }}</strong>
+        </div>
+        {% endif %}
+
+        {% if firm.email %}
+        <div>
+            <span>Firm email</span>
+            <strong>{{ firm.email }}</strong>
+        </div>
+        {% endif %}
+
+        {% if firm.phone %}
+        <div>
+            <span>Firm phone</span>
+            <strong>{{ firm.phone }}</strong>
+        </div>
+        {% endif %}
+    </div>
+
+    <a class="firm-edit-link" href="{{ url_for('auth.firm_profile') }}">Edit firm details</a>
+</div>
+{% else %}
+<div class="card firm-context-card firm-context-missing">
+    <div>
+        <div class="firm-context-label">Accounting firm profile</div>
+        <div class="firm-context-name">Complete your firm details</div>
+        <div class="firm-context-subtitle">Add your accounting firm name, director, ABN and contact details.</div>
+    </div>
+    <a class="button" href="{{ url_for('auth.firm_profile') }}">Complete firm profile</a>
+</div>
+{% endif %}
+
 <div class="card client-card">
     <div class="client-card-main">
         <div class="client-avatar" aria-hidden="true">
