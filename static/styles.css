@@ -4739,3 +4739,22 @@ textarea:focus-visible {
         grid-column: auto;
     }
 }
+
+
+.client-section-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.client-section-title-row h1 {
+    margin-bottom: 0;
+}
+
+@media (max-width: 560px) {
+    .client-section-title-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 7px;
+    }
+}
