@@ -1,9 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Your BAS{% endblock %}
+{% block title %}BAS Review | {{ client.company_name }}{% endblock %}
 
 {% block content %}
-<h1>Your BAS</h1>
-<div class="subtitle">Reporting period: {{ bas.start }} to {{ bas.end }}</div>
+<div class="workspace-breadcrumbs">
+    <a href="{{ url_for('clients.index') }}">Clients</a>
+    <span>›</span>
+    <a href="{{ url_for('bas.client_dashboard', client_id=client.id) }}">{{ client.company_name }}</a>
+    <span>›</span>
+    <span>BAS review</span>
+</div>
+
+<div class="page-heading bas-review-heading">
+    <div>
+        <div class="eyebrow">BAS review</div>
+        <h1>{{ client.company_name }}</h1>
+        <div class="subtitle">Reporting period {{ bas.start }} to {{ bas.end }}</div>
+    </div>
+    <a class="secondary-button" href="{{ url_for('bas.client_dashboard', client_id=client.id) }}">Back to client</a>
+</div>
 
 <div class="card amount-card">
     <div class="amount-label">{{ amount_heading }}</div>
@@ -11,7 +25,12 @@
     <div class="amount-description">{{ amount_note }}</div>
 </div>
 
-<h2>Your BAS at a glance</h2>
+<div class="section-heading bas-review-section-heading">
+    <div>
+        <div class="dashboard-section-title">BAS at a glance</div>
+        <p>Key figures calculated from this client's QuickBooks data.</p>
+    </div>
+</div>
 <div class="grid">
     <div class="metric">
         <div class="metric-code">G1</div>
@@ -21,44 +40,54 @@
     </div>
     <div class="metric">
         <div class="metric-code">1A</div>
-        <div class="metric-name">GST you collected</div>
+        <div class="metric-name">GST collected</div>
         <div class="metric-value">${{ "{:,.2f}".format(bas.gst_sales) }}</div>
-        <div class="metric-help">GST charged to your customers.</div>
+        <div class="metric-help">GST charged to customers.</div>
     </div>
     <div class="metric">
         <div class="metric-code">1B</div>
-        <div class="metric-name">GST you can claim back</div>
+        <div class="metric-name">GST credits</div>
         <div class="metric-value">${{ "{:,.2f}".format(bas.gst_purchases) }}</div>
-        <div class="metric-help">GST paid on eligible business purchases.</div>
+        <div class="metric-help">GST on eligible business purchases.</div>
     </div>
     <div class="metric">
         <div class="metric-code">W1</div>
-        <div class="metric-name">Employee wages</div>
+        <div class="metric-name">Gross wages</div>
         <div class="metric-value">${{ "{:,.2f}".format(bas.w1) }}</div>
         <div class="metric-help">Gross wages before employee tax was deducted.</div>
     </div>
     <div class="metric">
         <div class="metric-code">W2</div>
-        <div class="metric-name">Employee tax withheld</div>
+        <div class="metric-name">PAYG withheld</div>
         <div class="metric-value">${{ "{:,.2f}".format(bas.w2) }}</div>
         <div class="metric-help">Employee tax withheld that needs to go to the ATO.</div>
     </div>
 </div>
 
-<h2>How this amount was calculated</h2>
+<div class="section-heading bas-review-section-heading">
+    <div>
+        <div class="dashboard-section-title">Calculation</div>
+        <p>How the current estimated BAS amount is derived.</p>
+    </div>
+</div>
 <div class="card calculation">
     <div class="calculation-row"><span>GST collected from customers</span><strong>${{ "{:,.2f}".format(bas.gst_sales) }}</strong></div>
-    <div class="calculation-row"><span>Less GST you can claim back</span><strong>-${{ "{:,.2f}".format(bas.gst_purchases) }}</strong></div>
-    <div class="calculation-row"><span>Your GST position</span><strong>${{ "{:,.2f}".format(bas.gst_position) }}</strong></div>
-    <div class="calculation-row"><span>Add employee tax withheld</span><strong>${{ "{:,.2f}".format(bas.w2) }}</strong></div>
+    <div class="calculation-row"><span>Less GST credits</span><strong>-${{ "{:,.2f}".format(bas.gst_purchases) }}</strong></div>
+    <div class="calculation-row"><span>GST position</span><strong>${{ "{:,.2f}".format(bas.gst_position) }}</strong></div>
+    <div class="calculation-row"><span>Add PAYG withheld</span><strong>${{ "{:,.2f}".format(bas.w2) }}</strong></div>
     <div class="calculation-row"><span>Estimated BAS amount</span><strong>${{ "{:,.2f}".format(bas.payable) }}</strong></div>
 </div>
 
-<h2>What happens next</h2>
+<div class="section-heading bas-review-section-heading">
+    <div>
+        <div class="dashboard-section-title">Workflow</div>
+        <p>Complete review and approval before lodgement.</p>
+    </div>
+</div>
 <div class="process">
     <div class="step"><div class="step-number">Step 1</div><div class="step-title">BAS calculated</div><div class="step-text">QuickBooks transactions have been used to calculate your BAS.</div></div>
     <div class="step"><div class="step-number">Step 2</div><div class="step-title">Run AI review</div><div class="step-text">AI checks transactions for unusual GST, duplicates and other possible problems.</div></div>
-    <div class="step"><div class="step-number">Step 3</div><div class="step-title">You approve</div><div class="step-text">Review the numbers and AI findings before approving the BAS.</div></div>
+    <div class="step"><div class="step-number">Step 3</div><div class="step-title">Human review and approval</div><div class="step-text">Review the figures and AI findings before approving the BAS.</div></div>
 </div>
 
 <div class="card actions">
@@ -75,7 +104,7 @@
                     Open the review to see exactly what was flagged. You can either correct the transaction in QuickBooks and run the review again, or confirm that no BAS change is required.
                 </div>
             </div>
-            <a class="secondary-button" href="/review-details?start={{ bas.start }}&end={{ bas.end }}">
+            <a class="secondary-button" href="{{ url_for('bas.review_details', start=bas.start, end=bas.end) }}">
                 Review flagged items
             </a>
         </div>
@@ -87,13 +116,13 @@
                     <div class="resolved-note">{{ ai_review.resolution_note }}</div>
                 {% endif %}
             </div>
-            <a class="text-link" href="/review-details?start={{ bas.start }}&end={{ bas.end }}">View review</a>
+            <a class="text-link" href="{{ url_for('bas.review_details', start=bas.start, end=bas.end) }}">View review</a>
         </div>
     {% endif %}
 
     <div class="action-bar">
         <div class="primary-actions">
-            <form action="/ai-review" method="get">
+            <form action="{{ url_for('bas.ai_review') }}" method="get">
                 <input type="hidden" name="start" value="{{ bas.start }}">
                 <input type="hidden" name="end" value="{{ bas.end }}">
                 <button class="ai-button" type="submit">
@@ -102,13 +131,13 @@
             </form>
 
             {% if ai_status == "PASS" or (ai_status == "REVIEW REQUIRED" and review_resolved) %}
-                <form action="/approve-bas" method="post">
+                <form action="{{ url_for('bas.approve_bas') }}" method="post">
                     <input type="hidden" name="start" value="{{ bas.start }}">
                     <input type="hidden" name="end" value="{{ bas.end }}">
                     <button class="approve-button" type="submit">Approve BAS</button>
                 </form>
             {% elif ai_status == "WARNING" %}
-                <form class="warning-form" action="/approve-bas" method="post">
+                <form class="warning-form" action="{{ url_for('bas.approve_bas') }}" method="post">
                     <input type="hidden" name="start" value="{{ bas.start }}">
                     <input type="hidden" name="end" value="{{ bas.end }}">
                     <label class="warning-ack">
@@ -120,15 +149,15 @@
             {% endif %}
         </div>
 
-        <form action="/reject-bas" method="post">
+        <form action="{{ url_for('bas.reject_bas') }}" method="post">
             <input type="hidden" name="start" value="{{ bas.start }}">
             <input type="hidden" name="end" value="{{ bas.end }}">
-            <button class="reject-button" type="submit">Reject</button>
+            <button class="reject-button" type="submit">Reject BAS</button>
         </form>
     </div>
 
     <div class="info-box">
-        <strong>Note:</strong> Approval is recorded in this app only. Nothing is lodged with the ATO yet.
+        <strong>Approval does not lodge the BAS.</strong> Approval currently records the BAS as ready to lodge. ATO lodgement is not yet connected.
     </div>
 </div>
 {% endblock %}
