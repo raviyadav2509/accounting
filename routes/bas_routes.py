@@ -12,6 +12,7 @@ from services.bas_service import (
     calculate_bas,
     get_payroll_bas,
 )
+from services.financial_year_service import financial_year_for_date, financial_year_sort_key
 from services.database import (
     get_client_for_user,
     get_firm_for_user,
@@ -186,6 +187,7 @@ def _decorate_record(record):
         item["start_date"],
         item["end_date"],
     )
+    item["financial_year"] = financial_year_for_date(item["end_date"])
 
     for field in (
         "created_at",
@@ -379,18 +381,46 @@ def historical_bas(client_id):
 
     records = [
         _decorate_record(record)
-        for record in get_history(client_id, limit=250)
+        for record in get_history(client_id, limit=500)
     ]
-    historical_records = [
+    all_historical_records = [
         record
         for record in records
         if record["is_lodged"]
     ]
 
+    financial_years = sorted(
+        {record["financial_year"] for record in all_historical_records},
+        key=financial_year_sort_key,
+        reverse=True,
+    )
+
+    selected_year = request.args.get("year", "").strip()
+    if selected_year not in financial_years:
+        selected_year = financial_years[0] if financial_years else None
+
+    historical_records = [
+        record
+        for record in all_historical_records
+        if not selected_year or record["financial_year"] == selected_year
+    ]
+
+    year_counts = {
+        financial_year: sum(
+            1
+            for record in all_historical_records
+            if record["financial_year"] == financial_year
+        )
+        for financial_year in financial_years
+    }
+
     return render_template(
         "client_historical_bas.html",
         client=client,
         historical_records=historical_records,
+        financial_years=financial_years,
+        selected_year=selected_year,
+        year_counts=year_counts,
     )
 
 
@@ -432,7 +462,7 @@ def calculate_new_bas():
                 title="BAS already lodged",
                 message=(
                     "A BAS for this reporting period has already been lodged "
-                    "and is available under Historical BAS."
+                    "and is available under BAS History."
                 ),
                 back_url=url_for("bas.active_bas", client_id=client["id"]),
             )
