@@ -92,6 +92,23 @@
     <div class="step"><div class="step-number">Step 3</div><div class="step-title">Human review and approval</div><div class="step-text">Review the figures and AI findings before approving the BAS.</div></div>
 </div>
 
+{% if bas_record and bas_record.approval_status == "APPROVED" %}
+<div class="card prelodgement-edit-banner">
+    <div>
+        <div class="actions-title">Approved — ready to lodge</div>
+        <div class="actions-description">
+            This BAS can still be changed because it has not been lodged. Reopening it removes the approval so you can update the QuickBooks data, recalculate and run the review again.
+        </div>
+    </div>
+
+    <form action="{{ url_for('bas.reopen_approved_bas') }}" method="post">
+        <input type="hidden" name="start" value="{{ bas.start }}">
+        <input type="hidden" name="end" value="{{ bas.end }}">
+        <input type="hidden" name="signature" value="{{ bas_record.signature }}">
+        <button class="secondary-button edit-before-lodgement-button" type="submit">Edit BAS</button>
+    </form>
+</div>
+{% else %}
 <div class="card actions">
     <div class="actions-title">Review and approve</div>
     <div class="actions-description">
@@ -162,4 +179,6 @@
         <strong>Approval does not lodge the BAS.</strong> Approval currently records the BAS as ready to lodge. ATO lodgement is not yet connected.
     </div>
 </div>
+
+{% endif %}
 {% endblock %}
