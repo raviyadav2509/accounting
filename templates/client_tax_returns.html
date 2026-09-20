@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Annual Tax Returns | {{ client.company_name }}{% endblock %}
+
+{% block content %}
+<div class="workspace-breadcrumbs">
+    <a href="{{ url_for('clients.index') }}">Clients</a>
+    <span>›</span>
+    <a href="{{ url_for('clients.business_details', client_id=client.id) }}">{{ client.company_name }}</a>
+    <span>›</span>
+    <span>Annual Tax Returns</span>
+</div>
+
+<div class="page-heading client-section-heading">
+    <div>
+        <div class="eyebrow">Client tax</div>
+        <h1>Annual Tax Returns</h1>
+        <div class="subtitle">Prepare, review and approve annual tax return drafts for this client.</div>
+    </div>
+</div>
+
+{% if client.entity_type != supported_entity_type %}
+<div class="card tax-return-notice">
+    <strong>{{ client.entity_type|title }} return support is not available yet.</strong>
+    <p>The current prototype supports company tax returns first. The client entity type can be updated under Business Details.</p>
+    <a class="secondary-button" href="{{ url_for('clients.edit_client', client_id=client.id) }}">Edit client entity type</a>
+</div>
+{% else %}
+<div class="card tax-return-launch-card">
+    <div>
+        <div class="tax-card-label">Company tax return</div>
+        <strong>Prepare a new annual return</strong>
+        <p>The prototype uses a standard 1 July to 30 June financial year and can import accounting profit from QuickBooks.</p>
+    </div>
+
+    <form class="tax-return-new-form" method="post" action="{{ url_for('tax.new_tax_return', client_id=client.id) }}">
+        <div class="auth-field">
+            <label for="financial_year">Financial year</label>
+            <input id="financial_year" name="financial_year" value="{{ default_financial_year }}" placeholder="2025-26" required>
+        </div>
+        <button class="button" type="submit">Prepare return</button>
+    </form>
+</div>
+{% endif %}
+
+{% if records %}
+<div class="section-heading tax-return-list-heading">
+    <div>
+        <div class="dashboard-section-title">Returns</div>
+        <p>Draft and approved annual tax returns for this client.</p>
+    </div>
+</div>
+
+<div class="card table-card">
+    <div class="responsive-table">
+        <table class="history-table client-history-table">
+            <thead>
+                <tr>
+                    <th>Financial year</th>
+                    <th>Accounting profit</th>
+                    <th>Taxable income</th>
+                    <th>Estimated tax</th>
+                    <th>Rate</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td><strong>FY {{ record.financial_year }}</strong></td>
+                    <td>{{ record.accounting_profit_display }}</td>
+                    <td>{{ record.taxable_income_display }}</td>
+                    <td>{{ record.estimated_tax_display }}</td>
+                    <td>{{ record.tax_rate_display }}</td>
+                    <td><span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span></td>
+                    <td class="table-action">
+                        <a href="{{ url_for('tax.company_tax_return', client_id=client.id, tax_return_id=record.id) }}">Open return</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% elif client.entity_type == supported_entity_type %}
+<div class="card empty-state tax-return-empty-state">
+    <strong>No annual tax returns yet.</strong>
+    <p>Prepare the first company tax return draft using the financial year above.</p>
+</div>
+{% endif %}
+{% endblock %}
