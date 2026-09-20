@@ -57,19 +57,13 @@
 <section class="client-workspace-details">
     <div class="section-heading client-details-heading">
         <div>
-            <div class="client-details-title-row">
-                <div class="dashboard-section-title">Client details</div>
-                <a class="client-heading-edit"
-                   href="{{ url_for('clients.edit_client', client_id=client.id) }}"
-                   aria-label="Edit {{ client.company_name }} details">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M4 20h4l10.5-10.5a2.8 2.8 0 0 0-4-4L4 16v4Zm9.5-13.5 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span>Edit</span>
-                </a>
-            </div>
+            <div class="dashboard-section-title">Client details</div>
             <p>Registered business information used for this client's BAS workspace.</p>
         </div>
+        <a class="secondary-button client-edit-button"
+           href="{{ url_for('clients.edit_client', client_id=client.id) }}">
+            Edit client details
+        </a>
     </div>
 
     <div class="card client-card">
@@ -153,12 +147,6 @@
                 </div>
             </summary>
 
-            <a class="bas-record-direct-link"
-               href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">
-                View BAS
-                <span aria-hidden="true">→</span>
-            </a>
-
             <div class="bas-record-expanded">
                 <div class="record-metrics">
                     <div class="record-metric"><span>Sales</span><strong>&#36;{{ "{:,.2f}".format(record.g1) }}</strong></div>
@@ -217,7 +205,9 @@
                         <span>Open the detailed BAS to review calculations, run AI review and continue the workflow.</span>
                     </div>
 
-
+                    <a class="button" href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">
+                        Open detailed BAS
+                    </a>
                 </div>
             </div>
         </details>
