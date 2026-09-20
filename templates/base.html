@@ -69,7 +69,12 @@
 
         <div class="workspace">
             <header class="top-bar">
-                <div class="top-bar-title">Business Activity Statement</div>
+                <div class="top-bar-title">
+                    <span>Business Activity Statement</span>
+                    {% if g.client %}
+                        <span class="active-client-pill">{{ g.client.company_name }}</span>
+                    {% endif %}
+                </div>
                 <div class="top-bar-actions">
                     <a class="icon-button" href="{{ url_for('bas.bas_history') }}" title="BAS history" aria-label="BAS history">
                         <svg viewBox="0 0 24 24" fill="none">
