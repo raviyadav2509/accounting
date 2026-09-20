@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}QuickBooks | {{ client.company_name }}{% endblock %}
+
+{% block content %}
+<div class="workspace-breadcrumbs">
+    <a href="{{ url_for('clients.index') }}">Clients</a>
+    <span>›</span>
+    <a href="{{ url_for('bas.client_dashboard', client_id=client.id) }}">{{ client.company_name }}</a>
+    <span>›</span>
+    <span>QuickBooks</span>
+</div>
+
+<div class="page-heading">
+    <div>
+        <div class="eyebrow">Client integration</div>
+        <h1>QuickBooks</h1>
+        <div class="subtitle">Manage the accounting-data connection for {{ client.company_name }}.</div>
+    </div>
+</div>
+
+<div class="card client-integration-card">
+    <div class="client-integration-status">
+        <div class="client-integration-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M8.5 8.5 6 11a4 4 0 0 0 5.7 5.7l2.5-2.5M15.5 15.5 18 13a4 4 0 1 0-5.7-5.7L9.8 9.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+        </div>
+
+        <div>
+            <div class="client-integration-label">Connection status</div>
+            {% if client.qbo_connected %}
+                <div class="client-integration-title">QuickBooks connected</div>
+                <p>This client's BAS calculations use its own QuickBooks connection.</p>
+            {% else %}
+                <div class="client-integration-title">QuickBooks not connected</div>
+                <p>Connect this client's QuickBooks company before calculating BAS.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="client-integration-actions">
+        {% if client.qbo_connected %}
+            <span class="status-badge pass">Connected</span>
+            <a class="secondary-button" href="{{ url_for('qbo.connect') }}">Reconnect QuickBooks</a>
+        {% else %}
+            <span class="status-badge warning">Connection required</span>
+            <a class="button" href="{{ url_for('qbo.connect') }}">Connect QuickBooks</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card integration-help-card">
+    <strong>Client-specific connection</strong>
+    <p>
+        This QuickBooks connection is isolated to {{ client.company_name }}.
+        Transactions and BAS calculations for other clients are not affected.
+    </p>
+</div>
+{% endblock %}
