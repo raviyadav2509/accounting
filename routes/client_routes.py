@@ -80,7 +80,7 @@ def client_home(client_id):
     if not client.get("qbo_connected"):
         return render_template("client_setup.html", client=client)
 
-    return redirect(url_for("bas.dashboard"))
+    return redirect(url_for("bas.client_dashboard", client_id=client_id))
 
 
 @clients_bp.route("/<int:client_id>/select", methods=["POST"])
