@@ -3535,17 +3535,20 @@ a.firm-dashboard-metric:hover {
 }
 
 .dashboard-attention-avatar {
-    width: 34px;
-    height: 34px;
-    flex: 0 0 34px;
-    border-radius: 8px;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    align-self: center;
+    border-radius: 10px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     background: var(--bas-mint);
     color: var(--bas-green-deep);
-    font-size: 12px;
+    font-size: 20px;
     font-weight: 800;
+    line-height: 1;
+    text-align: center;
 }
 
 .dashboard-attention-client strong,
