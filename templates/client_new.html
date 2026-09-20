@@ -2,12 +2,18 @@
 {% block title %}Add client | BAS Automation{% endblock %}
 
 {% block content %}
+<div class="page-back-row">
+    <a class="page-back-link" href="{{ url_for('clients.index') }}">
+        <span aria-hidden="true">←</span>
+        Back to clients
+    </a>
+</div>
+
 <div class="page-heading">
     <div>
         <h1>Add client</h1>
         <div class="subtitle">Register a business under your accounting firm account.</div>
     </div>
-    <a class="secondary-button" href="{{ url_for('clients.index') }}">Back to clients</a>
 </div>
 
 <div class="card client-form-card">
