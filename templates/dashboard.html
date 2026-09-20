@@ -40,6 +40,55 @@
     </div>
 </div>
 
+<div class="card client-card">
+    <div class="client-card-main">
+        <div class="client-avatar" aria-hidden="true">
+            {{ client.company_name[:1]|upper }}
+        </div>
+
+        <div class="client-identity">
+            <div class="client-label">BAS client</div>
+            <div class="client-name">{{ client.company_name }}</div>
+            {% if client.legal_name and client.legal_name != client.company_name %}
+                <div class="client-legal-name">{{ client.legal_name }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="client-details-grid">
+        <div class="client-detail">
+            <span>ABN</span>
+            <strong>{{ client.abn or "Not available in QuickBooks" }}</strong>
+        </div>
+
+        <div class="client-detail">
+            <span>ACN</span>
+            <strong>{{ client.acn or "Not available in QuickBooks" }}</strong>
+        </div>
+
+        {% if client.address %}
+        <div class="client-detail client-detail-wide">
+            <span>Business address</span>
+            <strong>{{ client.address }}</strong>
+        </div>
+        {% endif %}
+
+        {% if client.email %}
+        <div class="client-detail">
+            <span>Email</span>
+            <strong>{{ client.email }}</strong>
+        </div>
+        {% endif %}
+
+        {% if client.phone %}
+        <div class="client-detail">
+            <span>Phone</span>
+            <strong>{{ client.phone }}</strong>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
 <details class="card current-bas-card current-bas-disclosure">
     <summary class="current-bas-summary">
         <div class="summary-period">
