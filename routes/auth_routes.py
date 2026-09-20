@@ -160,6 +160,8 @@ def firm_profile():
     if g.user is None:
         return redirect(url_for("auth.login"))
 
+    session.pop("client_id", None)
+    g.client = None
     firm = get_firm_for_user(g.user["id"])
     values = {
         "firm_name": (firm or {}).get("firm_name") or "",
