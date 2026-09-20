@@ -213,6 +213,15 @@ def _decorate_record(record):
     label, css_class = _record_status(item)
     item["display_status"] = label
     item["status_class"] = css_class
+
+    payable = item.get("payable", 0) or 0
+    if payable >= 0:
+        item["amount_heading"] = "Estimated amount payable"
+        item["amount_display"] = f"${payable:,.2f}"
+    else:
+        item["amount_heading"] = "Estimated credit / refund"
+        item["amount_display"] = f"${abs(payable):,.2f}"
+
     item["is_lodged"] = (
         item.get("approval_status") == "LODGED"
         or bool(item.get("lodged_at"))
@@ -279,6 +288,7 @@ def dashboard():
         if not record["is_lodged"]
         and record["id"] != current_display["id"]
     ]
+    current_records = [current_display] + current_others
 
     previous = [
         record
@@ -290,6 +300,7 @@ def dashboard():
         "dashboard.html",
         bas=bas,
         current=current_display,
+        current_records=current_records,
         current_others=current_others,
         client=client,
         ai_status=ai_status,
