@@ -4,7 +4,7 @@ from datetime import datetime
 import markdown
 from flask import Blueprint, g, redirect, render_template, request, session, url_for
 
-from config import DEFAULT_BAS_END, DEFAULT_BAS_START
+from config import DEFAULT_BAS_END, DEFAULT_BAS_START, ENABLE_MOCK_ATO_LODGEMENT
 from services.ai_review_service import run_ai_review
 from services.bas_service import (
     bas_signature,
@@ -19,6 +19,7 @@ from services.database import (
     get_history,
     get_history_for_user,
     get_record_for_user,
+    mark_lodged,
     save_bas_snapshot,
 )
 from services.review_store import (
@@ -366,6 +367,7 @@ def active_bas(client_id):
         "client_active_bas.html",
         client=client,
         current_records=current_records,
+        mock_ato_lodgement_enabled=ENABLE_MOCK_ATO_LODGEMENT,
     )
 
 
@@ -814,6 +816,87 @@ def approve_bas():
             "lodged with the ATO yet. Status: Ready to Lodge."
         ),
         back_url=url_for("bas.active_bas", client_id=client["id"]),
+    )
+
+
+@bas_bp.route("/mock-lodge-bas", methods=["POST"])
+def mock_lodge_bas():
+    if not ENABLE_MOCK_ATO_LODGEMENT:
+        return render_template(
+            "message.html",
+            title="Mock lodgement disabled",
+            message=(
+                "Mock ATO lodgement is disabled. Set "
+                "ENABLE_MOCK_ATO_LODGEMENT=true in the local environment to use it."
+            ),
+            back_url=url_for("bas.dashboard"),
+        ), 404
+
+    client, response = _require_client()
+    if response:
+        return response
+
+    start = request.form.get("start", "").strip()
+    end = request.form.get("end", "").strip()
+    signature = request.form.get("signature", "").strip()
+
+    record = _record_for_period(client["id"], start, end)
+
+    if not record or record.get("signature") != signature:
+        return render_template(
+            "message.html",
+            title="BAS record not found",
+            message="The BAS selected for mock lodgement could not be found.",
+            back_url=url_for("bas.active_bas", client_id=client["id"]),
+        ), 404
+
+    if record["is_lodged"]:
+        return redirect(
+            url_for(
+                "bas.historical_bas",
+                client_id=client["id"],
+                year=record["financial_year"],
+            )
+        )
+
+    if record.get("approval_status") != "APPROVED":
+        return render_template(
+            "message.html",
+            title="BAS is not ready to lodge",
+            message=(
+                "Approve the BAS first. Mock lodgement is only available for "
+                "BAS records with status Approved - Ready to Lodge."
+            ),
+            back_url=url_for("bas.active_bas", client_id=client["id"]),
+        ), 400
+
+    mock_reference = (
+        f"MOCK-BAS-{client['id']}-"
+        f"{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    )
+
+    lodged = mark_lodged(
+        client["id"],
+        start,
+        end,
+        signature,
+        lodgement_reference=mock_reference,
+    )
+
+    if not lodged or not lodged.get("lodged_at"):
+        return render_template(
+            "message.html",
+            title="Mock lodgement failed",
+            message="The BAS could not be marked as lodged.",
+            back_url=url_for("bas.active_bas", client_id=client["id"]),
+        ), 500
+
+    return redirect(
+        url_for(
+            "bas.historical_bas",
+            client_id=client["id"],
+            year=financial_year_for_date(end),
+        )
     )
 
 
