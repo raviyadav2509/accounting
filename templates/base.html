@@ -83,11 +83,25 @@
                     <strong title="{{ g.client.company_name }}">{{ g.client.company_name }}</strong>
                     {% if g.client.abn %}<small>ABN {{ g.client.abn }}</small>{% endif %}
                 </div>
+
+                <button
+                    id="client-pane-toggle"
+                    class="client-pane-toggle"
+                    type="button"
+                    aria-label="Collapse client menu"
+                    aria-expanded="true"
+                    title="Collapse client menu"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M14.5 6 8.5 12l6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
             </div>
 
             <nav class="client-context-links" aria-label="Client navigation">
                 <a class="{% if request.endpoint == 'clients.edit_client' or (request.endpoint == 'bas.client_dashboard' and request.args.get('section', 'details') == 'details') %}active{% endif %}"
-                   href="{{ url_for('bas.client_dashboard', client_id=g.client.id, section='details') }}#business-details">
+                   href="{{ url_for('bas.client_dashboard', client_id=g.client.id, section='details') }}#business-details"
+                   title="Business Details">
                     <span class="client-context-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none"><path d="M5 4h14v16H5V4Zm3 4h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                     </span>
@@ -95,7 +109,8 @@
                 </a>
 
                 <a class="{% if request.endpoint in ['bas.bas_review', 'bas.ai_review', 'bas.review_details'] or (request.endpoint == 'bas.client_dashboard' and request.args.get('section') == 'active') %}active{% endif %}"
-                   href="{{ url_for('bas.client_dashboard', client_id=g.client.id, section='active') }}#active-bas">
+                   href="{{ url_for('bas.client_dashboard', client_id=g.client.id, section='active') }}#active-bas"
+                   title="Active BAS">
                     <span class="client-context-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4V6Zm4 4h8M8 14h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                     </span>
@@ -103,7 +118,8 @@
                 </a>
 
                 <a class="{% if request.endpoint == 'bas.bas_history_detail' or (request.endpoint == 'bas.client_dashboard' and request.args.get('section') == 'history') %}active{% endif %}"
-                   href="{{ url_for('bas.client_dashboard', client_id=g.client.id, section='history') }}#historical-bas">
+                   href="{{ url_for('bas.client_dashboard', client_id=g.client.id, section='history') }}#historical-bas"
+                   title="Historical BAS">
                     <span class="client-context-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none"><path d="M12 8v4l2.5 1.5M4.9 6.9A8 8 0 1 1 4 16M4 8V4m0 0h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </span>
@@ -111,7 +127,8 @@
                 </a>
 
                 <a class="{% if request.endpoint in ['clients.quickbooks_client', 'clients.client_home'] or request.blueprint == 'qbo' %}active{% endif %}"
-                   href="{{ url_for('clients.quickbooks_client', client_id=g.client.id) }}">
+                   href="{{ url_for('clients.quickbooks_client', client_id=g.client.id) }}"
+                   title="QuickBooks">
                     <span class="client-context-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none"><path d="M8.5 8.5 6 11a4 4 0 0 0 5.7 5.7l2.5-2.5M15.5 15.5 18 13a4 4 0 1 0-5.7-5.7L9.8 9.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                     </span>
@@ -175,5 +192,35 @@
             </main>
         </div>
     </div>
+
+    {% if g.client %}
+    <script>
+    (function () {
+        const shell = document.querySelector(".app-shell.has-client-context");
+        const toggle = document.getElementById("client-pane-toggle");
+        if (!shell || !toggle) return;
+
+        const storageKey = "bas-client-pane-collapsed";
+
+        function applyState(collapsed) {
+            shell.classList.toggle("client-pane-collapsed", collapsed);
+            toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+            toggle.setAttribute(
+                "aria-label",
+                collapsed ? "Expand client menu" : "Collapse client menu"
+            );
+            toggle.title = collapsed ? "Expand client menu" : "Collapse client menu";
+        }
+
+        applyState(localStorage.getItem(storageKey) === "1");
+
+        toggle.addEventListener("click", function () {
+            const collapsed = !shell.classList.contains("client-pane-collapsed");
+            applyState(collapsed);
+            localStorage.setItem(storageKey, collapsed ? "1" : "0");
+        });
+    })();
+    </script>
+    {% endif %}
 </body>
 </html>
