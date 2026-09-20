@@ -925,6 +925,36 @@ def mark_rejected(client_id, start, end, signature):
     return get_bas_record(client_id, start, end, signature)
 
 
+def reopen_bas(client_id, start, end, signature):
+    now = _now()
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE bas_records
+            SET approval_status = NULL,
+                approved_at = NULL,
+                rejected_at = NULL,
+                updated_at = ?
+            WHERE client_id = ?
+              AND start_date = ?
+              AND end_date = ?
+              AND signature = ?
+              AND lodged_at IS NULL
+              AND approval_status = 'APPROVED'
+            """,
+            (
+                now,
+                client_id,
+                start,
+                end,
+                signature,
+            ),
+        )
+
+    return get_bas_record(client_id, start, end, signature)
+
+
 def mark_lodged(client_id, start, end, signature, lodgement_reference=None):
     now = _now()
 
