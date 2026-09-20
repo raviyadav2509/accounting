@@ -5442,3 +5442,95 @@ textarea:focus-visible {
     letter-spacing: .03em;
     white-space: nowrap;
 }
+
+
+/* Mock ATO lodgement test mode */
+.status-badge.lodged {
+    background: #e8f4ff;
+    color: #155a8a;
+}
+
+.record-action-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.mock-lodge-button {
+    min-height: 40px;
+    padding: 10px 14px;
+    border: 1px solid #8ab6d6;
+    border-radius: 8px;
+    background: #f3f9fd;
+    color: #155a8a;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.mock-lodge-button:hover {
+    background: #e8f4ff;
+    border-color: #6b9fc4;
+}
+
+.tax-approved-banner,
+.tax-lodged-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.tax-lodged-banner {
+    padding: 16px 18px;
+    border-left: 4px solid #2f6fde;
+    background: #f5f9ff;
+}
+
+.tax-lodged-banner strong {
+    color: #174f86;
+}
+
+.tax-lodged-banner p {
+    margin: 4px 0 0;
+    color: var(--bas-muted);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.tax-return-list-section {
+    margin-top: 30px;
+}
+
+.tax-history-table {
+    min-width: 860px;
+}
+
+.mock-mode-notice {
+    border-color: #b8d7ee;
+    background: #f4f9fd;
+    color: #234b68;
+}
+
+@media (max-width: 760px) {
+    .record-action-buttons {
+        width: 100%;
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .record-action-buttons .button,
+    .record-action-buttons form,
+    .record-action-buttons .mock-lodge-button {
+        width: 100%;
+        text-align: center;
+    }
+
+    .tax-approved-banner,
+    .tax-lodged-banner {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
