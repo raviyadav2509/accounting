@@ -14,7 +14,7 @@
     <div>
         <div class="eyebrow">Client tax</div>
         <h1>Annual Tax Returns</h1>
-        <div class="subtitle">Prepare, review and approve annual tax return drafts for this client.</div>
+        <div class="subtitle">Prepare annual returns and retain lodged years as read-only history.</div>
     </div>
 </div>
 
@@ -42,50 +42,112 @@
 </div>
 {% endif %}
 
-{% if records %}
-<div class="section-heading tax-return-list-heading">
-    <div>
-        <div class="dashboard-section-title">Returns by financial year</div>
-        <p>Most recent financial years are shown first. Open a year to continue its draft or review its status.</p>
+<section class="tax-return-list-section">
+    <div class="section-heading tax-return-list-heading">
+        <div>
+            <div class="dashboard-section-title">Active Tax Returns</div>
+            <p>Annual returns still being prepared, reviewed, approved or waiting to be lodged.</p>
+        </div>
+        {% if active_records %}
+        <span class="section-count">{{ active_records|length }} active</span>
+        {% endif %}
     </div>
-</div>
 
-<div class="card table-card">
-    <div class="responsive-table">
-        <table class="history-table client-history-table">
-            <thead>
-                <tr>
-                    <th>Financial year</th>
-                    <th>Accounting profit</th>
-                    <th>Taxable income</th>
-                    <th>Estimated tax</th>
-                    <th>Rate</th>
-                    <th>Status</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for record in records %}
-                <tr>
-                    <td><strong>FY {{ record.financial_year }}</strong></td>
-                    <td>{{ record.accounting_profit_display }}</td>
-                    <td>{{ record.taxable_income_display }}</td>
-                    <td>{{ record.estimated_tax_display }}</td>
-                    <td>{{ record.tax_rate_display }}</td>
-                    <td><span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span></td>
-                    <td class="table-action">
-                        <a href="{{ url_for('tax.company_tax_return', client_id=client.id, tax_return_id=record.id) }}">Open return</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    {% if active_records %}
+    <div class="card table-card">
+        <div class="responsive-table">
+            <table class="history-table client-history-table">
+                <thead>
+                    <tr>
+                        <th>Financial year</th>
+                        <th>Accounting profit</th>
+                        <th>Taxable income</th>
+                        <th>Estimated tax</th>
+                        <th>Rate</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in active_records %}
+                    <tr>
+                        <td><strong>FY {{ record.financial_year }}</strong></td>
+                        <td>{{ record.accounting_profit_display }}</td>
+                        <td>{{ record.taxable_income_display }}</td>
+                        <td>{{ record.estimated_tax_display }}</td>
+                        <td>{{ record.tax_rate_display }}</td>
+                        <td><span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span></td>
+                        <td class="table-action">
+                            <a href="{{ url_for('tax.company_tax_return', client_id=client.id, tax_return_id=record.id) }}">Open return</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
-{% elif client.entity_type == supported_entity_type %}
-<div class="card empty-state tax-return-empty-state">
-    <strong>No annual tax returns yet.</strong>
-    <p>Prepare the first company tax return draft using the financial year above.</p>
+    {% else %}
+    <div class="card empty-state compact-empty-state">
+        <strong>No active annual tax returns.</strong>
+        <p>Prepare a financial year above to create the next draft.</p>
+    </div>
+    {% endif %}
+</section>
+
+<section class="tax-return-list-section">
+    <div class="section-heading tax-return-list-heading">
+        <div>
+            <div class="dashboard-section-title">Tax Return History</div>
+            <p>Lodged annual returns are retained here as read-only records.</p>
+        </div>
+        {% if historical_records %}
+        <span class="section-count">{{ historical_records|length }} lodged</span>
+        {% endif %}
+    </div>
+
+    {% if historical_records %}
+    <div class="card table-card">
+        <div class="responsive-table">
+            <table class="history-table client-history-table tax-history-table">
+                <thead>
+                    <tr>
+                        <th>Financial year</th>
+                        <th>Taxable income</th>
+                        <th>Estimated tax</th>
+                        <th>Lodged</th>
+                        <th>Reference</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in historical_records %}
+                    <tr>
+                        <td><strong>FY {{ record.financial_year }}</strong></td>
+                        <td>{{ record.taxable_income_display }}</td>
+                        <td>{{ record.estimated_tax_display }}</td>
+                        <td>{{ record.lodged_at_display or "Lodged" }}</td>
+                        <td><span class="table-subtext">{{ record.lodgement_reference or "Not recorded" }}</span></td>
+                        <td class="table-action">
+                            <a href="{{ url_for('tax.company_tax_return', client_id=client.id, tax_return_id=record.id) }}">View return</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="card empty-state compact-empty-state">
+        <strong>No lodged annual tax returns yet.</strong>
+        <p>Returns will move here after successful mock or future real ATO lodgement.</p>
+    </div>
+    {% endif %}
+</section>
+
+{% if mock_ato_lodgement_enabled %}
+<div class="info-box mock-mode-notice">
+    <strong>Mock ATO lodgement is enabled.</strong>
+    Approved BAS and annual tax returns can be marked as lodged for workflow testing. No information is sent to the ATO.
 </div>
 {% endif %}
 {% endblock %}
