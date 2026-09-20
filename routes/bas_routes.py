@@ -455,9 +455,6 @@ def bas_history():
 
 @bas_bp.route("/bas-history/<int:record_id>")
 def bas_history_detail(record_id):
-    session.pop("client_id", None)
-    g.client = None
-
     record = get_record_for_user(g.user["id"], record_id)
 
     if not record:
@@ -476,6 +473,13 @@ def bas_history_detail(record_id):
             message="The client associated with this BAS record could not be found.",
             back_url=url_for("bas.bas_history"),
         ), 404
+
+    if request.args.get("client_context") == "1":
+        session["client_id"] = client["id"]
+        g.client = client
+    else:
+        session.pop("client_id", None)
+        g.client = None
 
     review_text = record.get("review_text") or ""
     cleaned_review = re.sub(
