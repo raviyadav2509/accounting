@@ -80,7 +80,6 @@
                     <span>Settings</span>
                 </a>
 
-                {% if g.client %}
                 <a class="{% if request.endpoint in ['bas.bas_history', 'bas.bas_history_detail'] %}active{% endif %}" href="{{ url_for('bas.bas_history') }}">
                     <span class="nav-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none">
@@ -90,6 +89,7 @@
                     <span>BAS history</span>
                 </a>
 
+                {% if g.client %}
                 <a class="{% if request.blueprint == 'qbo' %}active{% endif %}" href="{{ url_for('qbo.connect') }}">
                     <span class="nav-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none">
@@ -124,13 +124,11 @@
                     {% endif %}
                 </div>
                 <div class="top-bar-actions">
-                    {% if g.client %}
                     <a class="icon-button" href="{{ url_for('bas.bas_history') }}" title="BAS history" aria-label="BAS history">
                         <svg viewBox="0 0 24 24" fill="none">
                             <path d="M12 8v4l2.5 1.5M4.9 6.9A8 8 0 1 1 4 16M4 8V4m0 0h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </a>
-                    {% endif %}
 
                     {% if g.user %}
                     <details class="user-menu-dropdown">
