@@ -5420,3 +5420,25 @@ textarea:focus-visible {
         gap: 8px;
     }
 }
+
+
+.bas-record-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.financial-year-tag {
+    display: inline-flex;
+    align-items: center;
+    min-height: 20px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: #eef3ef;
+    color: #607067;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .03em;
+    white-space: nowrap;
+}
