@@ -49,7 +49,7 @@
                         {% for client_item in g.clients %}
                         <a class="side-client-link {% if g.client and g.client.id == client_item.id %}active-client{% endif %}"
                            href="{{ url_for('clients.client_home', client_id=client_item.id) }}">
-                            <span class="side-client-initial">{{ client_item.company_name[:1]|upper }}</span>
+                            <span class="side-client-initial">{{ client_item.company_name|client_initials }}</span>
                             <span class="side-client-name">{{ client_item.company_name }}</span>
                         </a>
                         {% endfor %}
