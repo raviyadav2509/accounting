@@ -86,7 +86,7 @@
             </div>
 
             <nav class="client-context-links" aria-label="Client navigation">
-                <a class="{% if request.endpoint in ['clients.edit_client', 'clients.client_home'] or (request.endpoint == 'bas.client_dashboard' and request.args.get('section', 'details') == 'details') %}active{% endif %}"
+                <a class="{% if request.endpoint == 'clients.edit_client' or (request.endpoint == 'bas.client_dashboard' and request.args.get('section', 'details') == 'details') %}active{% endif %}"
                    href="{{ url_for('bas.client_dashboard', client_id=g.client.id, section='details') }}#business-details">
                     <span class="client-context-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none"><path d="M5 4h14v16H5V4Zm3 4h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -110,7 +110,7 @@
                     <span>Historical BAS</span>
                 </a>
 
-                <a class="{% if request.endpoint == 'clients.quickbooks_client' or request.blueprint == 'qbo' %}active{% endif %}"
+                <a class="{% if request.endpoint in ['clients.quickbooks_client', 'clients.client_home'] or request.blueprint == 'qbo' %}active{% endif %}"
                    href="{{ url_for('clients.quickbooks_client', client_id=g.client.id) }}">
                     <span class="client-context-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none"><path d="M8.5 8.5 6 11a4 4 0 0 0 5.7 5.7l2.5-2.5M15.5 15.5 18 13a4 4 0 1 0-5.7-5.7L9.8 9.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
