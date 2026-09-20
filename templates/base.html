@@ -17,6 +17,13 @@
                 </span>
             </a>
 
+            {% if g.user and g.user.firm_name %}
+            <a class="sidebar-firm-card" href="{{ url_for('bas.dashboard') }}" title="{{ g.user.firm_name }}">
+                <span class="sidebar-firm-label">Accounting firm</span>
+                <strong>{{ g.user.firm_name }}</strong>
+            </a>
+            {% endif %}
+
             <nav class="side-nav-links" aria-label="Primary">
                 <a class="{% if request.endpoint == 'bas.dashboard' %}active{% endif %}" href="{{ url_for('bas.dashboard') }}">
                     <span class="nav-icon" aria-hidden="true">
