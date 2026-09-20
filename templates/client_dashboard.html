@@ -60,10 +60,6 @@
             <div class="dashboard-section-title">Client details</div>
             <p>Registered business information used for this client's BAS workspace.</p>
         </div>
-        <a class="secondary-button client-edit-button"
-           href="{{ url_for('clients.edit_client', client_id=client.id) }}">
-            Edit client details
-        </a>
     </div>
 
     <div class="card client-card">
@@ -74,7 +70,17 @@
 
             <div class="client-identity">
                 <div class="client-label">BAS client</div>
-                <div class="client-name">{{ client.company_name }}</div>
+                <div class="client-name-row">
+                    <div class="client-name">{{ client.company_name }}</div>
+                    <a class="client-name-edit"
+                       href="{{ url_for('clients.edit_client', client_id=client.id) }}"
+                       aria-label="Edit {{ client.company_name }} details">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 20h4l10.5-10.5a2.8 2.8 0 0 0-4-4L4 16v4Zm9.5-13.5 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>Edit</span>
+                    </a>
+                </div>
                 {% if client.legal_name and client.legal_name != client.company_name %}
                     <div class="client-legal-name">{{ client.legal_name }}</div>
                 {% endif %}
