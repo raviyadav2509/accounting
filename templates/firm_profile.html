@@ -2,18 +2,12 @@
 {% block title %}Settings | BAS Automation{% endblock %}
 
 {% block content %}
-<div class="page-back-row">
-    <a class="page-back-link" href="{{ url_for('bas.dashboard') }}">
-        <span aria-hidden="true">←</span>
-        Back to dashboard
-    </a>
-</div>
-
 <div class="page-heading">
     <div>
         <h1>Settings</h1>
         <div class="subtitle">Manage your accounting firm profile and platform details.</div>
     </div>
+    <a class="secondary-button" href="{{ url_for('bas.dashboard') }}">Back to Dashboard</a>
 </div>
 
 <div class="settings-section-heading">
