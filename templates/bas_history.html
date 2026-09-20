@@ -5,17 +5,17 @@
 <div class="page-heading">
     <div>
         <h1>BAS History</h1>
-        <div class="subtitle">{{ client.company_name }} · Select any BAS period below to open its individual audit trail.</div>
+        <div class="subtitle">All BAS records across clients registered under your accounting firm.</div>
     </div>
-    <a class="secondary-button" href="{{ url_for('bas.client_dashboard', client_id=client.id) }}">Back to Client</a>
 </div>
 
 {% if records %}
 <div class="card table-card">
     <div class="responsive-table">
-        <table class="history-table">
+        <table class="history-table firm-history-table">
             <thead>
                 <tr>
+                    <th>Client</th>
                     <th>Period</th>
                     <th>Sales</th>
                     <th>BAS amount</th>
@@ -29,10 +29,20 @@
                 {% for record in records %}
                 <tr>
                     <td>
-                        <strong>{{ record.period_display }}</strong>
+                        <a class="history-client-link"
+                           href="{{ url_for('clients.client_home', client_id=record.client_id) }}">
+                            <span class="history-client-avatar">{{ record.client_name|client_initials }}</span>
+                            <span class="history-client-copy">
+                                <strong>{{ record.client_name }}</strong>
+                                {% if record.client_abn %}
+                                    <small>ABN {{ record.client_abn }}</small>
+                                {% endif %}
+                            </span>
+                        </a>
                     </td>
-                    <td>${{ "{:,.2f}".format(record.g1) }}</td>
-                    <td>${{ "{:,.2f}".format(record.payable) }}</td>
+                    <td><strong>{{ record.period_display }}</strong></td>
+                    <td>&#36;{{ "{:,.2f}".format(record.g1) }}</td>
+                    <td>{{ record.amount_display }}</td>
                     <td>{{ record.review_status or "Not reviewed" }}</td>
                     <td>
                         <span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span>
@@ -53,7 +63,7 @@
 {% else %}
 <div class="card empty-state">
     <strong>No BAS history yet.</strong>
-    <p>Once you open or review a BAS, its snapshot will be saved here.</p>
+    <p>BAS records from all registered clients will appear here once they are calculated.</p>
 </div>
 {% endif %}
 {% endblock %}
