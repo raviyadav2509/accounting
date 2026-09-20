@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Historical BAS | {{ client.company_name }}{% endblock %}
+
+{% block content %}
+<div class="workspace-breadcrumbs">
+    <a href="{{ url_for('clients.index') }}">Clients</a>
+    <span>›</span>
+    <a href="{{ url_for('clients.business_details', client_id=client.id) }}">{{ client.company_name }}</a>
+    <span>›</span>
+    <span>Historical BAS</span>
+</div>
+
+<div class="page-heading client-section-heading">
+    <div>
+        <div class="eyebrow">Client BAS</div>
+        <h1>Historical BAS</h1>
+        <div class="subtitle">Lodged BAS periods retained as read-only records and audit history.</div>
+    </div>
+</div>
+
+{% if historical_records %}
+<div class="card table-card">
+    <div class="responsive-table">
+        <table class="history-table client-history-table">
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th>Sales</th>
+                    <th>BAS amount</th>
+                    <th>AI review</th>
+                    <th>Lodged</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in historical_records %}
+                <tr>
+                    <td><strong>{{ record.period_display }}</strong></td>
+                    <td>&#36;{{ "{:,.2f}".format(record.g1) }}</td>
+                    <td>{{ record.amount_display }}</td>
+                    <td>{{ record.review_status or "Completed" }}</td>
+                    <td>{{ record.lodged_at_display or record.status_date or "Completed" }}</td>
+                    <td class="table-action">
+                        <a href="{{ url_for('bas.bas_history_detail', record_id=record.id, client_context=1) }}">
+                            View audit trail
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="card empty-state">
+    <strong>No historical BAS records yet.</strong>
+    <p>Lodged BAS periods for this client will appear here.</p>
+</div>
+{% endif %}
+{% endblock %}
