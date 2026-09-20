@@ -2930,3 +2930,91 @@ button:hover,
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Prominent accounting firm details on dashboard */
+.dashboard-identity-section {
+    margin-bottom: 22px;
+}
+
+.identity-section-heading {
+    margin-bottom: 10px;
+}
+
+.identity-section-heading .firm-edit-link {
+    align-self: center;
+}
+
+.firm-details-card {
+    padding: 0;
+    overflow: hidden;
+    border-left: 4px solid #45a3a3;
+}
+
+.firm-details-header {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 20px 22px;
+    background: linear-gradient(90deg, #f3fbfb, #ffffff 55%);
+    border-bottom: 1px solid var(--bas-border);
+}
+
+.firm-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+}
+
+.firm-detail {
+    min-width: 0;
+    padding: 15px 22px;
+    border-bottom: 1px solid #edf0ee;
+}
+
+.firm-detail:nth-child(odd):not(.firm-detail-wide) {
+    border-right: 1px solid #edf0ee;
+}
+
+.firm-detail-wide {
+    grid-column: 1 / -1;
+}
+
+.firm-detail span {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--bas-muted);
+    font-size: 10px;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.firm-detail strong {
+    display: block;
+    color: #26332b;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 680px) {
+    .identity-section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .firm-details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .firm-detail,
+    .firm-detail:nth-child(odd):not(.firm-detail-wide) {
+        border-right: 0;
+    }
+
+    .firm-detail-wide {
+        grid-column: auto;
+    }
+}
