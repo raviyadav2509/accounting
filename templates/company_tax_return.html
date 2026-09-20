@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+{% block title %}Company Tax Return {{ tax_return.financial_year }} | {{ client.company_name }}{% endblock %}
+
+{% block content %}
+<div class="workspace-breadcrumbs">
+    <a href="{{ url_for('clients.index') }}">Clients</a>
+    <span>›</span>
+    <a href="{{ url_for('clients.business_details', client_id=client.id) }}">{{ client.company_name }}</a>
+    <span>›</span>
+    <a href="{{ url_for('tax.client_tax_returns', client_id=client.id) }}">Annual Tax Returns</a>
+    <span>›</span>
+    <span>FY {{ tax_return.financial_year }}</span>
+</div>
+
+<div class="page-heading tax-return-detail-heading">
+    <div>
+        <div class="eyebrow">Company tax return</div>
+        <h1>FY {{ tax_return.financial_year }}</h1>
+        <div class="subtitle">{{ tax_return.start_date }} to {{ tax_return.end_date }}</div>
+    </div>
+    <span class="status-badge {{ tax_return.status_class }}">{{ tax_return.display_status }}</span>
+</div>
+
+{% if tax_return.approval_status == "APPROVED" %}
+<div class="card tax-approved-banner">
+    <strong>Approved — ready to lodge</strong>
+    <p>This draft is now read-only. Approval is recorded in this application only; ATO lodgement is not connected.</p>
+</div>
+{% endif %}
+
+<div class="tax-return-summary-grid">
+    <div class="card tax-summary-card">
+        <span>Accounting profit</span>
+        <strong>{{ tax_return.accounting_profit_display }}</strong>
+    </div>
+    <div class="card tax-summary-card">
+        <span>Taxable income</span>
+        <strong>{{ tax_return.taxable_income_display }}</strong>
+    </div>
+    <div class="card tax-summary-card">
+        <span>Company tax rate</span>
+        <strong>{{ tax_return.tax_rate_display }}</strong>
+    </div>
+    <div class="card tax-summary-card emphasis">
+        <span>Estimated tax</span>
+        <strong>{{ tax_return.estimated_tax_display }}</strong>
+    </div>
+</div>
+
+<section class="tax-return-section">
+    <div class="section-heading">
+        <div>
+            <div class="dashboard-section-title">1. Accounting profit</div>
+            <p>Start with the accounting result for the financial year before tax adjustments.</p>
+        </div>
+    </div>
+
+    <div class="card tax-source-card">
+        <div>
+            <div class="tax-card-label">Current accounting profit</div>
+            <div class="tax-source-amount">{{ tax_return.accounting_profit_display }}</div>
+            <p>QuickBooks import uses the Profit &amp; Loss report for {{ tax_return.start_date }} to {{ tax_return.end_date }}.</p>
+        </div>
+
+        {% if tax_return.approval_status != "APPROVED" %}
+        <div class="tax-source-actions">
+            {% if client.qbo_connected %}
+            <form method="post" action="{{ url_for('tax.refresh_tax_return_from_qbo', client_id=client.id, tax_return_id=tax_return.id) }}">
+                <button class="secondary-button" type="submit">Import from QuickBooks</button>
+            </form>
+            {% else %}
+            <a class="secondary-button" href="{{ url_for('clients.quickbooks_client', client_id=client.id) }}">Connect QuickBooks</a>
+            {% endif %}
+
+            <form class="tax-inline-form" method="post" action="{{ url_for('tax.update_accounting_profit', client_id=client.id, tax_return_id=tax_return.id) }}">
+                <label for="accounting_profit">Or enter manually</label>
+                <div class="tax-inline-input-row">
+                    <span>&#36;</span>
+                    <input id="accounting_profit" name="accounting_profit" value="{{ tax_return.accounting_profit if tax_return.accounting_profit is not none else '' }}" inputmode="decimal" required>
+                    <button class="secondary-button" type="submit">Save</button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="tax-return-section">
+    <div class="section-heading">
+        <div>
+            <div class="dashboard-section-title">2. Tax reconciliation</div>
+            <p>Record the add-backs and deductions that reconcile accounting profit to taxable income.</p>
+        </div>
+    </div>
+
+    <div class="card tax-reconciliation-card">
+        <div class="tax-reconciliation-row total-row">
+            <span>Accounting profit</span>
+            <strong>{{ tax_return.accounting_profit_display }}</strong>
+        </div>
+
+        {% for adjustment in adjustments %}
+        <div class="tax-reconciliation-row adjustment-row">
+            <div>
+                <span class="tax-adjustment-type {{ adjustment.adjustment_type|lower }}">
+                    {% if adjustment.adjustment_type == "ADD" %}Add back{% else %}Deduction{% endif %}
+                </span>
+                <strong>{{ adjustment.category }}</strong>
+                <small>{{ adjustment.description }}</small>
+            </div>
+            <div class="tax-adjustment-amount">
+                <strong>
+                    {% if adjustment.adjustment_type == "ADD" %}+{% else %}-{% endif %}
+                    &#36;{{ "{:,.2f}".format(adjustment.amount) }}
+                </strong>
+                {% if tax_return.approval_status != "APPROVED" %}
+                <form method="post" action="{{ url_for('tax.remove_adjustment', client_id=client.id, tax_return_id=tax_return.id, adjustment_id=adjustment.id) }}">
+                    <button class="text-button danger-text" type="submit">Remove</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="tax-reconciliation-row">
+            <span>Total add-backs</span>
+            <strong>+&#36;{{ "{:,.2f}".format(calculation.additions) }}</strong>
+        </div>
+        <div class="tax-reconciliation-row">
+            <span>Total deductions</span>
+            <strong>-&#36;{{ "{:,.2f}".format(calculation.deductions) }}</strong>
+        </div>
+        <div class="tax-reconciliation-row taxable-row">
+            <span>Draft taxable income</span>
+            <strong>
+                {% if calculation.taxable_income is not none %}
+                    &#36;{{ "{:,.2f}".format(calculation.taxable_income) }}
+                {% else %}
+                    Not calculated
+                {% endif %}
+            </strong>
+        </div>
+    </div>
+
+    {% if tax_return.approval_status != "APPROVED" %}
+    <div class="card tax-adjustment-form-card">
+        <strong>Add tax adjustment</strong>
+        <form class="tax-adjustment-form" method="post" action="{{ url_for('tax.add_adjustment', client_id=client.id, tax_return_id=tax_return.id) }}">
+            <div class="auth-field">
+                <label for="adjustment_type">Treatment</label>
+                <select id="adjustment_type" name="adjustment_type" required>
+                    <option value="ADD">Add back to accounting profit</option>
+                    <option value="DEDUCT">Deduct from accounting profit</option>
+                </select>
+            </div>
+
+            <div class="auth-field">
+                <label for="category">Category</label>
+                <select id="category" name="category" required>
+                    <option value="Non-deductible expense">Non-deductible expense</option>
+                    <option value="Accounting depreciation">Accounting depreciation</option>
+                    <option value="Tax depreciation">Tax depreciation / capital allowance</option>
+                    <option value="Other assessable income">Other assessable income</option>
+                    <option value="Other deduction">Other deduction</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+
+            <div class="auth-field tax-adjustment-description">
+                <label for="description">Description</label>
+                <input id="description" name="description" placeholder="Why is this tax adjustment required?" required>
+            </div>
+
+            <div class="auth-field">
+                <label for="amount">Amount</label>
+                <input id="amount" name="amount" inputmode="decimal" placeholder="0.00" required>
+            </div>
+
+            <button class="secondary-button" type="submit">Add adjustment</button>
+        </form>
+    </div>
+    {% endif %}
+</section>
+
+<section class="tax-return-section">
+    <div class="section-heading">
+        <div>
+            <div class="dashboard-section-title">3. Company tax rate</div>
+            <p>Confirm the rate that applies to this company before calculating estimated tax.</p>
+        </div>
+    </div>
+
+    <div class="card tax-rate-card">
+        <div>
+            <strong>{{ tax_return.tax_rate_display }}</strong>
+            <p>The 25% option is for a company confirmed as a base rate entity. Otherwise use 30%. This application does not determine eligibility automatically.</p>
+        </div>
+
+        {% if tax_return.approval_status != "APPROVED" %}
+        <form class="tax-rate-form" method="post" action="{{ url_for('tax.update_tax_rate', client_id=client.id, tax_return_id=tax_return.id) }}">
+            <select name="tax_rate" aria-label="Company tax rate" required>
+                <option value="">Select rate</option>
+                {% for rate, label in tax_rates.items() %}
+                <option value="{{ rate }}" {% if tax_return.tax_rate == rate %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button class="secondary-button" type="submit">Confirm rate</button>
+        </form>
+        {% endif %}
+    </div>
+</section>
+
+<section class="tax-return-section">
+    <div class="section-heading">
+        <div>
+            <div class="dashboard-section-title">4. Estimated company tax</div>
+            <p>Calculated from draft taxable income and the confirmed company tax rate.</p>
+        </div>
+    </div>
+
+    <div class="card tax-estimate-card">
+        <span>Estimated tax before offsets, credits and PAYG instalments</span>
+        <strong>{{ tax_return.estimated_tax_display }}</strong>
+        <p>This is a draft calculation only. Specialist schedules, tax offsets, credits, losses and other adjustments may change the final liability.</p>
+    </div>
+</section>
+
+<section class="tax-return-section">
+    <div class="section-heading">
+        <div>
+            <div class="dashboard-section-title">5. Review and approval</div>
+            <p>Run the automated completeness review before accountant approval.</p>
+        </div>
+    </div>
+
+    <div class="card tax-review-card">
+        <div class="tax-review-heading">
+            <div>
+                <span class="status-badge {{ tax_return.status_class }}">{{ tax_return.display_status }}</span>
+                {% if tax_return.reviewed_at %}
+                <small>Last reviewed {{ tax_return.reviewed_at }}</small>
+                {% endif %}
+            </div>
+
+            {% if tax_return.approval_status != "APPROVED" %}
+            <form method="post" action="{{ url_for('tax.review_tax_return', client_id=client.id, tax_return_id=tax_return.id) }}">
+                <button class="secondary-button" type="submit">Run automated review</button>
+            </form>
+            {% endif %}
+        </div>
+
+        {% if tax_return.review_text %}
+        <div class="tax-review-text">{{ tax_return.review_text }}</div>
+        {% else %}
+        <p>No review has been run yet.</p>
+        {% endif %}
+
+        {% if tax_return.approval_status != "APPROVED" %}
+        <div class="tax-approval-bar">
+            <div>
+                <strong>Accountant approval</strong>
+                <span>Approval marks this draft as ready to lodge. It does not lodge anything with the ATO.</span>
+            </div>
+
+            {% if tax_return.review_status == "PASS" %}
+            <form method="post" action="{{ url_for('tax.approve_tax_return', client_id=client.id, tax_return_id=tax_return.id) }}">
+                <button class="approve-button" type="submit">Approve tax return</button>
+            </form>
+            {% else %}
+            <button class="approve-button" type="button" disabled>Approve tax return</button>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<div class="info-box tax-return-scope-note">
+    <strong>Prototype scope.</strong>
+    This company return draft currently covers accounting profit, manual tax adjustments, taxable income and estimated company tax. Actual ATO lodgement and specialist company tax schedules are not connected.
+</div>
+{% endblock %}
