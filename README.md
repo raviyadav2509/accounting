@@ -108,6 +108,25 @@ http://127.0.0.1:8000/
 
 Unauthenticated users are redirected to the login page.
 
+## Mock ATO lodgement for local testing
+
+Real ATO/SBR lodgement is not connected. The feature branch includes a disabled-by-default mock lodgement mode for testing the workflow after approval.
+
+Enable it locally in `.env`:
+
+```text
+ENABLE_MOCK_ATO_LODGEMENT=true
+```
+
+With the switch enabled:
+
+- an approved BAS shows **Simulate ATO Lodgement**
+- the mock action records a `MOCK-BAS-...` reference, marks the BAS as lodged, removes it from **Active BAS**, and places it under **BAS History**
+- an approved annual tax return shows **Simulate ATO Lodgement**
+- the mock action records a `MOCK-TAX-...` reference, marks the return as lodged, and moves it from **Active Tax Returns** to **Tax Return History**
+
+No request is sent to the ATO. Leave the switch unset or set it to `false` outside local/test environments.
+
 ## Production work still required
 
 Before production use:
