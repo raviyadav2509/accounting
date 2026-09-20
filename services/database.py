@@ -237,6 +237,8 @@ def init_db():
                 reviewed_at TEXT,
                 approval_status TEXT,
                 approved_at TEXT,
+                lodged_at TEXT,
+                lodgement_reference TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
@@ -244,6 +246,16 @@ def init_db():
             )
             """
         )
+        if "lodged_at" not in _column_names(connection, "tax_returns"):
+            connection.execute(
+                "ALTER TABLE tax_returns ADD COLUMN lodged_at TEXT"
+            )
+
+        if "lodgement_reference" not in _column_names(connection, "tax_returns"):
+            connection.execute(
+                "ALTER TABLE tax_returns ADD COLUMN lodgement_reference TEXT"
+            )
+
         connection.execute(
             """
             CREATE INDEX IF NOT EXISTS idx_tax_returns_client_year
@@ -1145,6 +1157,8 @@ def update_tax_return(client_id, tax_return_id, **fields):
         "reviewed_at",
         "approval_status",
         "approved_at",
+        "lodged_at",
+        "lodgement_reference",
     }
     updates = []
     values = []
@@ -1171,6 +1185,37 @@ def update_tax_return(client_id, tax_return_id, **fields):
               AND client_id = ?
             """,
             values,
+        )
+
+    return get_tax_return(client_id, tax_return_id)
+
+
+def mark_tax_return_lodged(
+    client_id,
+    tax_return_id,
+    lodgement_reference=None,
+):
+    now = _now()
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE tax_returns
+            SET approval_status = 'LODGED',
+                lodged_at = ?,
+                lodgement_reference = ?,
+                updated_at = ?
+            WHERE id = ?
+              AND client_id = ?
+              AND approval_status = 'APPROVED'
+            """,
+            (
+                now,
+                lodgement_reference,
+                now,
+                tax_return_id,
+                client_id,
+            ),
         )
 
     return get_tax_return(client_id, tax_return_id)
