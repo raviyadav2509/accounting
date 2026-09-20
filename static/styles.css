@@ -5534,3 +5534,60 @@ textarea:focus-visible {
         flex-direction: column;
     }
 }
+
+
+/* Edit before lodgement */
+.prelodgement-edit-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+    padding: 20px 22px;
+    border-left: 4px solid var(--bas-amber);
+    background: #fffaf1;
+}
+
+.prelodgement-edit-banner .actions-description {
+    max-width: 760px;
+    margin-top: 4px;
+}
+
+.prelodgement-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex: 0 0 auto;
+}
+
+.edit-before-lodgement-button {
+    border-color: #c8d5cc;
+    color: var(--bas-green-dark);
+    background: #ffffff;
+}
+
+.edit-before-lodgement-button:hover {
+    border-color: #a9c3ae;
+    background: var(--bas-mint-soft);
+}
+
+@media (max-width: 760px) {
+    .prelodgement-edit-banner {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .prelodgement-actions {
+        width: 100%;
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .prelodgement-actions form,
+    .prelodgement-actions button,
+    .prelodgement-edit-banner form,
+    .prelodgement-edit-banner button {
+        width: 100%;
+    }
+}
