@@ -8,85 +8,179 @@
         <strong>BAS Automation</strong>
     </div>
 
-    <h2>Create your account</h2>
-    <p>Set up your login to access the BAS workspace.</p>
+    <h2>Create your firm account</h2>
+    <p>Register your accounting firm, then create your secure login.</p>
 </div>
 
 {% if error %}
 <div class="auth-alert">{{ error }}</div>
 {% endif %}
 
-<form class="auth-form" method="post" action="{{ url_for('auth.signup') }}">
-    <div class="auth-name-grid">
+<form class="auth-form signup-form" method="post" action="{{ url_for('auth.signup') }}">
+    <div class="signup-section">
+        <div class="signup-section-heading">
+            <span class="signup-step">1</span>
+            <div>
+                <strong>Accounting firm details</strong>
+                <span>These details identify your practice across the BAS workspace.</span>
+            </div>
+        </div>
+
         <div class="auth-field">
-            <label for="first_name">First name</label>
+            <label for="firm_name">Accounting firm name</label>
             <input
-                id="first_name"
-                name="first_name"
+                id="firm_name"
+                name="firm_name"
                 type="text"
-                autocomplete="given-name"
-                value="{{ values.first_name }}"
-                placeholder="First name"
+                value="{{ values.firm_name }}"
+                placeholder="Example Accounting Pty Ltd"
                 required
                 autofocus
             >
         </div>
 
         <div class="auth-field">
-            <label for="last_name">Last name</label>
+            <label for="director_name">Director / principal</label>
             <input
-                id="last_name"
-                name="last_name"
+                id="director_name"
+                name="director_name"
                 type="text"
-                autocomplete="family-name"
-                value="{{ values.last_name }}"
-                placeholder="Last name"
+                value="{{ values.director_name }}"
+                placeholder="Director or principal name"
+                required
+            >
+        </div>
+
+        <div class="auth-name-grid">
+            <div class="auth-field">
+                <label for="firm_abn">Firm ABN</label>
+                <input
+                    id="firm_abn"
+                    name="firm_abn"
+                    type="text"
+                    inputmode="numeric"
+                    value="{{ values.firm_abn }}"
+                    placeholder="Optional"
+                >
+            </div>
+
+            <div class="auth-field">
+                <label for="firm_acn">Firm ACN</label>
+                <input
+                    id="firm_acn"
+                    name="firm_acn"
+                    type="text"
+                    inputmode="numeric"
+                    value="{{ values.firm_acn }}"
+                    placeholder="Optional"
+                >
+            </div>
+        </div>
+
+        <div class="auth-field">
+            <label for="firm_address">Firm address</label>
+            <input
+                id="firm_address"
+                name="firm_address"
+                type="text"
+                value="{{ values.firm_address }}"
+                placeholder="Optional"
+                autocomplete="street-address"
+            >
+        </div>
+
+        <div class="auth-field">
+            <label for="firm_phone">Firm phone</label>
+            <input
+                id="firm_phone"
+                name="firm_phone"
+                type="tel"
+                value="{{ values.firm_phone }}"
+                placeholder="Optional"
+                autocomplete="tel"
+            >
+        </div>
+    </div>
+
+    <div class="signup-section">
+        <div class="signup-section-heading">
+            <span class="signup-step">2</span>
+            <div>
+                <strong>Your login</strong>
+                <span>This account will manage clients under your accounting firm.</span>
+            </div>
+        </div>
+
+        <div class="auth-name-grid">
+            <div class="auth-field">
+                <label for="first_name">First name</label>
+                <input
+                    id="first_name"
+                    name="first_name"
+                    type="text"
+                    autocomplete="given-name"
+                    value="{{ values.first_name }}"
+                    placeholder="First name"
+                    required
+                >
+            </div>
+
+            <div class="auth-field">
+                <label for="last_name">Last name</label>
+                <input
+                    id="last_name"
+                    name="last_name"
+                    type="text"
+                    autocomplete="family-name"
+                    value="{{ values.last_name }}"
+                    placeholder="Last name"
+                    required
+                >
+            </div>
+        </div>
+
+        <div class="auth-field">
+            <label for="email">Email address</label>
+            <input
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                value="{{ values.email }}"
+                placeholder="you@accountingfirm.com"
+                required
+            >
+        </div>
+
+        <div class="auth-field">
+            <label for="password">Password</label>
+            <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="new-password"
+                minlength="8"
+                placeholder="At least 8 characters"
+                required
+            >
+            <div class="auth-field-help">Use at least 8 characters.</div>
+        </div>
+
+        <div class="auth-field">
+            <label for="confirm_password">Confirm password</label>
+            <input
+                id="confirm_password"
+                name="confirm_password"
+                type="password"
+                autocomplete="new-password"
+                minlength="8"
+                placeholder="Re-enter your password"
                 required
             >
         </div>
     </div>
 
-    <div class="auth-field">
-        <label for="email">Email address</label>
-        <input
-            id="email"
-            name="email"
-            type="email"
-            autocomplete="email"
-            value="{{ values.email }}"
-            placeholder="you@company.com"
-            required
-        >
-    </div>
-
-    <div class="auth-field">
-        <label for="password">Password</label>
-        <input
-            id="password"
-            name="password"
-            type="password"
-            autocomplete="new-password"
-            minlength="8"
-            placeholder="At least 8 characters"
-            required
-        >
-        <div class="auth-field-help">Use at least 8 characters.</div>
-    </div>
-
-    <div class="auth-field">
-        <label for="confirm_password">Confirm password</label>
-        <input
-            id="confirm_password"
-            name="confirm_password"
-            type="password"
-            autocomplete="new-password"
-            minlength="8"
-            placeholder="Re-enter your password"
-            required
-        >
-    </div>
-
-    <button class="auth-primary-button" type="submit">Create account</button>
+    <button class="auth-primary-button" type="submit">Create firm account</button>
 </form>
 
 <div class="auth-switch">
