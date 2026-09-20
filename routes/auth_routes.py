@@ -4,6 +4,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from services.database import (
     create_user,
     get_client_for_user,
+    get_clients_for_user,
     get_firm_for_user,
     get_user_by_email,
     get_user_by_id,
@@ -19,6 +20,7 @@ def load_logged_in_user():
     user_id = session.get("user_id")
     g.user = get_user_by_id(user_id) if user_id else None
     g.client = None
+    g.clients = get_clients_for_user(g.user["id"]) if g.user else []
 
     if g.user and session.get("client_id"):
         g.client = get_client_for_user(
