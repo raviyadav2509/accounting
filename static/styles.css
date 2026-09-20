@@ -2508,3 +2508,214 @@ button:hover,
         display: none;
     }
 }
+
+
+/* Accounting firm client management */
+.client-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+    gap: 16px;
+}
+
+.firm-client-card {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin: 0;
+    border-top: 3px solid transparent;
+}
+
+.firm-client-card.active-client-card {
+    border-top-color: var(--bas-green);
+}
+
+.firm-client-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.firm-client-name {
+    color: #17211b;
+    font-size: 18px;
+    font-weight: 750;
+    line-height: 1.25;
+}
+
+.firm-client-meta {
+    margin-top: 4px;
+    color: var(--bas-muted);
+    font-size: 12px;
+}
+
+.firm-client-details {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 38px;
+}
+
+.firm-client-details > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.firm-client-details span {
+    color: var(--bas-muted);
+    font-size: 10px;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.firm-client-details strong {
+    color: #34423a;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.firm-client-status {
+    margin-top: auto;
+}
+
+.client-open-button {
+    width: 100%;
+    text-align: center;
+}
+
+.clients-empty-state {
+    padding: 52px 28px;
+}
+
+.empty-client-icon {
+    width: 46px;
+    height: 46px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bas-mint);
+    color: var(--bas-green-dark);
+    font-size: 28px;
+    line-height: 1;
+}
+
+.clients-empty-state .button {
+    margin-top: 12px;
+}
+
+.client-form-card {
+    max-width: 820px;
+}
+
+.client-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.client-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.client-form-wide {
+    grid-column: 1 / -1;
+}
+
+.client-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    padding-top: 20px;
+    border-top: 1px solid var(--bas-border);
+}
+
+.setup-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+    max-width: 820px;
+    padding: 28px;
+    border-left: 4px solid var(--bas-green);
+}
+
+.setup-icon {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bas-mint);
+    color: var(--bas-green-dark);
+}
+
+.setup-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.setup-copy h2 {
+    margin: 0 0 8px;
+}
+
+.setup-copy p {
+    max-width: 650px;
+    margin: 0 0 20px;
+    color: var(--bas-muted);
+    line-height: 1.55;
+}
+
+.setup-client-details {
+    max-width: 820px;
+}
+
+.setup-client-details h3 {
+    margin-top: 0;
+}
+
+.setup-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.setup-detail-grid div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.setup-detail-grid span {
+    color: var(--bas-muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.setup-detail-grid strong {
+    color: #27342c;
+    font-size: 13px;
+}
+
+@media (max-width: 640px) {
+    .client-form-grid,
+    .setup-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .client-form-wide {
+        grid-column: auto;
+    }
+
+    .setup-card {
+        flex-direction: column;
+    }
+}
