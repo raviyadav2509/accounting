@@ -1774,3 +1774,361 @@ button:hover,
         grid-column: auto;
     }
 }
+
+
+/* Unified BAS accordion sections */
+.bas-dashboard-section {
+    margin-top: 28px;
+}
+
+.bas-section-heading {
+    margin-bottom: 12px;
+}
+
+.bas-section-heading p {
+    margin: 5px 0 0;
+}
+
+.section-count {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: #edf6ea;
+    color: var(--bas-green-dark);
+    font-size: 12px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.historical-section .section-count {
+    background: #eef1ef;
+    color: #59645d;
+}
+
+.bas-accordion-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.bas-record-card {
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.current-record-card {
+    border-left: 4px solid var(--bas-green);
+}
+
+.historical-record-card {
+    border-left: 4px solid #a7b0aa;
+}
+
+.bas-record-summary {
+    display: grid;
+    grid-template-columns: minmax(250px, 1.2fr) minmax(210px, .8fr) minmax(220px, .75fr);
+    gap: 24px;
+    align-items: center;
+    padding: 20px 22px 0;
+    cursor: pointer;
+    list-style: none;
+}
+
+.bas-record-summary::-webkit-details-marker {
+    display: none;
+}
+
+.bas-record-summary::marker {
+    content: "";
+}
+
+.bas-record-summary:hover {
+    background: #fbfefb;
+}
+
+.historical-record-card .bas-record-summary:hover {
+    background: #fbfcfb;
+}
+
+.bas-record-title {
+    color: #17211b;
+    font-size: 20px;
+    font-weight: 750;
+    line-height: 1.25;
+}
+
+.bas-record-amount {
+    padding-left: 22px;
+    border-left: 1px solid var(--bas-border);
+}
+
+.bas-record-amount span {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--bas-muted);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.bas-record-amount strong {
+    color: #17211b;
+    font-size: 24px;
+    font-weight: 750;
+}
+
+.bas-record-status {
+    text-align: right;
+}
+
+.bas-record-toggle {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    margin: 2px -22px 0;
+    padding: 11px 18px;
+    border-top: 1px solid #cfe7c9;
+    background: #edf8ea;
+    color: var(--bas-green-dark);
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.historical-toggle {
+    border-top-color: #e0e5e2;
+    background: #f2f4f3;
+    color: #59645d;
+}
+
+.bas-record-summary:hover .bas-record-toggle {
+    background: #e5f4e1;
+}
+
+.historical-record-card .bas-record-summary:hover .historical-toggle {
+    background: #e9edeb;
+}
+
+.bas-record-card[open] .toggle-label-open {
+    display: none;
+}
+
+.bas-record-card[open] .toggle-label-close {
+    display: inline;
+}
+
+.bas-record-card[open] .toggle-chevron {
+    transform: rotate(225deg) translate(-1px, -1px);
+}
+
+.bas-record-expanded {
+    padding: 20px 22px 22px;
+    border-top: 1px solid var(--bas-border);
+    background: #fff;
+}
+
+.record-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.record-metric {
+    position: relative;
+    overflow: hidden;
+    padding: 14px 15px;
+    border: 1px solid #e2e8e4;
+    border-radius: 9px;
+    background: #fbfdfb;
+}
+
+.record-metric::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 3px;
+    background: var(--bas-green);
+    opacity: .65;
+}
+
+.record-metric:nth-child(2)::before {
+    background: #45a3a3;
+}
+
+.record-metric:nth-child(3)::before {
+    background: var(--bas-blue);
+}
+
+.record-metric:nth-child(4)::before {
+    background: var(--bas-amber);
+}
+
+.record-metric span {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--bas-muted);
+    font-size: 12px;
+}
+
+.record-metric strong {
+    color: #17211b;
+    font-size: 16px;
+}
+
+.record-progress-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+    padding: 14px;
+    border: 1px solid #e2e8e4;
+    border-radius: 9px;
+    background: #fafcfb;
+}
+
+.record-progress-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+}
+
+.record-progress-dot {
+    width: 9px;
+    height: 9px;
+    flex: 0 0 9px;
+    margin-top: 4px;
+    border-radius: 50%;
+    background: #c9cfcb;
+    box-shadow: 0 0 0 3px #f0f2f1;
+}
+
+.record-progress-item.complete .record-progress-dot {
+    background: var(--bas-green);
+    box-shadow: 0 0 0 3px #e5f4e1;
+}
+
+.record-progress-item strong,
+.record-progress-item small {
+    display: block;
+}
+
+.record-progress-item strong {
+    color: #2d3931;
+    font-size: 12px;
+}
+
+.record-progress-item small {
+    margin-top: 3px;
+    color: var(--bas-muted);
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.historical-progress .record-progress-dot {
+    background: #6e7a72;
+    box-shadow: 0 0 0 3px #ecefed;
+}
+
+.record-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e7ebe8;
+}
+
+.record-actions > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.record-actions > div strong {
+    color: #243129;
+    font-size: 13px;
+}
+
+.record-actions > div span {
+    color: var(--bas-muted);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.read-only-action {
+    background: #fafbfa;
+    margin-left: -22px;
+    margin-right: -22px;
+    margin-bottom: -22px;
+    padding: 16px 22px;
+}
+
+@media (max-width: 900px) {
+    .bas-record-summary {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .bas-record-status {
+        text-align: left;
+    }
+
+    .bas-record-toggle {
+        grid-column: 1 / -1;
+    }
+
+    .record-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .bas-record-summary {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        padding: 18px 18px 0;
+    }
+
+    .bas-record-amount {
+        padding-left: 0;
+        border-left: 0;
+    }
+
+    .bas-record-toggle {
+        margin-left: -18px;
+        margin-right: -18px;
+    }
+
+    .bas-record-expanded {
+        padding: 18px;
+    }
+
+    .record-progress-strip {
+        grid-template-columns: 1fr;
+    }
+
+    .record-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .record-actions .button,
+    .record-actions .secondary-button {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .read-only-action {
+        margin-left: -18px;
+        margin-right: -18px;
+        margin-bottom: -18px;
+        padding: 16px 18px;
+    }
+}
