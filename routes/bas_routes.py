@@ -17,6 +17,7 @@ from services.database import (
     get_record_by_id,
     save_bas_snapshot,
 )
+from services.qbo_service import get_company_info
 from services.review_store import (
     load_ai_review,
     resolve_ai_review,
@@ -39,6 +40,70 @@ def _persist_bas(bas):
     signature = bas_signature(bas)
     record = save_bas_snapshot(bas, signature)
     return signature, record
+
+
+def _format_company_address(address):
+    if not address:
+        return None
+
+    parts = [
+        address.get("Line1"),
+        address.get("Line2"),
+        address.get("Line3"),
+        address.get("City"),
+        address.get("CountrySubDivisionCode"),
+        address.get("PostalCode"),
+        address.get("Country"),
+    ]
+    return ", ".join(str(part).strip() for part in parts if part)
+
+
+def _company_name_value(company, names):
+    wanted = {name.lower() for name in names}
+
+    for item in company.get("NameValue", []) or []:
+        name = str(item.get("Name", "")).lower()
+        if name in wanted and item.get("Value"):
+            return item["Value"]
+
+    return None
+
+
+def _get_client_details():
+    payload = get_company_info()
+    company = payload.get("CompanyInfo", {}) if isinstance(payload, dict) else {}
+
+    abn = (
+        company.get("TaxIdentifier")
+        or _company_name_value(company, ["ABN", "Australian Business Number"])
+    )
+    acn = _company_name_value(
+        company,
+        ["ACN", "Australian Company Number", "Company Registration Number"],
+    )
+
+    email = (
+        (company.get("CompanyEmailAddr") or {}).get("Address")
+        or (company.get("PrimaryEmailAddr") or {}).get("Address")
+        or (company.get("CustomerCommunicationEmailAddr") or {}).get("Address")
+    )
+    phone = (company.get("PrimaryPhone") or {}).get("FreeFormNumber")
+    website = (company.get("WebAddr") or {}).get("URI")
+
+    return {
+        "company_name": company.get("CompanyName") or "Connected QuickBooks company",
+        "legal_name": company.get("LegalName"),
+        "abn": abn,
+        "acn": acn,
+        "address": _format_company_address(
+            company.get("CompanyAddr")
+            or company.get("LegalAddr")
+            or company.get("CustomerCommunicationAddr")
+        ),
+        "email": email,
+        "phone": phone,
+        "website": website,
+    }
 
 
 def _amount_display_data(payable):
@@ -202,6 +267,7 @@ def dashboard():
     )
 
     current_display = _decorate_record(current_record)
+    client = _get_client_details()
     records = [
         _decorate_record(record)
         for record in get_history(limit=100)
@@ -225,6 +291,7 @@ def dashboard():
         bas=bas,
         current=current_display,
         current_others=current_others,
+        client=client,
         ai_status=ai_status,
         review_resolved=review_resolved,
         previous=previous,
