@@ -5591,3 +5591,27 @@ textarea:focus-visible {
         width: 100%;
     }
 }
+
+
+.tax-return-years-complete {
+    min-width: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.tax-return-years-complete small {
+    color: var(--bas-muted);
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+@media (max-width: 760px) {
+    .tax-return-years-complete {
+        width: 100%;
+        align-items: flex-start;
+        justify-content: flex-start;
+        flex-direction: column;
+    }
+}
