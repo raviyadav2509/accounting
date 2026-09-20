@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <div class="app-shell">
+    <div class="app-shell {% if g.client %}has-client-context{% endif %}">
         <aside class="side-nav">
             <a class="brand-lockup" href="{{ url_for('bas.dashboard') }}">
                 <span class="brand-mark">B</span>
@@ -34,42 +34,14 @@
                     <span>Dashboard</span>
                 </a>
 
-                <details class="side-client-menu" {% if request.blueprint == 'clients' or g.client %}open{% endif %}>
-                    <summary class="{% if request.blueprint == 'clients' or request.endpoint == 'bas.client_dashboard' %}active{% endif %}">
-                        <span class="nav-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M16 20v-1.5A3.5 3.5 0 0 0 12.5 15h-5A3.5 3.5 0 0 0 4 18.5V20M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm6.5-1.5a3 3 0 0 0 0-5.8M17 15c1.8.3 3 1.5 3 3.2V20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                            </svg>
-                        </span>
-                        <span class="side-client-summary-label">Clients</span>
-                        <span class="side-client-chevron" aria-hidden="true"></span>
-                    </summary>
-
-                    <div class="side-client-list">
-                        {% for client_item in g.clients %}
-                        <a class="side-client-link {% if g.client and g.client.id == client_item.id %}active-client{% endif %}"
-                           href="{{ url_for('clients.client_home', client_id=client_item.id) }}">
-                            <span class="side-client-initial">{{ client_item.company_name|client_initials }}</span>
-                            <span class="side-client-name">{{ client_item.company_name }}</span>
-                        </a>
-                        {% endfor %}
-
-                        {% if not g.clients %}
-                        <div class="side-client-empty">No clients registered</div>
-                        {% endif %}
-
-                        <a class="side-client-action" href="{{ url_for('clients.new_client') }}">
-                            <span aria-hidden="true">+</span>
-                            Add client
-                        </a>
-
-                        {% if g.clients %}
-                        <a class="side-client-action side-client-all" href="{{ url_for('clients.index') }}">
-                            View all clients
-                        </a>
-                        {% endif %}
-                    </div>
-                </details>
+                <a class="{% if request.blueprint in ['clients', 'qbo'] or g.client %}active{% endif %}" href="{{ url_for('clients.index') }}">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M16 20v-1.5A3.5 3.5 0 0 0 12.5 15h-5A3.5 3.5 0 0 0 4 18.5V20M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm6.5-1.5a3 3 0 0 0 0-5.8M17 15c1.8.3 3 1.5 3 3.2V20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                    <span>Clients</span>
+                </a>
 
                 <a class="{% if request.endpoint in ['bas.bas_history', 'bas.bas_history_detail'] %}active{% endif %}" href="{{ url_for('bas.bas_history') }}">
                     <span class="nav-icon" aria-hidden="true">
@@ -79,17 +51,6 @@
                     </span>
                     <span>BAS history</span>
                 </a>
-
-                {% if g.client %}
-                <a class="{% if request.blueprint == 'qbo' %}active{% endif %}" href="{{ url_for('qbo.connect') }}">
-                    <span class="nav-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none">
-                            <path d="M8.5 8.5 6 11a4 4 0 0 0 5.7 5.7l2.5-2.5M15.5 15.5 18 13a4 4 0 1 0-5.7-5.7L9.8 9.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                        </svg>
-                    </span>
-                    <span>QuickBooks</span>
-                </a>
-                {% endif %}
 
                 <a class="{% if request.endpoint == 'auth.firm_profile' %}active{% endif %}" href="{{ url_for('auth.firm_profile') }}">
                     <span class="nav-icon" aria-hidden="true">
@@ -112,6 +73,57 @@
                 </span>
             </div>
         </aside>
+
+        {% if g.client %}
+        <aside class="client-context-nav">
+            <div class="client-context-header">
+                <div class="client-context-avatar">{{ g.client.company_name|client_initials }}</div>
+                <div class="client-context-identity">
+                    <span>Selected client</span>
+                    <strong title="{{ g.client.company_name }}">{{ g.client.company_name }}</strong>
+                    {% if g.client.abn %}<small>ABN {{ g.client.abn }}</small>{% endif %}
+                </div>
+            </div>
+
+            <nav class="client-context-links" aria-label="Client navigation">
+                <a class="{% if request.endpoint in ['clients.edit_client', 'clients.client_home'] or (request.endpoint == 'bas.client_dashboard' and request.args.get('section', 'details') == 'details') %}active{% endif %}"
+                   href="{{ url_for('bas.client_dashboard', client_id=g.client.id, section='details') }}#business-details">
+                    <span class="client-context-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="M5 4h14v16H5V4Zm3 4h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    </span>
+                    <span>Business Details</span>
+                </a>
+
+                <a class="{% if request.endpoint in ['bas.bas_review', 'bas.ai_review', 'bas.review_details'] or (request.endpoint == 'bas.client_dashboard' and request.args.get('section') == 'active') %}active{% endif %}"
+                   href="{{ url_for('bas.client_dashboard', client_id=g.client.id, section='active') }}#active-bas">
+                    <span class="client-context-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4V6Zm4 4h8M8 14h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    </span>
+                    <span>Active BAS</span>
+                </a>
+
+                <a class="{% if request.endpoint == 'bas.bas_history_detail' or (request.endpoint == 'bas.client_dashboard' and request.args.get('section') == 'history') %}active{% endif %}"
+                   href="{{ url_for('bas.client_dashboard', client_id=g.client.id, section='history') }}#historical-bas">
+                    <span class="client-context-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="M12 8v4l2.5 1.5M4.9 6.9A8 8 0 1 1 4 16M4 8V4m0 0h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <span>Historical BAS</span>
+                </a>
+
+                <a class="{% if request.endpoint == 'clients.quickbooks_client' or request.blueprint == 'qbo' %}active{% endif %}"
+                   href="{{ url_for('clients.quickbooks_client', client_id=g.client.id) }}">
+                    <span class="client-context-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="M8.5 8.5 6 11a4 4 0 0 0 5.7 5.7l2.5-2.5M15.5 15.5 18 13a4 4 0 1 0-5.7-5.7L9.8 9.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                    </span>
+                    <span>QuickBooks</span>
+                </a>
+            </nav>
+
+            <div class="client-context-footer">
+                <a href="{{ url_for('clients.index') }}">← Switch client</a>
+            </div>
+        </aside>
+        {% endif %}
 
         <div class="workspace">
             <header class="top-bar">
