@@ -4040,3 +4040,79 @@ textarea:focus-visible {
         white-space: nowrap;
     }
 }
+
+
+/* Client editing */
+.client-details-heading {
+    align-items: center;
+}
+
+.client-edit-button {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 8px 12px;
+    font-size: 11px;
+}
+
+.client-list-action {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.client-inline-edit {
+    color: var(--bas-green-dark);
+    font-size: 11px;
+    font-weight: 750;
+    text-decoration: none;
+}
+
+.client-inline-edit:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.client-edit-note {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 12px 14px;
+    border: 1px solid #dce8d9;
+    border-radius: 8px;
+    background: #f7fbf5;
+}
+
+.client-edit-note strong {
+    color: #2d3a31;
+    font-size: 12px;
+}
+
+.client-edit-note span {
+    color: var(--bas-muted);
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+@media (max-width: 760px) {
+    .client-details-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .client-edit-button {
+        width: 100%;
+        text-align: center;
+    }
+
+    .client-list-action {
+        justify-content: stretch;
+        gap: 8px;
+    }
+
+    .client-inline-edit,
+    .client-details-button {
+        flex: 1;
+        text-align: center;
+    }
+}
