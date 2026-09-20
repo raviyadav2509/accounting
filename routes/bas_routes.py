@@ -221,11 +221,28 @@ def _decorate_record(record):
 
 @bas_bp.route("/")
 def dashboard():
-    client, response = _require_client()
-    if response:
-        return response
+    firm = get_firm_for_user(g.user["id"])
 
-    client_id = client["id"]
+    return render_template(
+        "dashboard.html",
+        firm=firm,
+    )
+
+
+@bas_bp.route("/clients/<int:client_id>/bas")
+def client_dashboard(client_id):
+    client = get_client_for_user(client_id, g.user["id"])
+
+    if not client:
+        return redirect(url_for("clients.index"))
+
+    session["client_id"] = client_id
+
+    if not client.get("qbo_connected"):
+        return redirect(
+            url_for("clients.client_home", client_id=client_id)
+        )
+
     bas = calculate_bas(client_id, DEFAULT_BAS_START, DEFAULT_BAS_END)
     signature, current_record = _persist_bas(client_id, bas)
 
@@ -258,15 +275,12 @@ def dashboard():
         if record["is_lodged"]
     ][:5]
 
-    firm = get_firm_for_user(g.user["id"])
-
     return render_template(
-        "dashboard.html",
+        "client_dashboard.html",
         bas=bas,
         current=current_display,
         current_records=current_records,
         client=client,
-        firm=firm,
         ai_status=ai_status,
         review_resolved=review_resolved,
         previous=previous,
@@ -292,7 +306,7 @@ def calculate_new_bas():
             "message.html",
             title="Invalid BAS dates",
             message="Enter a valid start date and end date.",
-            back_url=url_for("bas.dashboard"),
+            back_url=url_for("bas.client_dashboard", client_id=client["id"]),
         ), 400
 
     if start_date > end_date:
@@ -300,7 +314,7 @@ def calculate_new_bas():
             "message.html",
             title="Invalid BAS period",
             message="The BAS start date must be before or the same as the end date.",
-            back_url=url_for("bas.dashboard"),
+            back_url=url_for("bas.client_dashboard", client_id=client["id"]),
         ), 400
 
     matching_record = next(
@@ -322,7 +336,7 @@ def calculate_new_bas():
                     "A BAS for this reporting period has already been lodged "
                     "and is available under Previous BAS."
                 ),
-                back_url=url_for("bas.dashboard"),
+                back_url=url_for("bas.client_dashboard", client_id=client["id"]),
             )
 
         return render_template(
@@ -332,7 +346,7 @@ def calculate_new_bas():
                 "A BAS for this reporting period has already been calculated "
                 "and is listed under Current BAS on the Dashboard."
             ),
-            back_url=url_for("bas.dashboard"),
+            back_url=url_for("bas.client_dashboard", client_id=client["id"]),
         )
 
     return redirect(url_for("bas.bas_review", start=start, end=end))
@@ -635,7 +649,7 @@ def approve_bas():
             "Your approval has been recorded. The BAS has not been "
             "lodged with the ATO yet. Status: Ready to Lodge."
         ),
-        back_url=url_for("bas.dashboard"),
+        back_url=url_for("bas.client_dashboard", client_id=client["id"]),
     )
 
 
@@ -656,5 +670,5 @@ def reject_bas():
         "message.html",
         title="BAS Rejected",
         message="The BAS has been marked as rejected.",
-        back_url=url_for("bas.dashboard"),
+        back_url=url_for("bas.client_dashboard", client_id=client["id"]),
     )
