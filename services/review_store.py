@@ -28,8 +28,9 @@ def _review_from_record(record):
     }
 
 
-def save_ai_review(start, end, status, signature, review_text=None):
+def save_ai_review(client_id, start, end, status, signature, review_text=None):
     record = update_review(
+        client_id,
         start,
         end,
         signature,
@@ -39,47 +40,20 @@ def save_ai_review(start, end, status, signature, review_text=None):
     return _review_from_record(record)
 
 
-def load_ai_review(start, end, signature):
-    record = get_bas_record(start, end, signature)
+def load_ai_review(client_id, start, end, signature):
+    record = get_bas_record(client_id, start, end, signature)
     review = _review_from_record(record)
 
     if review:
         return review
 
-    # One-time compatibility with the earlier JSON-based implementation.
-    if not os.path.exists(REVIEW_FILE):
-        return None
-
-    with open(REVIEW_FILE, "r") as f:
-        legacy = json.load(f)
-
-    if legacy.get("start") != start or legacy.get("end") != end:
-        return None
-
-    if legacy.get("signature") != signature:
-        return None
-
-    record = update_review(
-        start,
-        end,
-        signature,
-        legacy.get("status", "WARNING"),
-        legacy.get("review_text", ""),
-    )
-
-    if legacy.get("resolution_status") == "RESOLVED":
-        record = resolve_review(
-            start,
-            end,
-            signature,
-            legacy.get("resolution_note", "Resolved in previous version."),
-        )
-
-    return _review_from_record(record)
+    # Legacy JSON compatibility is intentionally disabled for multi-client mode
+    # because the old file was not client-scoped.
+    return None
 
 
-def save_approval(start, end, ai_status, signature):
-    record = mark_approved(start, end, signature, ai_status)
+def save_approval(client_id, start, end, ai_status, signature):
+    record = mark_approved(client_id, start, end, signature, ai_status)
 
     return {
         "status": "APPROVED",
@@ -91,8 +65,8 @@ def save_approval(start, end, ai_status, signature):
     }
 
 
-def save_rejection(start, end, signature):
-    record = mark_rejected(start, end, signature)
+def save_rejection(client_id, start, end, signature):
+    record = mark_rejected(client_id, start, end, signature)
 
     return {
         "status": "REJECTED",
@@ -103,6 +77,6 @@ def save_rejection(start, end, signature):
     }
 
 
-def resolve_ai_review(start, end, signature, resolution_note):
-    record = resolve_review(start, end, signature, resolution_note)
+def resolve_ai_review(client_id, start, end, signature, resolution_note):
+    record = resolve_review(client_id, start, end, signature, resolution_note)
     return _review_from_record(record)
