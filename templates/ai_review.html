@@ -5,6 +5,8 @@
 <div class="workspace-breadcrumbs">
     <a href="{{ url_for('clients.index') }}">Clients</a>
     <span>›</span>
+    <a href="{{ url_for('clients.business_details', client_id=client.id) }}">{{ client.company_name }}</a>
+    <span>›</span>
     <a href="{{ url_for('bas.active_bas', client_id=client.id) }}">Active BAS</a>
     <span>›</span>
     <a href="{{ url_for('bas.bas_review', start=bas.start, end=bas.end) }}">BAS review</a>
