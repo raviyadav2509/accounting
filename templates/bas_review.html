@@ -5,18 +5,18 @@
 <div class="workspace-breadcrumbs">
     <a href="{{ url_for('clients.index') }}">Clients</a>
     <span>›</span>
-    <a href="{{ url_for('bas.client_dashboard', client_id=client.id) }}">{{ client.company_name }}</a>
+    <a href="{{ url_for('bas.active_bas', client_id=client.id) }}">Active BAS</a>
     <span>›</span>
     <span>BAS review</span>
 </div>
 
 <div class="page-heading bas-review-heading">
     <div>
-        <div class="eyebrow">BAS review</div>
-        <h1>{{ client.company_name }}</h1>
+        <div class="eyebrow">Client BAS</div>
+        <h1>BAS Review</h1>
         <div class="subtitle">Reporting period {{ bas.start }} to {{ bas.end }}</div>
     </div>
-    <a class="secondary-button" href="{{ url_for('bas.client_dashboard', client_id=client.id) }}">Back to client</a>
+    <a class="secondary-button" href="{{ url_for('bas.active_bas', client_id=client.id) }}">Back to Active BAS</a>
 </div>
 
 <div class="card amount-card">
