@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Active BAS | {{ client.company_name }}{% endblock %}
+
+{% block content %}
+<div class="workspace-breadcrumbs">
+    <a href="{{ url_for('clients.index') }}">Clients</a>
+    <span>›</span>
+    <a href="{{ url_for('clients.business_details', client_id=client.id) }}">{{ client.company_name }}</a>
+    <span>›</span>
+    <span>Active BAS</span>
+</div>
+
+<div class="page-heading client-section-heading">
+    <div>
+        <div class="eyebrow">Client BAS</div>
+        <h1>Active BAS</h1>
+        <div class="subtitle">BAS periods still being prepared, reviewed, approved or waiting to be lodged.</div>
+    </div>
+
+    <details class="new-bas-menu">
+        <summary class="button new-bas-trigger">
+            <span class="new-bas-plus" aria-hidden="true">+</span>
+            Calculate new BAS
+        </summary>
+
+        <div class="new-bas-popover">
+            <div class="new-bas-popover-heading">
+                <strong>Calculate a new BAS</strong>
+                <span>Select the reporting period to calculate from this client's QuickBooks data.</span>
+            </div>
+
+            <form class="new-bas-form" action="{{ url_for('bas.calculate_new_bas') }}" method="post">
+                <div class="date-field">
+                    <label for="new-bas-start">Start date</label>
+                    <input id="new-bas-start" name="start" type="date" required>
+                </div>
+
+                <div class="date-field">
+                    <label for="new-bas-end">End date</label>
+                    <input id="new-bas-end" name="end" type="date" required>
+                </div>
+
+                <button class="button" type="submit">Calculate BAS</button>
+            </form>
+        </div>
+    </details>
+</div>
+
+{% if current_records %}
+<div class="bas-accordion-list client-bas-page-list">
+    {% for record in current_records %}
+    <details class="card bas-record-card current-record-card">
+        <summary class="bas-record-summary">
+            <div class="bas-record-period">
+                <div class="bas-record-title">{{ record.period_display }}</div>
+                <div class="period-caption">Reporting period {{ record.start_date }} to {{ record.end_date }}</div>
+            </div>
+
+            <div class="bas-record-amount">
+                <span>{{ record.amount_heading }}</span>
+                <strong>{{ record.amount_display }}</strong>
+            </div>
+
+            <div class="bas-record-status">
+                <span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span>
+                {% if record.status_date %}
+                    <div class="status-date">{{ record.status_date_label }} {{ record.status_date }}</div>
+                {% endif %}
+            </div>
+
+            <div class="bas-record-toggle">
+                <span class="toggle-label toggle-label-open">Show summary</span>
+                <span class="toggle-label toggle-label-close">Hide summary</span>
+                <span class="toggle-chevron" aria-hidden="true"></span>
+            </div>
+        </summary>
+
+        <div class="bas-record-expanded">
+            <div class="record-metrics">
+                <div class="record-metric"><span>Sales</span><strong>&#36;{{ "{:,.2f}".format(record.g1) }}</strong></div>
+                <div class="record-metric"><span>GST collected</span><strong>&#36;{{ "{:,.2f}".format(record.gst_sales) }}</strong></div>
+                <div class="record-metric"><span>GST credits</span><strong>&#36;{{ "{:,.2f}".format(record.gst_purchases) }}</strong></div>
+                <div class="record-metric"><span>PAYG withheld</span><strong>&#36;{{ "{:,.2f}".format(record.w2) }}</strong></div>
+            </div>
+
+            <div class="record-progress-strip">
+                <div class="record-progress-item {% if record.reviewed_at %}complete{% endif %}">
+                    <span class="record-progress-dot"></span>
+                    <div>
+                        <strong>AI review</strong>
+                        <small>{% if record.reviewed_at %}{{ record.reviewed_at_display }}{% else %}Not yet completed{% endif %}</small>
+                    </div>
+                </div>
+
+                <div class="record-progress-item {% if record.resolved_at or record.review_status in ["PASS", "WARNING"] %}complete{% endif %}">
+                    <span class="record-progress-dot"></span>
+                    <div>
+                        <strong>Review checks</strong>
+                        <small>
+                            {% if record.resolved_at %}
+                                Resolved {{ record.resolved_at_display }}
+                            {% elif record.review_status in ["PASS", "WARNING"] %}
+                                Complete
+                            {% elif record.review_status == "REVIEW REQUIRED" %}
+                                Action required
+                            {% else %}
+                                Pending
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+
+                <div class="record-progress-item {% if record.approved_at %}complete{% endif %}">
+                    <span class="record-progress-dot"></span>
+                    <div>
+                        <strong>Approval</strong>
+                        <small>{% if record.approved_at %}{{ record.approved_at_display }}{% else %}Pending{% endif %}</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="record-actions">
+                <div>
+                    <strong>
+                        {% if not record.review_status %}
+                            Ready for review
+                        {% elif record.approval_status == "APPROVED" %}
+                            Approved and waiting to be lodged
+                        {% else %}
+                            BAS is still in progress
+                        {% endif %}
+                    </strong>
+                    <span>Open the detailed BAS to review calculations, run AI review and continue the workflow.</span>
+                </div>
+
+                <a class="button" href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">
+                    Open detailed BAS
+                </a>
+            </div>
+        </div>
+    </details>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card empty-state">
+    <strong>No active BAS periods.</strong>
+    <p>Use Calculate new BAS to create a reporting period for this client.</p>
+</div>
+{% endif %}
+{% endblock %}
