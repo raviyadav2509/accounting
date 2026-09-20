@@ -118,11 +118,13 @@ Enable it locally in `.env`:
 ENABLE_MOCK_ATO_LODGEMENT=true
 ```
 
+Before lodgement, approved BAS and annual tax returns can be reopened for editing. Reopening removes the approval but does not alter a lodged record. If figures are changed, the normal review and approval workflow must be completed again.
+
 With the switch enabled:
 
-- an approved BAS shows **Simulate ATO Lodgement**
+- an approved BAS shows **Edit BAS** and **Simulate ATO Lodgement**
 - the mock action records a `MOCK-BAS-...` reference, marks the BAS as lodged, removes it from **Active BAS**, and places it under **BAS History**
-- an approved annual tax return shows **Simulate ATO Lodgement**
+- an approved annual tax return shows **Edit Return** and **Simulate ATO Lodgement**
 - the mock action records a `MOCK-TAX-...` reference, marks the return as lodged, and moves it from **Active Tax Returns** to **Tax Return History**
 
 No request is sent to the ATO. Leave the switch unset or set it to `false` outside local/test environments.
