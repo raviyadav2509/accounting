@@ -30,6 +30,19 @@
 <div class="card streamlined-business-details">
     <div class="business-details-grid">
         <div class="business-detail-item">
+            <span>Entity type</span>
+            <strong>
+                {% if client.entity_type == "COMPANY" %}Company
+                {% elif client.entity_type == "TRUST" %}Trust
+                {% elif client.entity_type == "PARTNERSHIP" %}Partnership
+                {% elif client.entity_type == "INDIVIDUAL" %}Individual / Sole trader
+                {% elif client.entity_type == "SMSF" %}SMSF
+                {% else %}{{ client.entity_type or "Not provided" }}
+                {% endif %}
+            </strong>
+        </div>
+
+        <div class="business-detail-item">
             <span>Legal name</span>
             <strong>{{ client.legal_name or "Not provided" }}</strong>
         </div>
