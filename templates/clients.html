@@ -26,7 +26,7 @@
                 <div class="client-list-avatar">{{ client.company_name|client_initials }}</div>
                 <div class="client-list-copy">
                     <strong>
-                        <a class="client-name-link" href="{{ url_for('clients.client_home', client_id=client.id) }}">
+                        <a class="client-name-link" href="{{ url_for('clients.business_details', client_id=client.id) }}">
                             {{ client.company_name }}
                         </a>
                     </strong>
@@ -62,7 +62,7 @@
                     Edit
                 </a>
                 <a class="secondary-button client-details-button"
-                   href="{{ url_for('clients.client_home', client_id=client.id) }}">
+                   href="{{ url_for('clients.business_details', client_id=client.id) }}">
                     View client
                 </a>
             </div>
