@@ -7,7 +7,7 @@
         <h1>Settings</h1>
         <div class="subtitle">Manage your accounting firm profile and platform details.</div>
     </div>
-    <a class="secondary-button" href="{{ url_for('clients.index') }}">Back to clients</a>
+    <a class="secondary-button" href="{{ url_for('bas.dashboard') }}">Back to Dashboard</a>
 </div>
 
 <div class="settings-section-heading">
@@ -60,7 +60,7 @@
         </div>
 
         <div class="client-form-actions">
-            <a class="secondary-button" href="{{ url_for('clients.index') }}">Cancel</a>
+            <a class="secondary-button" href="{{ url_for('bas.dashboard') }}">Cancel</a>
             <button class="button" type="submit">Save firm details</button>
         </div>
     </form>
