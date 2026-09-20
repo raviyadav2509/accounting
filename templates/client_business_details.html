@@ -13,17 +13,18 @@
 <div class="page-heading client-section-heading">
     <div>
         <div class="eyebrow">Client</div>
-        <h1>Business Details</h1>
+        <div class="client-section-title-row">
+            <h1>Business Details</h1>
+            <a class="client-section-edit"
+               href="{{ url_for('clients.edit_client', client_id=client.id) }}">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M4 20h4l10.5-10.5a2.8 2.8 0 0 0-4-4L4 16v4Zm9.5-13.5 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Edit details</span>
+            </a>
+        </div>
         <div class="subtitle">Registered information for this client.</div>
     </div>
-
-    <a class="client-section-edit"
-       href="{{ url_for('clients.edit_client', client_id=client.id) }}">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M4 20h4l10.5-10.5a2.8 2.8 0 0 0-4-4L4 16v4Zm9.5-13.5 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span>Edit details</span>
-    </a>
 </div>
 
 <div class="card streamlined-business-details">
