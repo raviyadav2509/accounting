@@ -43,7 +43,7 @@
                     <span>Clients</span>
                 </a>
 
-                <a class="{% if request.endpoint in ['bas.bas_history', 'bas.bas_history_detail'] %}active{% endif %}" href="{{ url_for('bas.bas_history') }}">
+                <a class="{% if request.endpoint in ['bas.bas_history', 'bas.bas_history_detail'] and not g.client %}active{% endif %}" href="{{ url_for('bas.bas_history') }}">
                     <span class="nav-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none">
                             <path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
