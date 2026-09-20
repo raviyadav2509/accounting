@@ -3213,3 +3213,195 @@ button:hover,
         min-width: 180px;
     }
 }
+
+
+/* Streamlined all-clients page */
+.client-list-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.client-list-header,
+.client-list-row {
+    display: grid;
+    grid-template-columns: minmax(280px, 1.5fr) minmax(150px, .65fr) minmax(145px, .6fr) auto;
+    gap: 20px;
+    align-items: center;
+}
+
+.client-list-header {
+    padding: 12px 20px;
+    background: #f7f9f7;
+    border-bottom: 1px solid var(--bas-border);
+    color: var(--bas-muted);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.client-list-row {
+    min-height: 74px;
+    padding: 13px 20px;
+    border-bottom: 1px solid #edf0ee;
+}
+
+.client-list-row:last-child {
+    border-bottom: 0;
+}
+
+.client-list-row:hover {
+    background: #fbfdfb;
+}
+
+.client-list-row.active-client-row {
+    box-shadow: inset 3px 0 0 var(--bas-green);
+    background: #fcfefb;
+}
+
+.client-list-identity {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+}
+
+.client-list-avatar {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bas-mint);
+    color: var(--bas-green-deep);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.client-list-copy {
+    min-width: 0;
+}
+
+.client-list-copy strong,
+.client-list-copy span {
+    display: block;
+}
+
+.client-list-copy strong {
+    overflow: hidden;
+    color: #26332b;
+    font-size: 14px;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.client-list-copy span {
+    overflow: hidden;
+    margin-top: 3px;
+    color: var(--bas-muted);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.client-list-abn strong {
+    color: #435047;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.client-list-action {
+    text-align: right;
+}
+
+.client-details-button {
+    min-height: 34px;
+    padding: 8px 12px;
+    font-size: 11px;
+}
+
+.mobile-client-label {
+    display: none;
+}
+
+/* Accounting firm identity in left sidebar */
+.sidebar-firm-card {
+    display: block;
+    margin: 2px 12px 14px;
+    padding: 10px 11px;
+    border: 1px solid #e0e6e2;
+    border-radius: 8px;
+    background: #f8faf8;
+    text-decoration: none;
+}
+
+.sidebar-firm-card:hover {
+    border-color: #cadbca;
+    background: #f2f8f1;
+}
+
+.sidebar-firm-label {
+    display: block;
+    margin-bottom: 3px;
+    color: #7a867e;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.sidebar-firm-card strong {
+    display: block;
+    overflow: hidden;
+    color: #26332b;
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.3;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+    .client-list-header {
+        display: none;
+    }
+
+    .client-list-row {
+        grid-template-columns: 1fr auto;
+        gap: 12px 18px;
+        padding: 16px;
+    }
+
+    .client-list-identity {
+        grid-column: 1 / -1;
+    }
+
+    .client-list-abn,
+    .client-list-status {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .client-list-action {
+        grid-column: 1 / -1;
+        text-align: left;
+    }
+
+    .client-details-button {
+        width: 100%;
+        text-align: center;
+    }
+
+    .mobile-client-label {
+        display: block;
+        color: var(--bas-muted);
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+    }
+}
