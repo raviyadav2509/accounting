@@ -22,6 +22,17 @@
                 <input id="company_name" name="company_name" value="{{ values.company_name }}" required>
             </div>
 
+            <div class="auth-field">
+                <label for="entity_type">Entity type</label>
+                <select id="entity_type" name="entity_type" required>
+                    <option value="COMPANY" {% if values.entity_type == "COMPANY" %}selected{% endif %}>Company</option>
+                    <option value="TRUST" {% if values.entity_type == "TRUST" %}selected{% endif %}>Trust</option>
+                    <option value="PARTNERSHIP" {% if values.entity_type == "PARTNERSHIP" %}selected{% endif %}>Partnership</option>
+                    <option value="INDIVIDUAL" {% if values.entity_type == "INDIVIDUAL" %}selected{% endif %}>Individual / Sole trader</option>
+                    <option value="SMSF" {% if values.entity_type == "SMSF" %}selected{% endif %}>SMSF</option>
+                </select>
+            </div>
+
             <div class="auth-field client-form-wide">
                 <label for="legal_name">Legal name</label>
                 <input id="legal_name" name="legal_name" value="{{ values.legal_name }}">
