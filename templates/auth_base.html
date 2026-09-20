@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}BAS Automation{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body class="auth-body">
+    <div class="auth-shell">
+        <section class="auth-brand-panel">
+            <div class="auth-brand-lockup">
+                <span class="brand-mark auth-brand-mark">B</span>
+                <div>
+                    <strong>BAS Automation</strong>
+                    <span>Business Activity Statement workspace</span>
+                </div>
+            </div>
+
+            <div class="auth-brand-copy">
+                <div class="auth-kicker">BAS WORKSPACE</div>
+                <h1>Prepare and review BAS with a clear audit trail.</h1>
+                <p>
+                    Connect QuickBooks, calculate BAS figures, review transactions,
+                    resolve issues and keep each reporting period organised.
+                </p>
+
+                <div class="auth-feature-list">
+                    <div class="auth-feature">
+                        <span class="auth-feature-icon">✓</span>
+                        <span>QuickBooks-connected BAS calculations</span>
+                    </div>
+                    <div class="auth-feature">
+                        <span class="auth-feature-icon">✓</span>
+                        <span>AI-assisted transaction review</span>
+                    </div>
+                    <div class="auth-feature">
+                        <span class="auth-feature-icon">✓</span>
+                        <span>Review, approval and audit history</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="auth-brand-footer">Secure access to your BAS workspace</div>
+        </section>
+
+        <main class="auth-form-panel">
+            <div class="auth-form-wrap">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+</body>
+</html>
