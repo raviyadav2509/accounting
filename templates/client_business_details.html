@@ -73,5 +73,82 @@
             <strong>{{ client.phone or "Not provided" }}</strong>
         </div>
     </div>
+
+
+<section class="client-compliance-section">
+    <div class="section-heading client-compliance-heading">
+        <div>
+            <div class="dashboard-section-title">Compliance Summary</div>
+            <p>Recent BAS and annual tax return activity grouped by financial year.</p>
+        </div>
+    </div>
+
+    {% if compliance_summary %}
+    <div class="card table-card compliance-summary-card">
+        <div class="responsive-table">
+            <table class="history-table compliance-summary-table">
+                <thead>
+                    <tr>
+                        <th>Financial year</th>
+                        <th>BAS</th>
+                        <th>Annual tax return</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in compliance_summary %}
+                    <tr>
+                        <td><strong>FY {{ row.financial_year }}</strong></td>
+                        <td>
+                            <div class="compliance-status-links">
+                                {% if row.bas_lodged %}
+                                <a class="compliance-inline-status"
+                                   href="{{ url_for('bas.historical_bas', client_id=client.id, year=row.financial_year) }}">
+                                    <span class="status-badge pass">{{ row.bas_lodged }} lodged</span>
+                                </a>
+                                {% endif %}
+
+                                {% if row.bas_active %}
+                                <a class="compliance-inline-status"
+                                   href="{{ url_for('bas.active_bas', client_id=client.id) }}">
+                                    <span class="status-badge warning">{{ row.bas_active }} active</span>
+                                </a>
+                                {% endif %}
+
+                                {% if not row.bas_lodged and not row.bas_active %}
+                                <span class="status-badge not-reviewed">No BAS records</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if row.tax_return_id %}
+                            <a class="compliance-inline-status"
+                               href="{{ url_for('tax.company_tax_return', client_id=client.id, tax_return_id=row.tax_return_id) }}">
+                                <span class="status-badge {{ row.tax_status_class }}">{{ row.tax_status }}</span>
+                            </a>
+                            {% else %}
+                            <a class="compliance-inline-status"
+                               href="{{ url_for('tax.client_tax_returns', client_id=client.id) }}">
+                                <span class="status-badge not-reviewed">Not started</span>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="compliance-summary-actions">
+        <a href="{{ url_for('bas.historical_bas', client_id=client.id) }}">View BAS History</a>
+        <a href="{{ url_for('tax.client_tax_returns', client_id=client.id) }}">View Annual Tax Returns</a>
+    </div>
+    {% else %}
+    <div class="card empty-state compact-empty-state">
+        <strong>No compliance history yet.</strong>
+        <p>BAS and annual tax return activity will appear here once work begins for this client.</p>
+    </div>
+    {% endif %}
+</section>
 </div>
 {% endblock %}
