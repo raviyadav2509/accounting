@@ -54,7 +54,7 @@
     </div>
 </div>
 
-<section class="client-workspace-details">
+<section id="business-details" class="client-workspace-details client-anchor-section">
     <div class="section-heading client-details-heading">
         <div>
             <div class="dashboard-section-title">Client details</div>
@@ -110,7 +110,7 @@
     </div>
 </section>
 
-<section class="bas-dashboard-section">
+<section id="active-bas" class="bas-dashboard-section client-anchor-section">
     <div class="section-heading bas-section-heading">
         <div>
             <div class="dashboard-section-title">Active BAS</div>
@@ -215,7 +215,7 @@
     </div>
 </section>
 
-<section class="bas-dashboard-section historical-section">
+<section id="historical-bas" class="bas-dashboard-section historical-section client-anchor-section">
     <div class="section-heading bas-section-heading">
         <div>
             <div class="dashboard-section-title">Historical BAS</div>
@@ -284,7 +284,7 @@
                         <span>View the saved BAS figures, AI review and audit trail.</span>
                     </div>
 
-                    <a class="secondary-button" href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">
+                    <a class="secondary-button" href="{{ url_for('bas.bas_history_detail', record_id=record.id, client_context=1) }}">
                         View details & audit trail
                     </a>
                 </div>
