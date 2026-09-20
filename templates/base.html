@@ -49,7 +49,7 @@
                             <path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </span>
-                    <span>BAS history</span>
+                    <span>BAS History</span>
                 </a>
 
                 <a class="{% if request.blueprint == 'tax' and not g.client %}active{% endif %}" href="{{ url_for('tax.tax_returns') }}">
@@ -117,32 +117,40 @@
                     <span>Business Details</span>
                 </a>
 
-                <a class="{% if request.endpoint in ['bas.active_bas', 'bas.bas_review', 'bas.ai_review', 'bas.review_details'] %}active{% endif %}"
-                   href="{{ url_for('bas.active_bas', client_id=g.client.id) }}"
-                   title="Active BAS">
-                    <span class="client-context-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4V6Zm4 4h8M8 14h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                    </span>
-                    <span>Active BAS</span>
-                </a>
+                <div class="client-context-group">
+                    <div class="client-context-group-label">BAS</div>
 
-                <a class="{% if request.endpoint in ['bas.historical_bas', 'bas.bas_history_detail'] %}active{% endif %}"
-                   href="{{ url_for('bas.historical_bas', client_id=g.client.id) }}"
-                   title="Historical BAS">
-                    <span class="client-context-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none"><path d="M12 8v4l2.5 1.5M4.9 6.9A8 8 0 1 1 4 16M4 8V4m0 0h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </span>
-                    <span>Historical BAS</span>
-                </a>
+                    <a class="{% if request.endpoint in ['bas.active_bas', 'bas.bas_review', 'bas.ai_review', 'bas.review_details'] %}active{% endif %}"
+                       href="{{ url_for('bas.active_bas', client_id=g.client.id) }}"
+                       title="Active BAS">
+                        <span class="client-context-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16v12H4V6Zm4 4h8M8 14h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                        </span>
+                        <span>Active BAS</span>
+                    </a>
 
-                <a class="{% if request.blueprint == 'tax' %}active{% endif %}"
-                   href="{{ url_for('tax.client_tax_returns', client_id=g.client.id) }}"
-                   title="Annual Tax Return">
-                    <span class="client-context-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none"><path d="M6 3h9l3 3v15H6V3Zm8 0v4h4M9 11h6M9 15h6M9 19h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </span>
-                    <span>Annual Tax Return</span>
-                </a>
+                    <a class="{% if request.endpoint in ['bas.historical_bas', 'bas.bas_history_detail'] %}active{% endif %}"
+                       href="{{ url_for('bas.historical_bas', client_id=g.client.id) }}"
+                       title="BAS History">
+                        <span class="client-context-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M12 8v4l2.5 1.5M4.9 6.9A8 8 0 1 1 4 16M4 8V4m0 0h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </span>
+                        <span>BAS History</span>
+                    </a>
+                </div>
+
+                <div class="client-context-group">
+                    <div class="client-context-group-label">Tax</div>
+
+                    <a class="{% if request.blueprint == 'tax' %}active{% endif %}"
+                       href="{{ url_for('tax.client_tax_returns', client_id=g.client.id) }}"
+                       title="Annual Tax Returns">
+                        <span class="client-context-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none"><path d="M6 3h9l3 3v15H6V3Zm8 0v4h4M9 11h6M9 15h6M9 19h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </span>
+                        <span>Annual Tax Returns</span>
+                    </a>
+                </div>
 
                 <a class="{% if request.endpoint == 'clients.quickbooks_client' or request.blueprint == 'qbo' %}active{% endif %}"
                    href="{{ url_for('clients.quickbooks_client', client_id=g.client.id) }}"
