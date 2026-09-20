@@ -7,6 +7,7 @@
         <h1>BAS Dashboard</h1>
         <div class="subtitle">Prepare, review and track your Business Activity Statements.</div>
     </div>
+
     <div class="page-heading-actions">
         <details class="new-bas-menu">
             <summary class="button new-bas-trigger">
@@ -89,231 +90,228 @@
     </div>
 </div>
 
-<details class="card current-bas-card current-bas-disclosure">
-    <summary class="current-bas-summary">
-        <div class="summary-period">
-            <div class="dashboard-section-title">Current BAS</div>
-            <div class="summary-period-title">{{ current.period_display }}</div>
-            <div class="period-caption">Reporting period {{ bas.start }} to {{ bas.end }}</div>
-        </div>
-
-        <div class="summary-amount">
-            <div class="dashboard-amount-label">{{ amount_heading }}</div>
-            <div class="summary-amount-value">{{ amount_display }}</div>
-        </div>
-
-        <div class="summary-status">
-            <span class="status-badge {{ current.status_class }}">{{ current.display_status }}</span>
-            {% if current.status_date %}
-                <div class="status-date">
-                    {{ current.status_date_label }} {{ current.status_date }}
-                </div>
-            {% endif %}
-        </div>
-
-        <div class="summary-toggle">
-            <span class="toggle-label toggle-label-open">Show BAS summary</span>
-            <span class="toggle-label toggle-label-close">Hide BAS summary</span>
-            <span class="toggle-chevron" aria-hidden="true"></span>
-        </div>
-    </summary>
-
-    <div class="current-bas-expanded">
-        <div class="expanded-intro">
-            <div>
-                <h3>BAS summary</h3>
-                <p>{{ amount_note }}</p>
-            </div>
-        </div>
-
-        <div class="bas-progress">
-            <div class="progress-step complete">
-                <div class="progress-marker">✓</div>
-                <div>
-                    <div class="progress-label">BAS calculated</div>
-                    <div class="progress-date">{{ current.created_at_display or "Saved" }}</div>
-                </div>
-            </div>
-
-            <div class="progress-step {% if current.reviewed_at %}complete{% else %}pending{% endif %}">
-                <div class="progress-marker">{% if current.reviewed_at %}✓{% else %}2{% endif %}</div>
-                <div>
-                    <div class="progress-label">AI review</div>
-                    <div class="progress-date">
-                        {% if current.reviewed_at %}{{ current.reviewed_at_display }}{% else %}Pending{% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <div class="progress-step {% if current.resolved_at or current.review_status in ["PASS", "WARNING"] %}complete{% elif current.review_status == "REVIEW REQUIRED" %}attention{% else %}pending{% endif %}">
-                <div class="progress-marker">
-                    {% if current.resolved_at or current.review_status in ["PASS", "WARNING"] %}✓{% else %}3{% endif %}
-                </div>
-                <div>
-                    <div class="progress-label">
-                        {% if current.review_status == "REVIEW REQUIRED" %}Issues resolved{% else %}Review checks{% endif %}
-                    </div>
-                    <div class="progress-date">
-                        {% if current.resolved_at %}
-                            {{ current.resolved_at_display }}
-                        {% elif current.review_status in ["PASS", "WARNING"] %}
-                            Complete
-                        {% elif current.review_status == "REVIEW REQUIRED" %}
-                            Action required
-                        {% else %}
-                            Pending
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <div class="progress-step {% if current.approved_at %}complete{% else %}pending{% endif %}">
-                <div class="progress-marker">{% if current.approved_at %}✓{% else %}4{% endif %}</div>
-                <div>
-                    <div class="progress-label">Approval</div>
-                    <div class="progress-date">
-                        {% if current.approved_at %}{{ current.approved_at_display }}{% else %}Pending{% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="dashboard-metrics">
-            <div class="dashboard-metric">
-                <span>Sales</span>
-                <strong>${{ "{:,.2f}".format(bas.g1) }}</strong>
-            </div>
-            <div class="dashboard-metric">
-                <span>GST collected</span>
-                <strong>${{ "{:,.2f}".format(bas.gst_sales) }}</strong>
-            </div>
-            <div class="dashboard-metric">
-                <span>GST credits</span>
-                <strong>${{ "{:,.2f}".format(bas.gst_purchases) }}</strong>
-            </div>
-            <div class="dashboard-metric">
-                <span>PAYG withheld</span>
-                <strong>${{ "{:,.2f}".format(bas.w2) }}</strong>
-            </div>
-        </div>
-
-        <div class="expanded-actions">
-            <div class="expanded-actions-copy">
-                <strong>Need the full BAS?</strong>
-                <span>Open the detailed view to see all BAS figures, calculations and run the AI review.</span>
-            </div>
-            <a class="button" href="{{ url_for('bas.bas_review', start=bas.start, end=bas.end) }}">
-                View detailed BAS
-            </a>
-        </div>
-    </div>
-</details>
-
-{% if current_others %}
-<div class="current-bas-subsection">
-    <div class="current-bas-subsection-heading">
+<section class="bas-dashboard-section">
+    <div class="section-heading bas-section-heading">
         <div>
-            <div class="current-bas-subsection-title">Other BAS in progress</div>
-            <p>These BAS periods have been calculated but have not been lodged yet.</p>
+            <div class="dashboard-section-title">Current BAS</div>
+            <p>All BAS periods that are still being prepared, reviewed, approved or waiting to be lodged.</p>
         </div>
+        <span class="section-count">{{ current_records|length }} active</span>
     </div>
 
-    <div class="card table-card active-bas-table-card">
-        <div class="responsive-table">
-            <table class="history-table dashboard-history">
-                <thead>
-                    <tr>
-                        <th>BAS period</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for record in current_others %}
-                    <tr>
-                        <td>
-                            <a class="bas-period-link" href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">
-                                {{ record.period_display }}
-                            </a>
-                        </td>
-                        <td>${{ "{:,.2f}".format(record.payable) }}</td>
-                        <td>
-                            <span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span>
-                            {% if record.status_date %}
-                                <div class="table-status-date">
-                                    {{ record.status_date_label }} {{ record.status_date }}
-                                </div>
-                            {% endif %}
-                        </td>
-                        <td class="table-action">
+    <div class="bas-accordion-list">
+        {% for record in current_records %}
+        <details class="card bas-record-card current-record-card">
+            <summary class="bas-record-summary">
+                <div class="bas-record-period">
+                    <div class="bas-record-title">{{ record.period_display }}</div>
+                    <div class="period-caption">Reporting period {{ record.start_date }} to {{ record.end_date }}</div>
+                </div>
+
+                <div class="bas-record-amount">
+                    <span>{{ record.amount_heading }}</span>
+                    <strong>{{ record.amount_display }}</strong>
+                </div>
+
+                <div class="bas-record-status">
+                    <span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span>
+                    {% if record.status_date %}
+                        <div class="status-date">{{ record.status_date_label }} {{ record.status_date }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="bas-record-toggle">
+                    <span class="toggle-label toggle-label-open">Show summary</span>
+                    <span class="toggle-label toggle-label-close">Hide summary</span>
+                    <span class="toggle-chevron" aria-hidden="true"></span>
+                </div>
+            </summary>
+
+            <div class="bas-record-expanded">
+                <div class="record-metrics">
+                    <div class="record-metric">
+                        <span>Sales</span>
+                        <strong>&#36;{{ "{:,.2f}".format(record.g1) }}</strong>
+                    </div>
+                    <div class="record-metric">
+                        <span>GST collected</span>
+                        <strong>&#36;{{ "{:,.2f}".format(record.gst_sales) }}</strong>
+                    </div>
+                    <div class="record-metric">
+                        <span>GST credits</span>
+                        <strong>&#36;{{ "{:,.2f}".format(record.gst_purchases) }}</strong>
+                    </div>
+                    <div class="record-metric">
+                        <span>PAYG withheld</span>
+                        <strong>&#36;{{ "{:,.2f}".format(record.w2) }}</strong>
+                    </div>
+                </div>
+
+                <div class="record-progress-strip">
+                    <div class="record-progress-item {% if record.reviewed_at %}complete{% endif %}">
+                        <span class="record-progress-dot"></span>
+                        <div>
+                            <strong>AI review</strong>
+                            <small>{% if record.reviewed_at %}{{ record.reviewed_at_display }}{% else %}Not yet completed{% endif %}</small>
+                        </div>
+                    </div>
+
+                    <div class="record-progress-item {% if record.resolved_at or record.review_status in ["PASS", "WARNING"] %}complete{% endif %}">
+                        <span class="record-progress-dot"></span>
+                        <div>
+                            <strong>Review checks</strong>
+                            <small>
+                                {% if record.resolved_at %}
+                                    Resolved {{ record.resolved_at_display }}
+                                {% elif record.review_status in ["PASS", "WARNING"] %}
+                                    Complete
+                                {% elif record.review_status == "REVIEW REQUIRED" %}
+                                    Action required
+                                {% else %}
+                                    Pending
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="record-progress-item {% if record.approved_at %}complete{% endif %}">
+                        <span class="record-progress-dot"></span>
+                        <div>
+                            <strong>Approval</strong>
+                            <small>{% if record.approved_at %}{{ record.approved_at_display }}{% else %}Pending{% endif %}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="record-actions">
+                    <div>
+                        <strong>
                             {% if not record.review_status %}
-                                <a href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">Review BAS</a>
-                                <div class="table-action-note">Not yet reviewed</div>
+                                Ready for review
+                            {% elif record.approval_status == "APPROVED" %}
+                                Approved and waiting to be lodged
                             {% else %}
-                                <a href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">Continue BAS</a>
-                                <div class="table-action-note">Editable until lodged</div>
+                                BAS is still in progress
                             {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                        </strong>
+                        <span>Open the detailed BAS to review calculations, run AI review and continue the workflow.</span>
+                    </div>
+
+                    <a class="button" href="{{ url_for('bas.bas_review', start=record.start_date, end=record.end_date) }}">
+                        Open detailed BAS
+                    </a>
+                </div>
+            </div>
+        </details>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="bas-dashboard-section historical-section">
+    <div class="section-heading bas-section-heading">
+        <div>
+            <div class="dashboard-section-title">Previous BAS</div>
+            <p>Lodged BAS periods are kept here as read-only records.</p>
         </div>
+        {% if previous %}
+            <span class="section-count">{{ previous|length }} shown</span>
+        {% endif %}
     </div>
-</div>
-{% endif %}
 
-<div class="section-heading">
-    <div>
-        <div class="dashboard-section-title">Previous BAS</div>
-        <p>Only lodged BAS periods appear here.</p>
-    </div>
-</div>
+    {% if previous %}
+    <div class="bas-accordion-list">
+        {% for record in previous %}
+        <details class="card bas-record-card historical-record-card">
+            <summary class="bas-record-summary">
+                <div class="bas-record-period">
+                    <div class="bas-record-title">{{ record.period_display }}</div>
+                    <div class="period-caption">Reporting period {{ record.start_date }} to {{ record.end_date }}</div>
+                </div>
 
-{% if previous %}
-<div class="card table-card">
-    <div class="responsive-table">
-        <table class="history-table dashboard-history">
-            <thead>
-                <tr>
-                    <th>BAS period</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for record in previous %}
-                <tr>
-                    <td>
-                        <a class="bas-period-link" href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">
-                            {{ record.period_display }}
-                        </a>
-                    </td>
-                    <td>${{ "{:,.2f}".format(record.payable) }}</td>
-                    <td>
-                        <span class="status-badge {{ record.status_class }}">{{ record.display_status }}</span>
-                        {% if record.status_date %}
-                            <div class="table-status-date">
-                                {{ record.status_date_label }} {{ record.status_date }}
-                            </div>
-                        {% endif %}
-                    </td>
-                    <td class="table-action">
-                        <a href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">View details</a>
-                        <div class="table-action-note">Read only</div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                <div class="bas-record-amount">
+                    <span>Final BAS amount</span>
+                    <strong>{{ record.amount_display }}</strong>
+                </div>
+
+                <div class="bas-record-status">
+                    <span class="status-badge lodged">Lodged</span>
+                    {% if record.status_date %}
+                        <div class="status-date">{{ record.status_date_label }} {{ record.status_date }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="bas-record-toggle historical-toggle">
+                    <span class="toggle-label toggle-label-open">Show lodged BAS summary</span>
+                    <span class="toggle-label toggle-label-close">Hide lodged BAS summary</span>
+                    <span class="toggle-chevron" aria-hidden="true"></span>
+                </div>
+            </summary>
+
+            <div class="bas-record-expanded">
+                <div class="record-metrics">
+                    <div class="record-metric">
+                        <span>Sales</span>
+                        <strong>&#36;{{ "{:,.2f}".format(record.g1) }}</strong>
+                    </div>
+                    <div class="record-metric">
+                        <span>GST collected</span>
+                        <strong>&#36;{{ "{:,.2f}".format(record.gst_sales) }}</strong>
+                    </div>
+                    <div class="record-metric">
+                        <span>GST credits</span>
+                        <strong>&#36;{{ "{:,.2f}".format(record.gst_purchases) }}</strong>
+                    </div>
+                    <div class="record-metric">
+                        <span>PAYG withheld</span>
+                        <strong>&#36;{{ "{:,.2f}".format(record.w2) }}</strong>
+                    </div>
+                </div>
+
+                <div class="record-progress-strip historical-progress">
+                    <div class="record-progress-item complete">
+                        <span class="record-progress-dot"></span>
+                        <div>
+                            <strong>AI review</strong>
+                            <small>{{ record.review_status or "Completed" }}</small>
+                        </div>
+                    </div>
+
+                    <div class="record-progress-item complete">
+                        <span class="record-progress-dot"></span>
+                        <div>
+                            <strong>Approval</strong>
+                            <small>{{ record.approved_at_display or "Approved" }}</small>
+                        </div>
+                    </div>
+
+                    <div class="record-progress-item complete">
+                        <span class="record-progress-dot"></span>
+                        <div>
+                            <strong>Lodgement</strong>
+                            <small>Completed</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="record-actions read-only-action">
+                    <div>
+                        <strong>Lodged BAS — read only</strong>
+                        <span>View the saved BAS figures, AI review and audit trail.</span>
+                    </div>
+
+                    <a class="secondary-button" href="{{ url_for('bas.bas_history_detail', record_id=record.id) }}">
+                        View details & audit trail
+                    </a>
+                </div>
+            </div>
+        </details>
+        {% endfor %}
     </div>
-</div>
-{% else %}
-<div class="card empty-state">
-    <strong>No lodged BAS records yet.</strong>
-    <p>Once a BAS is lodged, it will move from Current BAS to Previous BAS automatically.</p>
-</div>
-{% endif %}
+    {% else %}
+    <div class="card empty-state">
+        <strong>No lodged BAS records yet.</strong>
+        <p>Once a BAS is lodged, it will move from Current BAS to Previous BAS automatically.</p>
+    </div>
+    {% endif %}
+</section>
 {% endblock %}
