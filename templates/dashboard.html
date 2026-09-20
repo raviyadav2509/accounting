@@ -7,7 +7,7 @@
         <div class="dashboard-eyebrow">{{ firm.firm_name if firm else "Accounting firm workspace" }}</div>
         <h1 id="dashboard-greeting" data-user-name="{{ g.user.first_name }}">Welcome, {{ g.user.first_name }}</h1>
         <div class="subtitle dashboard-welcome-subtitle">
-            Here is an overview of your clients and BAS work that needs attention.
+            Here is an overview of your clients, BAS and annual tax work.
         </div>
     </div>
 
@@ -101,6 +101,11 @@
         <a class="card dashboard-quick-action" href="{{ url_for('clients.new_client') }}">
             <strong>Add client</strong>
             <span>Register a new business under your accounting firm.</span>
+        </a>
+
+        <a class="card dashboard-quick-action" href="{{ url_for('tax.tax_returns') }}">
+            <strong>Tax Returns</strong>
+            <span>Open annual tax return drafts across all clients.</span>
         </a>
 
         <a class="card dashboard-quick-action" href="{{ url_for('auth.firm_profile') }}">
