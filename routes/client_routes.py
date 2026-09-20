@@ -5,6 +5,7 @@ from services.database import (
     create_client,
     get_client_for_user,
     get_clients_for_user,
+    update_client,
 )
 
 clients_bp = Blueprint("clients", __name__, url_prefix="/clients")
@@ -66,6 +67,56 @@ def new_client():
         "client_new.html",
         error=error,
         values=values,
+    )
+
+
+@clients_bp.route("/<int:client_id>/edit", methods=["GET", "POST"])
+def edit_client(client_id):
+    client = get_client_for_user(client_id, g.user["id"])
+    if not client:
+        return redirect(url_for("clients.index"))
+
+    error = None
+    values = {
+        "company_name": client.get("company_name") or "",
+        "legal_name": client.get("legal_name") or "",
+        "abn": client.get("abn") or "",
+        "acn": client.get("acn") or "",
+        "address": client.get("address") or "",
+        "email": client.get("email") or "",
+        "phone": client.get("phone") or "",
+    }
+
+    if request.method == "POST":
+        values = {
+            key: request.form.get(key, "").strip()
+            for key in values
+        }
+
+        if not values["company_name"]:
+            error = "Enter the client's company or business name."
+        elif values["email"] and "@" not in values["email"]:
+            error = "Enter a valid client email address."
+        else:
+            update_client(
+                client_id,
+                g.user["id"],
+                company_name=values["company_name"],
+                legal_name=values["legal_name"],
+                abn=values["abn"],
+                acn=values["acn"],
+                address=values["address"],
+                email=values["email"],
+                phone=values["phone"],
+            )
+            session["client_id"] = client_id
+            return redirect(url_for("clients.client_home", client_id=client_id))
+
+    return render_template(
+        "client_edit.html",
+        client=client,
+        values=values,
+        error=error,
     )
 
 
