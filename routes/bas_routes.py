@@ -46,7 +46,7 @@ def _require_client():
 
     if not client.get("qbo_connected"):
         return client, redirect(
-            url_for("clients.client_home", client_id=client["id"])
+            url_for("clients.quickbooks_client", client_id=client["id"])
         )
 
     return client, None
@@ -268,7 +268,7 @@ def dashboard():
                     "detail": "Accounting data is not connected for this client.",
                     "status": "Connection required",
                     "status_class": "warning",
-                    "url": url_for("clients.client_home", client_id=client["id"]),
+                    "url": url_for("clients.quickbooks_client", client_id=client["id"]),
                 }
             )
 
@@ -294,7 +294,7 @@ def dashboard():
                         "status": "Ready to lodge",
                         "status_class": "approved",
                         "url": url_for(
-                            "bas.client_dashboard",
+                            "bas.active_bas",
                             client_id=client["id"],
                         ),
                     }
@@ -312,7 +312,7 @@ def dashboard():
                         "status": "Review required",
                         "status_class": "review-required",
                         "url": url_for(
-                            "bas.client_dashboard",
+                            "bas.active_bas",
                             client_id=client["id"],
                         ),
                     }
@@ -332,6 +332,11 @@ def dashboard():
 
 @bas_bp.route("/clients/<int:client_id>/bas")
 def client_dashboard(client_id):
+    return redirect(url_for("clients.business_details", client_id=client_id))
+
+
+@bas_bp.route("/clients/<int:client_id>/active-bas")
+def active_bas(client_id):
     client = get_client_for_user(client_id, g.user["id"])
 
     if not client:
@@ -342,51 +347,50 @@ def client_dashboard(client_id):
 
     if not client.get("qbo_connected"):
         return redirect(
-            url_for("clients.client_home", client_id=client_id)
+            url_for("clients.quickbooks_client", client_id=client_id)
         )
 
-    bas = calculate_bas(client_id, DEFAULT_BAS_START, DEFAULT_BAS_END)
-    signature, current_record = _persist_bas(client_id, bas)
-
-    ai_review = load_ai_review(
-        client_id,
-        bas["start"],
-        bas["end"],
-        signature,
-    )
-    ai_status = ai_review["status"] if ai_review else "NOT REVIEWED"
-    review_resolved = bool(
-        ai_review and ai_review.get("resolution_status") == "RESOLVED"
-    )
-
-    current_display = _decorate_record(current_record)
     records = [
         _decorate_record(record)
         for record in get_history(client_id, limit=100)
     ]
-
     current_records = [
         record
         for record in records
         if not record["is_lodged"]
     ]
 
-    previous = [
+    return render_template(
+        "client_active_bas.html",
+        client=client,
+        current_records=current_records,
+    )
+
+
+@bas_bp.route("/clients/<int:client_id>/historical-bas")
+def historical_bas(client_id):
+    client = get_client_for_user(client_id, g.user["id"])
+
+    if not client:
+        return redirect(url_for("clients.index"))
+
+    session["client_id"] = client_id
+    g.client = client
+
+    records = [
+        _decorate_record(record)
+        for record in get_history(client_id, limit=250)
+    ]
+    historical_records = [
         record
         for record in records
         if record["is_lodged"]
-    ][:5]
+    ]
 
     return render_template(
-        "client_dashboard.html",
-        bas=bas,
-        current=current_display,
-        current_records=current_records,
+        "client_historical_bas.html",
         client=client,
-        ai_status=ai_status,
-        review_resolved=review_resolved,
-        previous=previous,
-        **_amount_display_data(bas["payable"]),
+        historical_records=historical_records,
     )
 
 
@@ -408,7 +412,7 @@ def calculate_new_bas():
             "message.html",
             title="Invalid BAS dates",
             message="Enter a valid start date and end date.",
-            back_url=url_for("bas.client_dashboard", client_id=client["id"]),
+            back_url=url_for("bas.active_bas", client_id=client["id"]),
         ), 400
 
     if start_date > end_date:
@@ -416,7 +420,7 @@ def calculate_new_bas():
             "message.html",
             title="Invalid BAS period",
             message="The BAS start date must be before or the same as the end date.",
-            back_url=url_for("bas.client_dashboard", client_id=client["id"]),
+            back_url=url_for("bas.active_bas", client_id=client["id"]),
         ), 400
 
     matching_record = _record_for_period(client_id, start, end)
@@ -428,9 +432,9 @@ def calculate_new_bas():
                 title="BAS already lodged",
                 message=(
                     "A BAS for this reporting period has already been lodged "
-                    "and is available under Previous BAS."
+                    "and is available under Historical BAS."
                 ),
-                back_url=url_for("bas.client_dashboard", client_id=client["id"]),
+                back_url=url_for("bas.active_bas", client_id=client["id"]),
             )
 
         return render_template(
@@ -438,9 +442,9 @@ def calculate_new_bas():
             title="BAS already calculated",
             message=(
                 "A BAS for this reporting period has already been calculated "
-                "and is listed under Current BAS on the Dashboard."
+                "and is listed under Active BAS."
             ),
-            back_url=url_for("bas.client_dashboard", client_id=client["id"]),
+            back_url=url_for("bas.active_bas", client_id=client["id"]),
         )
 
     return redirect(url_for("bas.bas_review", start=start, end=end))
@@ -779,7 +783,7 @@ def approve_bas():
             "Your approval has been recorded. The BAS has not been "
             "lodged with the ATO yet. Status: Ready to Lodge."
         ),
-        back_url=url_for("bas.client_dashboard", client_id=client["id"]),
+        back_url=url_for("bas.active_bas", client_id=client["id"]),
     )
 
 
@@ -805,5 +809,5 @@ def reject_bas():
         "message.html",
         title="BAS Rejected",
         message="The BAS has been marked as rejected.",
-        back_url=url_for("bas.client_dashboard", client_id=client["id"]),
+        back_url=url_for("bas.active_bas", client_id=client["id"]),
     )
