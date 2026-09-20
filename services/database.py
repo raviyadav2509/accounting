@@ -919,3 +919,51 @@ def get_record_by_id(client_id, record_id):
         ).fetchone()
 
     return dict(row) if row else None
+
+
+def get_history_for_user(owner_user_id, limit=200):
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT *
+            FROM (
+                SELECT
+                    b.*,
+                    c.company_name AS client_name,
+                    c.abn AS client_abn,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY b.client_id, b.start_date, b.end_date
+                        ORDER BY b.updated_at DESC, b.id DESC
+                    ) AS period_rank
+                FROM bas_records b
+                JOIN clients c ON c.id = b.client_id
+                WHERE c.owner_user_id = ?
+            )
+            WHERE period_rank = 1
+            ORDER BY end_date DESC, updated_at DESC, id DESC
+            LIMIT ?
+            """,
+            (owner_user_id, limit),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+def get_record_for_user(owner_user_id, record_id):
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT
+                b.*,
+                c.company_name AS client_name,
+                c.abn AS client_abn
+            FROM bas_records b
+            JOIN clients c ON c.id = b.client_id
+            WHERE b.id = ?
+              AND c.owner_user_id = ?
+            LIMIT 1
+            """,
+            (record_id, owner_user_id),
+        ).fetchone()
+
+    return dict(row) if row else None
