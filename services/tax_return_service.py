@@ -274,3 +274,13 @@ def current_completed_financial_year(now=None):
         start_year = now.year - 2
 
     return f"{start_year:04d}-{(start_year + 1) % 100:02d}"
+
+
+def recent_completed_financial_years(count=10, now=None):
+    current_year = current_completed_financial_year(now)
+    start_year = int(current_year.split("-", 1)[0])
+
+    return [
+        f"{year:04d}-{(year + 1) % 100:02d}"
+        for year in range(start_year, start_year - count, -1)
+    ]
