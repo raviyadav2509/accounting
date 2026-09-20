@@ -34,6 +34,7 @@
             <div class="auth-field">
                 <label for="entity_type">Entity type</label>
                 <select id="entity_type" name="entity_type" required>
+                    <option value="" {% if not values.entity_type or values.entity_type == "UNSPECIFIED" %}selected{% endif %} disabled>Select entity type</option>
                     <option value="COMPANY" {% if values.entity_type == "COMPANY" %}selected{% endif %}>Company</option>
                     <option value="TRUST" {% if values.entity_type == "TRUST" %}selected{% endif %}>Trust</option>
                     <option value="PARTNERSHIP" {% if values.entity_type == "PARTNERSHIP" %}selected{% endif %}>Partnership</option>
