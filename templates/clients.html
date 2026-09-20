@@ -25,7 +25,11 @@
             <div class="client-list-identity">
                 <div class="client-list-avatar">{{ client.company_name|client_initials }}</div>
                 <div class="client-list-copy">
-                    <strong>{{ client.company_name }}</strong>
+                    <strong>
+                        <a class="client-name-link" href="{{ url_for('clients.client_home', client_id=client.id) }}">
+                            {{ client.company_name }}
+                        </a>
+                    </strong>
                     <span>
                         {% if client.legal_name and client.legal_name != client.company_name %}
                             {{ client.legal_name }}
