@@ -1660,3 +1660,117 @@ button:hover,
 .active-bas-table-card .history-table th {
     background: #f5faf3;
 }
+
+
+/* BAS client identity */
+.client-card {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 28px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    border-left: 4px solid var(--bas-green);
+}
+
+.client-card-main {
+    min-width: 260px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.client-avatar {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bas-mint);
+    color: var(--bas-green-deep);
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.client-label {
+    margin-bottom: 3px;
+    color: var(--bas-muted);
+    font-size: 11px;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+
+.client-name {
+    color: #17211b;
+    font-size: 20px;
+    font-weight: 750;
+    line-height: 1.2;
+}
+
+.client-legal-name {
+    margin-top: 4px;
+    color: var(--bas-muted);
+    font-size: 12px;
+}
+
+.client-details-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+    gap: 12px 24px;
+    padding-left: 28px;
+    border-left: 1px solid var(--bas-border);
+}
+
+.client-detail {
+    min-width: 0;
+}
+
+.client-detail span {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--bas-muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.client-detail strong {
+    display: block;
+    color: #27342c;
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+.client-detail-wide {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 860px) {
+    .client-card {
+        flex-direction: column;
+    }
+
+    .client-details-grid {
+        padding-left: 0;
+        padding-top: 18px;
+        border-left: 0;
+        border-top: 1px solid var(--bas-border);
+    }
+}
+
+@media (max-width: 560px) {
+    .client-details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .client-detail-wide {
+        grid-column: auto;
+    }
+}
