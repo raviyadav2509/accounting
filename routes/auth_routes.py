@@ -3,6 +3,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from services.database import (
     create_user,
+    get_client_for_user,
     get_user_by_email,
     get_user_by_id,
     update_last_login,
@@ -15,6 +16,16 @@ auth_bp = Blueprint("auth", __name__)
 def load_logged_in_user():
     user_id = session.get("user_id")
     g.user = get_user_by_id(user_id) if user_id else None
+    g.client = None
+
+    if g.user and session.get("client_id"):
+        g.client = get_client_for_user(
+            session.get("client_id"),
+            g.user["id"],
+        )
+
+        if g.client is None:
+            session.pop("client_id", None)
 
 
 @auth_bp.before_app_request
