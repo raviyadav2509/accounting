@@ -1,0 +1,558 @@
+from datetime import datetime
+
+from flask import Blueprint, g, redirect, render_template, request, session, url_for
+
+from services.database import (
+    add_tax_adjustment,
+    create_tax_return,
+    delete_tax_adjustment,
+    get_client_for_user,
+    get_tax_adjustments,
+    get_tax_return,
+    get_tax_return_by_year,
+    get_tax_returns_for_client,
+    get_tax_returns_for_user,
+    update_tax_return,
+)
+from services.tax_return_service import (
+    SUPPORTED_ENTITY_TYPE,
+    SUPPORTED_TAX_RATES,
+    calculate_company_return,
+    current_completed_financial_year,
+    financial_year_dates,
+    format_money,
+    import_accounting_profit,
+    review_company_return,
+    tax_return_status,
+)
+
+
+tax_bp = Blueprint("tax", __name__)
+
+
+def _client(client_id):
+    client = get_client_for_user(client_id, g.user["id"])
+    if client:
+        session["client_id"] = client_id
+        g.client = client
+    return client
+
+
+def _return_for_client(client, tax_return_id):
+    if not client:
+        return None
+    return get_tax_return(client["id"], tax_return_id)
+
+
+def _decorate_return(tax_return):
+    item = dict(tax_return)
+    status, css_class = tax_return_status(item)
+    item["display_status"] = status
+    item["status_class"] = css_class
+    item["estimated_tax_display"] = format_money(item.get("estimated_tax"))
+    item["taxable_income_display"] = format_money(item.get("taxable_income"))
+    item["accounting_profit_display"] = format_money(item.get("accounting_profit"))
+    item["tax_rate_display"] = (
+        f"{float(item['tax_rate']) * 100:.0f}%"
+        if item.get("tax_rate") is not None
+        else "Not confirmed"
+    )
+    return item
+
+
+def _reset_review_and_approval(client_id, tax_return_id):
+    return update_tax_return(
+        client_id,
+        tax_return_id,
+        review_status=None,
+        review_text=None,
+        reviewed_at=None,
+        approval_status=None,
+        approved_at=None,
+    )
+
+
+def _recalculate(client_id, tax_return_id):
+    tax_return = get_tax_return(client_id, tax_return_id)
+    adjustments = get_tax_adjustments(client_id, tax_return_id)
+    calculation = calculate_company_return(tax_return, adjustments)
+
+    return update_tax_return(
+        client_id,
+        tax_return_id,
+        taxable_income=calculation["taxable_income"],
+        estimated_tax=calculation["estimated_tax"],
+    )
+
+
+def _approved_response(client, tax_return):
+    if tax_return.get("approval_status") != "APPROVED":
+        return None
+
+    return render_template(
+        "message.html",
+        title="Tax return already approved",
+        message=(
+            "This draft has been approved and is read-only. "
+            "Approval means ready to lodge; ATO lodgement is not connected."
+        ),
+        back_url=url_for(
+            "tax.company_tax_return",
+            client_id=client["id"],
+            tax_return_id=tax_return["id"],
+        ),
+    )
+
+
+@tax_bp.route("/tax-returns")
+def tax_returns():
+    session.pop("client_id", None)
+    g.client = None
+
+    records = [
+        _decorate_return(item)
+        for item in get_tax_returns_for_user(g.user["id"], limit=250)
+    ]
+
+    return render_template(
+        "tax_returns.html",
+        records=records,
+    )
+
+
+@tax_bp.route("/clients/<int:client_id>/tax-returns")
+def client_tax_returns(client_id):
+    client = _client(client_id)
+    if not client:
+        return redirect(url_for("clients.index"))
+
+    records = [
+        _decorate_return(item)
+        for item in get_tax_returns_for_client(client_id, limit=50)
+    ]
+
+    return render_template(
+        "client_tax_returns.html",
+        client=client,
+        records=records,
+        default_financial_year=current_completed_financial_year(),
+        supported_entity_type=SUPPORTED_ENTITY_TYPE,
+    )
+
+
+@tax_bp.route("/clients/<int:client_id>/tax-returns/new", methods=["POST"])
+def new_tax_return(client_id):
+    client = _client(client_id)
+    if not client:
+        return redirect(url_for("clients.index"))
+
+    if client.get("entity_type") != SUPPORTED_ENTITY_TYPE:
+        return render_template(
+            "message.html",
+            title="Return type not available yet",
+            message=(
+                "The current prototype supports company tax returns only. "
+                "Update the client entity type if this business is a company."
+            ),
+            back_url=url_for("tax.client_tax_returns", client_id=client_id),
+        ), 400
+
+    financial_year = (
+        request.form.get("financial_year")
+        or current_completed_financial_year()
+    ).strip()
+
+    try:
+        start_date, end_date = financial_year_dates(financial_year)
+    except ValueError as exc:
+        return render_template(
+            "message.html",
+            title="Invalid financial year",
+            message=str(exc),
+            back_url=url_for("tax.client_tax_returns", client_id=client_id),
+        ), 400
+
+    tax_return = create_tax_return(
+        client_id,
+        financial_year,
+        start_date,
+        end_date,
+        client["entity_type"],
+    )
+
+    return redirect(
+        url_for(
+            "tax.company_tax_return",
+            client_id=client_id,
+            tax_return_id=tax_return["id"],
+        )
+    )
+
+
+@tax_bp.route("/clients/<int:client_id>/tax-returns/<int:tax_return_id>")
+def company_tax_return(client_id, tax_return_id):
+    client = _client(client_id)
+    if not client:
+        return redirect(url_for("clients.index"))
+
+    tax_return = _return_for_client(client, tax_return_id)
+    if not tax_return:
+        return render_template(
+            "message.html",
+            title="Tax return not found",
+            message="The requested annual tax return could not be found.",
+            back_url=url_for("tax.client_tax_returns", client_id=client_id),
+        ), 404
+
+    adjustments = get_tax_adjustments(client_id, tax_return_id)
+    calculation = calculate_company_return(tax_return, adjustments)
+    record = _decorate_return(tax_return)
+
+    return render_template(
+        "company_tax_return.html",
+        client=client,
+        tax_return=record,
+        adjustments=adjustments,
+        calculation=calculation,
+        tax_rates=SUPPORTED_TAX_RATES,
+    )
+
+
+@tax_bp.route(
+    "/clients/<int:client_id>/tax-returns/<int:tax_return_id>/refresh-qbo",
+    methods=["POST"],
+)
+def refresh_tax_return_from_qbo(client_id, tax_return_id):
+    client = _client(client_id)
+    tax_return = _return_for_client(client, tax_return_id)
+
+    if not client or not tax_return:
+        return redirect(url_for("clients.index"))
+
+    approved = _approved_response(client, tax_return)
+    if approved:
+        return approved
+
+    if not client.get("qbo_connected"):
+        return redirect(url_for("clients.quickbooks_client", client_id=client_id))
+
+    try:
+        accounting_profit = import_accounting_profit(
+            client_id,
+            tax_return["start_date"],
+            tax_return["end_date"],
+        )
+    except (RuntimeError, ValueError) as exc:
+        return render_template(
+            "message.html",
+            title="QuickBooks import failed",
+            message=str(exc),
+            back_url=url_for(
+                "tax.company_tax_return",
+                client_id=client_id,
+                tax_return_id=tax_return_id,
+            ),
+        ), 400
+
+    update_tax_return(
+        client_id,
+        tax_return_id,
+        accounting_profit=accounting_profit,
+    )
+    _reset_review_and_approval(client_id, tax_return_id)
+    _recalculate(client_id, tax_return_id)
+
+    return redirect(
+        url_for(
+            "tax.company_tax_return",
+            client_id=client_id,
+            tax_return_id=tax_return_id,
+        )
+    )
+
+
+@tax_bp.route(
+    "/clients/<int:client_id>/tax-returns/<int:tax_return_id>/accounting-profit",
+    methods=["POST"],
+)
+def update_accounting_profit(client_id, tax_return_id):
+    client = _client(client_id)
+    tax_return = _return_for_client(client, tax_return_id)
+
+    if not client or not tax_return:
+        return redirect(url_for("clients.index"))
+
+    approved = _approved_response(client, tax_return)
+    if approved:
+        return approved
+
+    raw_value = request.form.get("accounting_profit", "").replace(",", "").strip()
+
+    try:
+        accounting_profit = float(raw_value)
+    except ValueError:
+        return render_template(
+            "message.html",
+            title="Invalid accounting profit",
+            message="Enter a valid accounting profit or loss amount.",
+            back_url=url_for(
+                "tax.company_tax_return",
+                client_id=client_id,
+                tax_return_id=tax_return_id,
+            ),
+        ), 400
+
+    update_tax_return(
+        client_id,
+        tax_return_id,
+        accounting_profit=accounting_profit,
+    )
+    _reset_review_and_approval(client_id, tax_return_id)
+    _recalculate(client_id, tax_return_id)
+
+    return redirect(
+        url_for(
+            "tax.company_tax_return",
+            client_id=client_id,
+            tax_return_id=tax_return_id,
+        )
+    )
+
+
+@tax_bp.route(
+    "/clients/<int:client_id>/tax-returns/<int:tax_return_id>/tax-rate",
+    methods=["POST"],
+)
+def update_tax_rate(client_id, tax_return_id):
+    client = _client(client_id)
+    tax_return = _return_for_client(client, tax_return_id)
+
+    if not client or not tax_return:
+        return redirect(url_for("clients.index"))
+
+    approved = _approved_response(client, tax_return)
+    if approved:
+        return approved
+
+    try:
+        tax_rate = float(request.form.get("tax_rate", ""))
+    except ValueError:
+        tax_rate = None
+
+    if tax_rate not in SUPPORTED_TAX_RATES:
+        return render_template(
+            "message.html",
+            title="Confirm company tax rate",
+            message="Select either the 25% base-rate-entity rate or the 30% company rate.",
+            back_url=url_for(
+                "tax.company_tax_return",
+                client_id=client_id,
+                tax_return_id=tax_return_id,
+            ),
+        ), 400
+
+    update_tax_return(
+        client_id,
+        tax_return_id,
+        tax_rate=tax_rate,
+    )
+    _reset_review_and_approval(client_id, tax_return_id)
+    _recalculate(client_id, tax_return_id)
+
+    return redirect(
+        url_for(
+            "tax.company_tax_return",
+            client_id=client_id,
+            tax_return_id=tax_return_id,
+        )
+    )
+
+
+@tax_bp.route(
+    "/clients/<int:client_id>/tax-returns/<int:tax_return_id>/adjustments",
+    methods=["POST"],
+)
+def add_adjustment(client_id, tax_return_id):
+    client = _client(client_id)
+    tax_return = _return_for_client(client, tax_return_id)
+
+    if not client or not tax_return:
+        return redirect(url_for("clients.index"))
+
+    approved = _approved_response(client, tax_return)
+    if approved:
+        return approved
+
+    adjustment_type = request.form.get("adjustment_type", "").strip().upper()
+    category = request.form.get("category", "").strip()
+    description = request.form.get("description", "").strip()
+
+    try:
+        amount = float(
+            request.form.get("amount", "").replace(",", "").strip()
+        )
+    except ValueError:
+        amount = 0
+
+    if (
+        adjustment_type not in {"ADD", "DEDUCT"}
+        or not category
+        or not description
+        or amount <= 0
+    ):
+        return render_template(
+            "message.html",
+            title="Adjustment details required",
+            message=(
+                "Choose add-back or deduction, enter a category and description, "
+                "and use an amount greater than zero."
+            ),
+            back_url=url_for(
+                "tax.company_tax_return",
+                client_id=client_id,
+                tax_return_id=tax_return_id,
+            ),
+        ), 400
+
+    add_tax_adjustment(
+        client_id,
+        tax_return_id,
+        adjustment_type,
+        category,
+        description,
+        amount,
+    )
+    _reset_review_and_approval(client_id, tax_return_id)
+    _recalculate(client_id, tax_return_id)
+
+    return redirect(
+        url_for(
+            "tax.company_tax_return",
+            client_id=client_id,
+            tax_return_id=tax_return_id,
+        )
+    )
+
+
+@tax_bp.route(
+    "/clients/<int:client_id>/tax-returns/<int:tax_return_id>/adjustments/"
+    "<int:adjustment_id>/delete",
+    methods=["POST"],
+)
+def remove_adjustment(client_id, tax_return_id, adjustment_id):
+    client = _client(client_id)
+    tax_return = _return_for_client(client, tax_return_id)
+
+    if not client or not tax_return:
+        return redirect(url_for("clients.index"))
+
+    approved = _approved_response(client, tax_return)
+    if approved:
+        return approved
+
+    delete_tax_adjustment(
+        client_id,
+        tax_return_id,
+        adjustment_id,
+    )
+    _reset_review_and_approval(client_id, tax_return_id)
+    _recalculate(client_id, tax_return_id)
+
+    return redirect(
+        url_for(
+            "tax.company_tax_return",
+            client_id=client_id,
+            tax_return_id=tax_return_id,
+        )
+    )
+
+
+@tax_bp.route(
+    "/clients/<int:client_id>/tax-returns/<int:tax_return_id>/review",
+    methods=["POST"],
+)
+def review_tax_return(client_id, tax_return_id):
+    client = _client(client_id)
+    tax_return = _return_for_client(client, tax_return_id)
+
+    if not client or not tax_return:
+        return redirect(url_for("clients.index"))
+
+    approved = _approved_response(client, tax_return)
+    if approved:
+        return approved
+
+    adjustments = get_tax_adjustments(client_id, tax_return_id)
+    result = review_company_return(tax_return, adjustments)
+    calculation = result["calculation"]
+
+    update_tax_return(
+        client_id,
+        tax_return_id,
+        taxable_income=calculation["taxable_income"],
+        estimated_tax=calculation["estimated_tax"],
+        review_status=result["status"],
+        review_text=result["review_text"],
+        reviewed_at=datetime.now().isoformat(timespec="seconds"),
+        approval_status=None,
+        approved_at=None,
+    )
+
+    return redirect(
+        url_for(
+            "tax.company_tax_return",
+            client_id=client_id,
+            tax_return_id=tax_return_id,
+        )
+    )
+
+
+@tax_bp.route(
+    "/clients/<int:client_id>/tax-returns/<int:tax_return_id>/approve",
+    methods=["POST"],
+)
+def approve_tax_return(client_id, tax_return_id):
+    client = _client(client_id)
+    tax_return = _return_for_client(client, tax_return_id)
+
+    if not client or not tax_return:
+        return redirect(url_for("clients.index"))
+
+    if tax_return.get("approval_status") == "APPROVED":
+        return redirect(
+            url_for(
+                "tax.company_tax_return",
+                client_id=client_id,
+                tax_return_id=tax_return_id,
+            )
+        )
+
+    if tax_return.get("review_status") != "PASS":
+        return render_template(
+            "message.html",
+            title="Review required before approval",
+            message=(
+                "Run the annual tax return review and resolve all required items "
+                "before approving this draft."
+            ),
+            back_url=url_for(
+                "tax.company_tax_return",
+                client_id=client_id,
+                tax_return_id=tax_return_id,
+            ),
+        ), 400
+
+    update_tax_return(
+        client_id,
+        tax_return_id,
+        approval_status="APPROVED",
+        approved_at=datetime.now().isoformat(timespec="seconds"),
+    )
+
+    return redirect(
+        url_for(
+            "tax.company_tax_return",
+            client_id=client_id,
+            tax_return_id=tax_return_id,
+        )
+    )
