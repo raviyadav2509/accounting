@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Add client | BAS Automation{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <h1>Add client</h1>
+        <div class="subtitle">Register a business under your accounting firm account.</div>
+    </div>
+    <a class="secondary-button" href="{{ url_for('clients.index') }}">Back to clients</a>
+</div>
+
+<div class="card client-form-card">
+    {% if error %}
+        <div class="auth-alert">{{ error }}</div>
+    {% endif %}
+
+    <form class="client-form" method="post">
+        <div class="client-form-grid">
+            <div class="auth-field client-form-wide">
+                <label for="company_name">Business / company name</label>
+                <input id="company_name" name="company_name" value="{{ values.company_name }}" required>
+            </div>
+
+            <div class="auth-field client-form-wide">
+                <label for="legal_name">Legal name</label>
+                <input id="legal_name" name="legal_name" value="{{ values.legal_name }}">
+            </div>
+
+            <div class="auth-field">
+                <label for="abn">ABN</label>
+                <input id="abn" name="abn" value="{{ values.abn }}">
+            </div>
+
+            <div class="auth-field">
+                <label for="acn">ACN</label>
+                <input id="acn" name="acn" value="{{ values.acn }}">
+            </div>
+
+            <div class="auth-field client-form-wide">
+                <label for="address">Business address</label>
+                <input id="address" name="address" value="{{ values.address }}">
+            </div>
+
+            <div class="auth-field">
+                <label for="email">Client email</label>
+                <input id="email" name="email" type="email" value="{{ values.email }}">
+            </div>
+
+            <div class="auth-field">
+                <label for="phone">Phone</label>
+                <input id="phone" name="phone" value="{{ values.phone }}">
+            </div>
+        </div>
+
+        <div class="client-form-actions">
+            <a class="secondary-button" href="{{ url_for('clients.index') }}">Cancel</a>
+            <button class="button" type="submit">Create client</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
