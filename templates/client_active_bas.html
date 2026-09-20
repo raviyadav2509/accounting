@@ -52,7 +52,10 @@
     <details class="card bas-record-card current-record-card">
         <summary class="bas-record-summary">
             <div class="bas-record-period">
-                <div class="bas-record-title">{{ record.period_display }}</div>
+                <div class="bas-record-title-row">
+                    <div class="bas-record-title">{{ record.period_display }}</div>
+                    <span class="financial-year-tag">FY {{ record.financial_year }}</span>
+                </div>
                 <div class="period-caption">Reporting period {{ record.start_date }} to {{ record.end_date }}</div>
             </div>
 
