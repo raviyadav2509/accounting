@@ -78,23 +78,33 @@ def extract_accounting_profit(report):
     values = {}
     _collect_report_values(report, values)
 
-    preferred_labels = (
-        "net income",
-        "net profit",
-        "net operating income",
-    )
-    for label in preferred_labels:
+    for label in ("net income", "net profit"):
         if label in values:
             return values[label]
+
+    net_operating_income = values.get("net operating income")
+    net_other_income = values.get("net other income")
+    if net_operating_income is not None and net_other_income is not None:
+        return net_operating_income + net_other_income
 
     total_income = values.get("total income")
     total_expenses = (
         values.get("total expenses")
         or values.get("total expense")
     )
+    total_other_income = values.get("total other income") or 0
+    total_other_expenses = values.get("total other expenses") or 0
 
     if total_income is not None and total_expenses is not None:
-        return total_income - total_expenses
+        return (
+            total_income
+            - total_expenses
+            + total_other_income
+            - total_other_expenses
+        )
+
+    if net_operating_income is not None:
+        return net_operating_income
 
     raise ValueError(
         "QuickBooks Profit & Loss did not contain a recognisable Net Income value."
