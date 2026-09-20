@@ -1,12 +1,22 @@
 {% extends "base.html" %}
-{% block title %}BAS Audit Record{% endblock %}
+{% block title %}BAS Audit Record | {{ client.company_name }}{% endblock %}
 
 {% block content %}
+<div class="workspace-breadcrumbs">
+    <a href="{{ url_for('clients.index') }}">Clients</a>
+    <span>›</span>
+    <a href="{{ url_for('bas.client_dashboard', client_id=client.id) }}">{{ client.company_name }}</a>
+    <span>›</span>
+    <a href="{{ url_for('bas.bas_history') }}">BAS history</a>
+    <span>›</span>
+    <span>{{ record.period_display }}</span>
+</div>
+
 <div class="page-heading">
     <div>
         <div class="eyebrow">BAS Audit Record</div>
-        <h1>{{ record.start_date }} to {{ record.end_date }}</h1>
-        <div class="subtitle">Saved snapshot #{{ record.id }}</div>
+        <h1>{{ record.period_display }}</h1>
+        <div class="subtitle">{{ client.company_name }} · Saved BAS snapshot #{{ record.id }}</div>
     </div>
     <a class="secondary-button" href="{{ url_for('bas.bas_history') }}">Back to History</a>
 </div>
@@ -56,7 +66,7 @@
         <div class="audit-dot"></div>
         <div>
             <strong>BAS snapshot created</strong>
-            <div class="table-subtext">{{ record.created_at }}</div>
+            <div class="table-subtext">{{ record.created_at_display }}</div>
         </div>
     </div>
 
@@ -65,7 +75,7 @@
         <div class="audit-dot"></div>
         <div>
             <strong>AI review completed — {{ record.review_status }}</strong>
-            <div class="table-subtext">{{ record.reviewed_at }}</div>
+            <div class="table-subtext">{{ record.reviewed_at_display }}</div>
         </div>
     </div>
     {% endif %}
@@ -75,7 +85,7 @@
         <div class="audit-dot"></div>
         <div>
             <strong>Review items resolved by user</strong>
-            <div class="table-subtext">{{ record.resolved_at }}</div>
+            <div class="table-subtext">{{ record.resolved_at_display }}</div>
             {% if record.resolution_note %}
                 <div class="audit-note">{{ record.resolution_note }}</div>
             {% endif %}
@@ -88,7 +98,7 @@
         <div class="audit-dot success"></div>
         <div>
             <strong>BAS approved</strong>
-            <div class="table-subtext">{{ record.approved_at }}</div>
+            <div class="table-subtext">{{ record.approved_at_display }}</div>
         </div>
     </div>
     {% endif %}
@@ -98,7 +108,20 @@
         <div class="audit-dot danger"></div>
         <div>
             <strong>BAS rejected</strong>
-            <div class="table-subtext">{{ record.rejected_at }}</div>
+            <div class="table-subtext">{{ record.rejected_at_display }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if record.lodged_at %}
+    <div class="audit-event">
+        <div class="audit-dot success"></div>
+        <div>
+            <strong>BAS lodged</strong>
+            <div class="table-subtext">{{ record.lodged_at_display }}</div>
+            {% if record.lodgement_reference %}
+                <div class="audit-note">Reference: {{ record.lodgement_reference }}</div>
+            {% endif %}
         </div>
     </div>
     {% endif %}
