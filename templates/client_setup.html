@@ -2,13 +2,19 @@
 {% block title %}Set up {{ client.company_name }} | BAS Automation{% endblock %}
 
 {% block content %}
+<div class="workspace-breadcrumbs">
+    <a href="{{ url_for('clients.index') }}">Clients</a>
+    <span>›</span>
+    <span>{{ client.company_name }}</span>
+</div>
+
 <div class="page-heading">
     <div>
         <div class="eyebrow">Client setup</div>
         <h1>{{ client.company_name }}</h1>
         <div class="subtitle">Connect this client's accounting data before calculating BAS.</div>
     </div>
-    <a class="secondary-button" href="{{ url_for('clients.index') }}">Switch client</a>
+    <a class="secondary-button" href="{{ url_for('clients.index') }}">Back to clients</a>
 </div>
 
 <div class="card setup-card">
@@ -18,12 +24,13 @@
         </svg>
     </div>
     <div class="setup-copy">
+        <div class="setup-step-label">Step 1 of 1</div>
         <h2>Connect QuickBooks</h2>
         <p>
-            Each client has their own QuickBooks connection. BAS calculations for
-            {{ client.company_name }} will only use this client's accounting data.
+            Connect {{ client.company_name }} to QuickBooks before calculating a BAS.
+            The connection is isolated to this client and does not affect your other clients.
         </p>
-        <a class="button" href="{{ url_for('qbo.connect') }}">Connect QuickBooks for this client</a>
+        <a class="button" href="{{ url_for('qbo.connect') }}">Connect QuickBooks</a>
     </div>
 </div>
 
