@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ client.company_name }} | BAS Automation{% endblock %}
+
+{% block content %}
+<div class="workspace-breadcrumbs">
+    <a href="{{ url_for('clients.index') }}">Clients</a>
+    <span>›</span>
+    <a href="{{ url_for('clients.client_home', client_id=client.id) }}">{{ client.company_name }}</a>
+    <span>›</span>
+    <span>Edit details</span>
+</div>
+
+<div class="page-heading">
+    <div>
+        <div class="eyebrow">Client settings</div>
+        <h1>Edit client details</h1>
+        <div class="subtitle">Update the registered business information for {{ client.company_name }}.</div>
+    </div>
+    <a class="secondary-button" href="{{ url_for('clients.client_home', client_id=client.id) }}">Back to client</a>
+</div>
+
+<div class="card client-form-card client-edit-card">
+    {% if error %}
+        <div class="auth-alert">{{ error }}</div>
+    {% endif %}
+
+    <form class="client-form" method="post">
+        <div class="client-form-grid">
+            <div class="auth-field client-form-wide">
+                <label for="company_name">Business / company name</label>
+                <input id="company_name" name="company_name" value="{{ values.company_name }}" required autofocus>
+            </div>
+
+            <div class="auth-field client-form-wide">
+                <label for="legal_name">Legal name</label>
+                <input id="legal_name" name="legal_name" value="{{ values.legal_name }}">
+            </div>
+
+            <div class="auth-field">
+                <label for="abn">ABN</label>
+                <input id="abn" name="abn" value="{{ values.abn }}" inputmode="numeric">
+            </div>
+
+            <div class="auth-field">
+                <label for="acn">ACN</label>
+                <input id="acn" name="acn" value="{{ values.acn }}" inputmode="numeric">
+            </div>
+
+            <div class="auth-field client-form-wide">
+                <label for="address">Business address</label>
+                <input id="address" name="address" value="{{ values.address }}">
+            </div>
+
+            <div class="auth-field">
+                <label for="email">Client email</label>
+                <input id="email" name="email" type="email" value="{{ values.email }}">
+            </div>
+
+            <div class="auth-field">
+                <label for="phone">Phone</label>
+                <input id="phone" name="phone" type="tel" value="{{ values.phone }}">
+            </div>
+        </div>
+
+        <div class="client-edit-note">
+            <strong>QuickBooks connection</strong>
+            <span>Editing these details does not disconnect the client's existing QuickBooks connection.</span>
+        </div>
+
+        <div class="client-form-actions">
+            <a class="secondary-button" href="{{ url_for('clients.client_home', client_id=client.id) }}">Cancel</a>
+            <button class="button" type="submit">Save changes</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
