@@ -4,8 +4,10 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from services.database import (
     create_user,
     get_client_for_user,
+    get_firm_for_user,
     get_user_by_email,
     get_user_by_id,
+    update_firm_for_user,
     update_last_login,
 )
 
@@ -80,6 +82,12 @@ def signup():
 
     error = None
     values = {
+        "firm_name": "",
+        "director_name": "",
+        "firm_abn": "",
+        "firm_acn": "",
+        "firm_address": "",
+        "firm_phone": "",
         "first_name": "",
         "last_name": "",
         "email": "",
@@ -87,6 +95,12 @@ def signup():
 
     if request.method == "POST":
         values = {
+            "firm_name": request.form.get("firm_name", "").strip(),
+            "director_name": request.form.get("director_name", "").strip(),
+            "firm_abn": request.form.get("firm_abn", "").strip(),
+            "firm_acn": request.form.get("firm_acn", "").strip(),
+            "firm_address": request.form.get("firm_address", "").strip(),
+            "firm_phone": request.form.get("firm_phone", "").strip(),
             "first_name": request.form.get("first_name", "").strip(),
             "last_name": request.form.get("last_name", "").strip(),
             "email": request.form.get("email", "").strip().lower(),
@@ -94,7 +108,11 @@ def signup():
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
 
-        if not values["first_name"] or not values["last_name"]:
+        if not values["firm_name"]:
+            error = "Enter the accounting firm name."
+        elif not values["director_name"]:
+            error = "Enter the director or principal name."
+        elif not values["first_name"] or not values["last_name"]:
             error = "Enter your first and last name."
         elif not values["email"] or "@" not in values["email"]:
             error = "Enter a valid email address."
@@ -110,6 +128,13 @@ def signup():
                 values["last_name"],
                 values["email"],
                 generate_password_hash(password),
+                values["firm_name"],
+                values["director_name"],
+                firm_abn=values["firm_abn"],
+                firm_acn=values["firm_acn"],
+                firm_address=values["firm_address"],
+                firm_email=values["email"],
+                firm_phone=values["firm_phone"],
             )
 
             if user is None:
@@ -124,6 +149,58 @@ def signup():
         "signup.html",
         error=error,
         values=values,
+    )
+
+
+@auth_bp.route("/firm-profile", methods=["GET", "POST"])
+def firm_profile():
+    if g.user is None:
+        return redirect(url_for("auth.login"))
+
+    firm = get_firm_for_user(g.user["id"])
+    values = {
+        "firm_name": (firm or {}).get("firm_name") or "",
+        "director_name": (firm or {}).get("director_name") or "",
+        "abn": (firm or {}).get("abn") or "",
+        "acn": (firm or {}).get("acn") or "",
+        "address": (firm or {}).get("address") or "",
+        "email": (firm or {}).get("email") or g.user.get("email", ""),
+        "phone": (firm or {}).get("phone") or "",
+    }
+    error = None
+
+    if request.method == "POST":
+        values = {
+            "firm_name": request.form.get("firm_name", "").strip(),
+            "director_name": request.form.get("director_name", "").strip(),
+            "abn": request.form.get("abn", "").strip(),
+            "acn": request.form.get("acn", "").strip(),
+            "address": request.form.get("address", "").strip(),
+            "email": request.form.get("email", "").strip().lower(),
+            "phone": request.form.get("phone", "").strip(),
+        }
+
+        if not values["firm_name"]:
+            error = "Enter the accounting firm name."
+        elif not values["director_name"]:
+            error = "Enter the director or principal name."
+        else:
+            update_firm_for_user(
+                g.user["id"],
+                values["firm_name"],
+                values["director_name"],
+                abn=values["abn"],
+                acn=values["acn"],
+                address=values["address"],
+                email=values["email"],
+                phone=values["phone"],
+            )
+            return redirect(url_for("clients.index"))
+
+    return render_template(
+        "firm_profile.html",
+        values=values,
+        error=error,
     )
 
 
