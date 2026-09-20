@@ -1,0 +1,93 @@
+from flask import Blueprint, g, redirect, render_template, request, session, url_for
+
+from services.database import (
+    claim_legacy_bas_records,
+    create_client,
+    get_client_for_user,
+    get_clients_for_user,
+)
+
+clients_bp = Blueprint("clients", __name__, url_prefix="/clients")
+
+
+@clients_bp.route("/")
+def index():
+    clients = get_clients_for_user(g.user["id"])
+    active_client_id = session.get("client_id")
+
+    return render_template(
+        "clients.html",
+        clients=clients,
+        active_client_id=active_client_id,
+    )
+
+
+@clients_bp.route("/new", methods=["GET", "POST"])
+def new_client():
+    error = None
+    values = {
+        "company_name": "",
+        "legal_name": "",
+        "abn": "",
+        "acn": "",
+        "address": "",
+        "email": "",
+        "phone": "",
+    }
+
+    if request.method == "POST":
+        values = {
+            key: request.form.get(key, "").strip()
+            for key in values
+        }
+
+        if not values["company_name"]:
+            error = "Enter the client's company or business name."
+        else:
+            existing_clients = get_clients_for_user(g.user["id"])
+            client = create_client(
+                g.user["id"],
+                values["company_name"],
+                legal_name=values["legal_name"],
+                abn=values["abn"],
+                acn=values["acn"],
+                address=values["address"],
+                email=values["email"],
+                phone=values["phone"],
+            )
+
+            if not existing_clients:
+                claim_legacy_bas_records(client["id"])
+
+            session["client_id"] = client["id"]
+            return redirect(url_for("clients.client_home", client_id=client["id"]))
+
+    return render_template(
+        "client_new.html",
+        error=error,
+        values=values,
+    )
+
+
+@clients_bp.route("/<int:client_id>")
+def client_home(client_id):
+    client = get_client_for_user(client_id, g.user["id"])
+    if not client:
+        return redirect(url_for("clients.index"))
+
+    session["client_id"] = client_id
+
+    if not client.get("qbo_connected"):
+        return render_template("client_setup.html", client=client)
+
+    return redirect(url_for("bas.dashboard"))
+
+
+@clients_bp.route("/<int:client_id>/select", methods=["POST"])
+def select_client(client_id):
+    client = get_client_for_user(client_id, g.user["id"])
+    if not client:
+        return redirect(url_for("clients.index"))
+
+    session["client_id"] = client_id
+    return redirect(url_for("clients.client_home", client_id=client_id))
