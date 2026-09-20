@@ -49,7 +49,7 @@ def require_login():
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if g.user is not None:
-        return redirect(url_for("clients.index"))
+        return redirect(url_for("bas.dashboard"))
 
     error = None
     email = ""
@@ -68,7 +68,7 @@ def login():
             session.clear()
             session["user_id"] = user["id"]
             update_last_login(user["id"])
-            return redirect(url_for("clients.index"))
+            return redirect(url_for("bas.dashboard"))
 
     return render_template(
         "login.html",
@@ -80,7 +80,7 @@ def login():
 @auth_bp.route("/signup", methods=["GET", "POST"])
 def signup():
     if g.user is not None:
-        return redirect(url_for("clients.index"))
+        return redirect(url_for("bas.dashboard"))
 
     error = None
     values = {
@@ -145,7 +145,7 @@ def signup():
                 session.clear()
                 session["user_id"] = user["id"]
                 update_last_login(user["id"])
-                return redirect(url_for("clients.index"))
+                return redirect(url_for("bas.dashboard"))
 
     return render_template(
         "signup.html",
@@ -197,7 +197,7 @@ def firm_profile():
                 email=values["email"],
                 phone=values["phone"],
             )
-            return redirect(url_for("clients.index"))
+            return redirect(url_for("bas.dashboard"))
 
     return render_template(
         "firm_profile.html",
