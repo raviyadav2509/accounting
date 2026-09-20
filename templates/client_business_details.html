@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Business Details | {{ client.company_name }}{% endblock %}
+
+{% block content %}
+<div class="workspace-breadcrumbs">
+    <a href="{{ url_for('clients.index') }}">Clients</a>
+    <span>›</span>
+    <span>{{ client.company_name }}</span>
+    <span>›</span>
+    <span>Business Details</span>
+</div>
+
+<div class="page-heading client-section-heading">
+    <div>
+        <div class="eyebrow">Client</div>
+        <h1>Business Details</h1>
+        <div class="subtitle">Registered information for this client.</div>
+    </div>
+
+    <a class="client-section-edit"
+       href="{{ url_for('clients.edit_client', client_id=client.id) }}">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 20h4l10.5-10.5a2.8 2.8 0 0 0-4-4L4 16v4Zm9.5-13.5 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>Edit details</span>
+    </a>
+</div>
+
+<div class="card streamlined-business-details">
+    <div class="business-details-grid">
+        <div class="business-detail-item">
+            <span>Legal name</span>
+            <strong>{{ client.legal_name or "Not provided" }}</strong>
+        </div>
+
+        <div class="business-detail-item">
+            <span>ABN</span>
+            <strong>{{ client.abn or "Not provided" }}</strong>
+        </div>
+
+        <div class="business-detail-item">
+            <span>ACN</span>
+            <strong>{{ client.acn or "Not provided" }}</strong>
+        </div>
+
+        <div class="business-detail-item business-detail-wide">
+            <span>Business address</span>
+            <strong>{{ client.address or "Not provided" }}</strong>
+        </div>
+
+        <div class="business-detail-item">
+            <span>Email</span>
+            <strong>{{ client.email or "Not provided" }}</strong>
+        </div>
+
+        <div class="business-detail-item">
+            <span>Phone</span>
+            <strong>{{ client.phone or "Not provided" }}</strong>
+        </div>
+    </div>
+</div>
+{% endblock %}
