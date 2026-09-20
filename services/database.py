@@ -194,7 +194,7 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 owner_user_id INTEGER NOT NULL,
                 company_name TEXT NOT NULL,
-                entity_type TEXT NOT NULL DEFAULT 'COMPANY',
+                entity_type TEXT NOT NULL DEFAULT 'UNSPECIFIED',
                 legal_name TEXT,
                 abn TEXT,
                 acn TEXT,
@@ -216,7 +216,7 @@ def init_db():
 
         if "entity_type" not in _column_names(connection, "clients"):
             connection.execute(
-                "ALTER TABLE clients ADD COLUMN entity_type TEXT NOT NULL DEFAULT 'COMPANY'"
+                "ALTER TABLE clients ADD COLUMN entity_type TEXT NOT NULL DEFAULT 'UNSPECIFIED'"
             )
 
         connection.execute(
@@ -533,7 +533,7 @@ def update_last_login(user_id):
         )
 
 
-def create_client(owner_user_id, company_name, entity_type="COMPANY", legal_name=None,
+def create_client(owner_user_id, company_name, entity_type="UNSPECIFIED", legal_name=None,
                   abn=None, acn=None, address=None, email=None, phone=None):
     now = _now()
 
@@ -558,7 +558,7 @@ def create_client(owner_user_id, company_name, entity_type="COMPANY", legal_name
             (
                 owner_user_id,
                 company_name.strip(),
-                (entity_type or "COMPANY").strip().upper(),
+                (entity_type or "UNSPECIFIED").strip().upper(),
                 (legal_name or "").strip() or None,
                 (abn or "").strip() or None,
                 (acn or "").strip() or None,
