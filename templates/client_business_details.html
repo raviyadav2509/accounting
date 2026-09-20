@@ -32,7 +32,8 @@
         <div class="business-detail-item">
             <span>Entity type</span>
             <strong>
-                {% if client.entity_type == "COMPANY" %}Company
+                {% if client.entity_type == "UNSPECIFIED" or not client.entity_type %}Not specified
+                {% elif client.entity_type == "COMPANY" %}Company
                 {% elif client.entity_type == "TRUST" %}Trust
                 {% elif client.entity_type == "PARTNERSHIP" %}Partnership
                 {% elif client.entity_type == "INDIVIDUAL" %}Individual / Sole trader
