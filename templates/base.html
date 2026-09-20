@@ -18,15 +18,6 @@
             </a>
 
             <nav class="side-nav-links" aria-label="Primary">
-                <a class="{% if request.blueprint == 'clients' %}active{% endif %}" href="{{ url_for('clients.index') }}">
-                    <span class="nav-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none">
-                            <path d="M16 20v-1.5A3.5 3.5 0 0 0 12.5 15h-5A3.5 3.5 0 0 0 4 18.5V20M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm6.5-1.5a3 3 0 0 0 0-5.8M17 15c1.8.3 3 1.5 3 3.2V20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                        </svg>
-                    </span>
-                    <span>Clients</span>
-                </a>
-
                 <a class="{% if request.endpoint == 'bas.dashboard' %}active{% endif %}" href="{{ url_for('bas.dashboard') }}">
                     <span class="nav-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none">
@@ -36,6 +27,44 @@
                     <span>Dashboard</span>
                 </a>
 
+                <details class="side-client-menu" {% if request.blueprint == 'clients' or g.client %}open{% endif %}>
+                    <summary class="{% if request.blueprint == 'clients' or request.endpoint == 'bas.client_dashboard' %}active{% endif %}">
+                        <span class="nav-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M16 20v-1.5A3.5 3.5 0 0 0 12.5 15h-5A3.5 3.5 0 0 0 4 18.5V20M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm6.5-1.5a3 3 0 0 0 0-5.8M17 15c1.8.3 3 1.5 3 3.2V20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <span class="side-client-summary-label">Clients</span>
+                        <span class="side-client-chevron" aria-hidden="true"></span>
+                    </summary>
+
+                    <div class="side-client-list">
+                        {% for client_item in g.clients %}
+                        <a class="side-client-link {% if g.client and g.client.id == client_item.id %}active-client{% endif %}"
+                           href="{{ url_for('clients.client_home', client_id=client_item.id) }}">
+                            <span class="side-client-initial">{{ client_item.company_name[:1]|upper }}</span>
+                            <span class="side-client-name">{{ client_item.company_name }}</span>
+                        </a>
+                        {% endfor %}
+
+                        {% if not g.clients %}
+                        <div class="side-client-empty">No clients registered</div>
+                        {% endif %}
+
+                        <a class="side-client-action" href="{{ url_for('clients.new_client') }}">
+                            <span aria-hidden="true">+</span>
+                            Add client
+                        </a>
+
+                        {% if g.clients %}
+                        <a class="side-client-action side-client-all" href="{{ url_for('clients.index') }}">
+                            View all clients
+                        </a>
+                        {% endif %}
+                    </div>
+                </details>
+
+                {% if g.client %}
                 <a class="{% if request.endpoint in ['bas.bas_history', 'bas.bas_history_detail'] %}active{% endif %}" href="{{ url_for('bas.bas_history') }}">
                     <span class="nav-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none">
@@ -53,6 +82,7 @@
                     </span>
                     <span>QuickBooks</span>
                 </a>
+                {% endif %}
             </nav>
 
             <div class="side-nav-footer">
@@ -70,9 +100,11 @@
         <div class="workspace">
             <header class="top-bar">
                 <div class="top-bar-title">
-                    <span>Business Activity Statement</span>
                     {% if g.client %}
-                        <span class="active-client-pill">{{ g.client.company_name }}</span>
+                        <span>{{ g.client.company_name }}</span>
+                        <span class="active-client-pill">Client BAS workspace</span>
+                    {% else %}
+                        <span>Accounting Firm Dashboard</span>
                     {% endif %}
                 </div>
                 <div class="top-bar-actions">
