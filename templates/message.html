@@ -1,9 +1,17 @@
 {% extends "base.html" %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
+{% if back_url %}
+<div class="page-back-row">
+    <a class="page-back-link" href="{{ back_url }}">
+        <span aria-hidden="true">←</span>
+        Go back
+    </a>
+</div>
+{% endif %}
+
 <div class="card message-card">
     <h1>{{ title }}</h1>
     <p>{{ message }}</p>
-    {% if back_url %}<a class="button" href="{{ back_url }}">Go back</a>{% endif %}
 </div>
 {% endblock %}
