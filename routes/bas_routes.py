@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 
 import markdown
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, g, redirect, render_template, request, session, url_for
 
 from config import DEFAULT_BAS_END, DEFAULT_BAS_START
 from services.ai_review_service import run_ai_review
@@ -13,11 +13,11 @@ from services.bas_service import (
     get_payroll_bas,
 )
 from services.database import (
+    get_client_for_user,
     get_history,
     get_record_by_id,
     save_bas_snapshot,
 )
-from services.qbo_service import get_company_info
 from services.review_store import (
     load_ai_review,
     resolve_ai_review,
@@ -29,6 +29,27 @@ from services.review_store import (
 bas_bp = Blueprint("bas", __name__)
 
 
+def _active_client():
+    client_id = session.get("client_id")
+    if not client_id:
+        return None
+    return get_client_for_user(client_id, g.user["id"])
+
+
+def _require_client():
+    client = _active_client()
+
+    if not client:
+        return None, redirect(url_for("clients.index"))
+
+    if not client.get("qbo_connected"):
+        return client, redirect(
+            url_for("clients.client_home", client_id=client["id"])
+        )
+
+    return client, None
+
+
 def _period_from_request():
     return (
         request.values.get("start", DEFAULT_BAS_START),
@@ -36,74 +57,10 @@ def _period_from_request():
     )
 
 
-def _persist_bas(bas):
+def _persist_bas(client_id, bas):
     signature = bas_signature(bas)
-    record = save_bas_snapshot(bas, signature)
+    record = save_bas_snapshot(client_id, bas, signature)
     return signature, record
-
-
-def _format_company_address(address):
-    if not address:
-        return None
-
-    parts = [
-        address.get("Line1"),
-        address.get("Line2"),
-        address.get("Line3"),
-        address.get("City"),
-        address.get("CountrySubDivisionCode"),
-        address.get("PostalCode"),
-        address.get("Country"),
-    ]
-    return ", ".join(str(part).strip() for part in parts if part)
-
-
-def _company_name_value(company, names):
-    wanted = {name.lower() for name in names}
-
-    for item in company.get("NameValue", []) or []:
-        name = str(item.get("Name", "")).lower()
-        if name in wanted and item.get("Value"):
-            return item["Value"]
-
-    return None
-
-
-def _get_client_details():
-    payload = get_company_info()
-    company = payload.get("CompanyInfo", {}) if isinstance(payload, dict) else {}
-
-    abn = (
-        company.get("TaxIdentifier")
-        or _company_name_value(company, ["ABN", "Australian Business Number"])
-    )
-    acn = _company_name_value(
-        company,
-        ["ACN", "Australian Company Number", "Company Registration Number"],
-    )
-
-    email = (
-        (company.get("CompanyEmailAddr") or {}).get("Address")
-        or (company.get("PrimaryEmailAddr") or {}).get("Address")
-        or (company.get("CustomerCommunicationEmailAddr") or {}).get("Address")
-    )
-    phone = (company.get("PrimaryPhone") or {}).get("FreeFormNumber")
-    website = (company.get("WebAddr") or {}).get("URI")
-
-    return {
-        "company_name": company.get("CompanyName") or "Connected QuickBooks company",
-        "legal_name": company.get("LegalName"),
-        "abn": abn,
-        "acn": acn,
-        "address": _format_company_address(
-            company.get("CompanyAddr")
-            or company.get("LegalAddr")
-            or company.get("CustomerCommunicationAddr")
-        ),
-        "email": email,
-        "phone": phone,
-        "website": website,
-    }
 
 
 def _amount_display_data(payable):
@@ -191,10 +148,7 @@ def _format_period(start, end):
         return f"{start} to {end}"
 
     if start_date.year == end_date.year and start_date.month == end_date.month:
-        return (
-            f"{start_date.day}–{end_date.day} "
-            f"{end_date.strftime('%B %Y')}"
-        )
+        return f"{start_date.day}–{end_date.day} {end_date.strftime('%B %Y')}"
 
     if start_date.year == end_date.year:
         return (
@@ -238,10 +192,14 @@ def _decorate_record(record):
         "resolved_at",
         "approved_at",
         "rejected_at",
+        "lodged_at",
     ):
         item[f"{field}_display"] = _format_datetime(item.get(field))
 
-    if item.get("approved_at"):
+    if item.get("lodged_at"):
+        item["status_date_label"] = "Lodged"
+        item["status_date"] = _format_date(item["lodged_at"])
+    elif item.get("approved_at"):
         item["status_date_label"] = "Approved"
         item["status_date"] = _format_date(item["approved_at"])
     elif item.get("rejected_at"):
@@ -262,10 +220,16 @@ def _decorate_record(record):
 
 @bas_bp.route("/")
 def dashboard():
-    bas = calculate_bas(DEFAULT_BAS_START, DEFAULT_BAS_END)
-    signature, current_record = _persist_bas(bas)
+    client, response = _require_client()
+    if response:
+        return response
+
+    client_id = client["id"]
+    bas = calculate_bas(client_id, DEFAULT_BAS_START, DEFAULT_BAS_END)
+    signature, current_record = _persist_bas(client_id, bas)
 
     ai_review = load_ai_review(
+        client_id,
         bas["start"],
         bas["end"],
         signature,
@@ -276,21 +240,15 @@ def dashboard():
     )
 
     current_display = _decorate_record(current_record)
-    client = _get_client_details()
     records = [
         _decorate_record(record)
-        for record in get_history(limit=100)
+        for record in get_history(client_id, limit=100)
     ]
 
     current_records = [
         record
         for record in records
         if not record["is_lodged"]
-    ]
-    current_others = [
-        record
-        for record in current_records
-        if record["id"] != current_display["id"]
     ]
 
     previous = [
@@ -304,7 +262,6 @@ def dashboard():
         bas=bas,
         current=current_display,
         current_records=current_records,
-        current_others=current_others,
         client=client,
         ai_status=ai_status,
         review_resolved=review_resolved,
@@ -315,6 +272,11 @@ def dashboard():
 
 @bas_bp.route("/calculate-bas", methods=["POST"])
 def calculate_new_bas():
+    client, response = _require_client()
+    if response:
+        return response
+
+    client_id = client["id"]
     start = request.form.get("start", "").strip()
     end = request.form.get("end", "").strip()
 
@@ -340,7 +302,7 @@ def calculate_new_bas():
     matching_record = next(
         (
             _decorate_record(record)
-            for record in get_history(limit=100)
+            for record in get_history(client_id, limit=100)
             if record["start_date"] == start
             and record["end_date"] == end
         ),
@@ -374,13 +336,24 @@ def calculate_new_bas():
 
 @bas_bp.route("/bas-history")
 def bas_history():
-    records = [_decorate_record(record) for record in get_history(limit=100)]
-    return render_template("bas_history.html", records=records)
+    client, response = _require_client()
+    if response:
+        return response
+
+    records = [
+        _decorate_record(record)
+        for record in get_history(client["id"], limit=100)
+    ]
+    return render_template("bas_history.html", records=records, client=client)
 
 
 @bas_bp.route("/bas-history/<int:record_id>")
 def bas_history_detail(record_id):
-    record = get_record_by_id(record_id)
+    client, response = _require_client()
+    if response:
+        return response
+
+    record = get_record_by_id(client["id"], record_id)
 
     if not record:
         return render_template(
@@ -407,30 +380,44 @@ def bas_history_detail(record_id):
         "bas_history_detail.html",
         record=_decorate_record(record),
         review_html=review_html,
+        client=client,
     )
 
 
 @bas_bp.route("/bas-summary")
 def bas_summary():
+    client, response = _require_client()
+    if response:
+        return response
+
     start, end = _period_from_request()
-    bas = calculate_bas(start, end)
-    _persist_bas(bas)
+    bas = calculate_bas(client["id"], start, end)
+    _persist_bas(client["id"], bas)
     return bas_summary_payload(bas)
 
 
 @bas_bp.route("/payroll-bas")
 def payroll_bas():
+    client, response = _require_client()
+    if response:
+        return response
+
     start, end = _period_from_request()
-    return get_payroll_bas(start, end)
+    return get_payroll_bas(client["id"], start, end)
 
 
 @bas_bp.route("/bas-review")
 def bas_review():
-    start, end = _period_from_request()
-    bas = calculate_bas(start, end)
-    signature, _ = _persist_bas(bas)
+    client, response = _require_client()
+    if response:
+        return response
 
-    ai_review = load_ai_review(start, end, signature)
+    client_id = client["id"]
+    start, end = _period_from_request()
+    bas = calculate_bas(client_id, start, end)
+    signature, _ = _persist_bas(client_id, bas)
+
+    ai_review = load_ai_review(client_id, start, end, signature)
     ai_status = ai_review["status"] if ai_review else "NOT REVIEWED"
     review_resolved = bool(
         ai_review and ai_review.get("resolution_status") == "RESOLVED"
@@ -439,6 +426,7 @@ def bas_review():
     return render_template(
         "bas_review.html",
         bas=bas,
+        client=client,
         ai_status=ai_status,
         ai_review=ai_review,
         review_resolved=review_resolved,
@@ -448,13 +436,19 @@ def bas_review():
 
 @bas_bp.route("/ai-review")
 def ai_review():
+    client, response = _require_client()
+    if response:
+        return response
+
+    client_id = client["id"]
     start, end = _period_from_request()
-    bas = calculate_bas(start, end)
-    signature, _ = _persist_bas(bas)
+    bas = calculate_bas(client_id, start, end)
+    signature, _ = _persist_bas(client_id, bas)
 
     result = run_ai_review(bas)
 
     save_ai_review(
+        client_id,
         start,
         end,
         result["status"],
@@ -473,6 +467,7 @@ def ai_review():
     return render_template(
         "ai_review.html",
         bas=bas,
+        client=client,
         review_html=review_html,
         status=result["status"],
         status_title=result["title"],
@@ -483,10 +478,15 @@ def ai_review():
 
 @bas_bp.route("/review-details")
 def review_details():
+    client, response = _require_client()
+    if response:
+        return response
+
+    client_id = client["id"]
     start, end = _period_from_request()
-    bas = calculate_bas(start, end)
-    signature, _ = _persist_bas(bas)
-    review = load_ai_review(start, end, signature)
+    bas = calculate_bas(client_id, start, end)
+    signature, _ = _persist_bas(client_id, bas)
+    review = load_ai_review(client_id, start, end, signature)
 
     if not review:
         return redirect(url_for("bas.bas_review", start=start, end=end))
@@ -518,6 +518,7 @@ def review_details():
     return render_template(
         "ai_review.html",
         bas=bas,
+        client=client,
         review_html=markdown.markdown(cleaned_review, extensions=["tables"]),
         status=status,
         status_title=status_title,
@@ -529,10 +530,15 @@ def review_details():
 
 @bas_bp.route("/resolve-review", methods=["POST"])
 def resolve_review():
+    client, response = _require_client()
+    if response:
+        return response
+
+    client_id = client["id"]
     start, end = _period_from_request()
-    bas = calculate_bas(start, end)
-    signature, _ = _persist_bas(bas)
-    review = load_ai_review(start, end, signature)
+    bas = calculate_bas(client_id, start, end)
+    signature, _ = _persist_bas(client_id, bas)
+    review = load_ai_review(client_id, start, end, signature)
 
     if not review or review.get("status") != "REVIEW REQUIRED":
         return redirect(url_for("bas.bas_review", start=start, end=end))
@@ -555,16 +561,27 @@ def resolve_review():
             back_url=f"/bas-review?start={start}&end={end}",
         ), 400
 
-    resolve_ai_review(start, end, signature, resolution_note)
+    resolve_ai_review(
+        client_id,
+        start,
+        end,
+        signature,
+        resolution_note,
+    )
     return redirect(url_for("bas.bas_review", start=start, end=end))
 
 
 @bas_bp.route("/approve-bas", methods=["POST"])
 def approve_bas():
+    client, response = _require_client()
+    if response:
+        return response
+
+    client_id = client["id"]
     start, end = _period_from_request()
-    bas = calculate_bas(start, end)
-    signature, _ = _persist_bas(bas)
-    review = load_ai_review(start, end, signature)
+    bas = calculate_bas(client_id, start, end)
+    signature, _ = _persist_bas(client_id, bas)
+    review = load_ai_review(client_id, start, end, signature)
 
     if not review:
         return render_template(
@@ -599,7 +616,13 @@ def approve_bas():
     if status == "REVIEW REQUIRED":
         approval_status = "REVIEW REQUIRED - HUMAN RESOLVED"
 
-    save_approval(start, end, approval_status, signature)
+    save_approval(
+        client_id,
+        start,
+        end,
+        approval_status,
+        signature,
+    )
 
     return render_template(
         "message.html",
@@ -614,11 +637,16 @@ def approve_bas():
 
 @bas_bp.route("/reject-bas", methods=["POST"])
 def reject_bas():
-    start, end = _period_from_request()
-    bas = calculate_bas(start, end)
-    signature, _ = _persist_bas(bas)
+    client, response = _require_client()
+    if response:
+        return response
 
-    save_rejection(start, end, signature)
+    client_id = client["id"]
+    start, end = _period_from_request()
+    bas = calculate_bas(client_id, start, end)
+    signature, _ = _persist_bas(client_id, bas)
+
+    save_rejection(client_id, start, end, signature)
 
     return render_template(
         "message.html",
