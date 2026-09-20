@@ -2,6 +2,8 @@ from datetime import datetime
 
 from flask import Blueprint, g, redirect, render_template, request, session, url_for
 
+from config import ENABLE_MOCK_ATO_LODGEMENT
+
 from services.database import (
     add_tax_adjustment,
     create_tax_return,
@@ -12,6 +14,7 @@ from services.database import (
     get_tax_return_by_year,
     get_tax_returns_for_client,
     get_tax_returns_for_user,
+    mark_tax_return_lodged,
     update_tax_return,
 )
 from services.tax_return_service import (
@@ -57,6 +60,15 @@ def _decorate_return(tax_return):
         if item.get("tax_rate") is not None
         else "Not confirmed"
     )
+    item["is_lodged"] = (
+        item.get("approval_status") == "LODGED"
+        or bool(item.get("lodged_at"))
+    )
+    item["lodged_at_display"] = (
+        str(item.get("lodged_at") or "").replace("T", " ")
+        if item.get("lodged_at")
+        else None
+    )
     return item
 
 
@@ -86,16 +98,26 @@ def _recalculate(client_id, tax_return_id):
 
 
 def _approved_response(client, tax_return):
-    if tax_return.get("approval_status") != "APPROVED":
+    status = tax_return.get("approval_status")
+    if status not in {"APPROVED", "LODGED"}:
         return None
+
+    if status == "LODGED":
+        title = "Tax return already lodged"
+        message = (
+            "This annual tax return is recorded as lodged and is read-only."
+        )
+    else:
+        title = "Tax return already approved"
+        message = (
+            "This draft has been approved and is read-only. "
+            "Approval means ready to lodge; ATO lodgement is not connected."
+        )
 
     return render_template(
         "message.html",
-        title="Tax return already approved",
-        message=(
-            "This draft has been approved and is read-only. "
-            "Approval means ready to lodge; ATO lodgement is not connected."
-        ),
+        title=title,
+        message=message,
         back_url=url_for(
             "tax.company_tax_return",
             client_id=client["id"],
@@ -130,6 +152,14 @@ def client_tax_returns(client_id):
         _decorate_return(item)
         for item in get_tax_returns_for_client(client_id, limit=50)
     ]
+    active_records = [
+        item for item in records
+        if not item["is_lodged"]
+    ]
+    historical_records = [
+        item for item in records
+        if item["is_lodged"]
+    ]
 
     requested_year = request.args.get("year", "").strip()
     default_financial_year = current_completed_financial_year()
@@ -144,8 +174,11 @@ def client_tax_returns(client_id):
         "client_tax_returns.html",
         client=client,
         records=records,
+        active_records=active_records,
+        historical_records=historical_records,
         default_financial_year=default_financial_year,
         supported_entity_type=SUPPORTED_ENTITY_TYPE,
+        mock_ato_lodgement_enabled=ENABLE_MOCK_ATO_LODGEMENT,
     )
 
 
@@ -224,6 +257,7 @@ def company_tax_return(client_id, tax_return_id):
         adjustments=adjustments,
         calculation=calculation,
         tax_rates=SUPPORTED_TAX_RATES,
+        mock_ato_lodgement_enabled=ENABLE_MOCK_ATO_LODGEMENT,
     )
 
 
@@ -517,6 +551,88 @@ def review_tax_return(client_id, tax_return_id):
 
 
 @tax_bp.route(
+    "/clients/<int:client_id>/tax-returns/<int:tax_return_id>/mock-lodge",
+    methods=["POST"],
+)
+def mock_lodge_tax_return(client_id, tax_return_id):
+    if not ENABLE_MOCK_ATO_LODGEMENT:
+        return render_template(
+            "message.html",
+            title="Mock lodgement disabled",
+            message=(
+                "Mock ATO lodgement is disabled. Set "
+                "ENABLE_MOCK_ATO_LODGEMENT=true in the local environment to use it."
+            ),
+            back_url=url_for(
+                "tax.client_tax_returns",
+                client_id=client_id,
+            ),
+        ), 404
+
+    client = _client(client_id)
+    tax_return = _return_for_client(client, tax_return_id)
+
+    if not client or not tax_return:
+        return redirect(url_for("clients.index"))
+
+    if (
+        tax_return.get("approval_status") == "LODGED"
+        or tax_return.get("lodged_at")
+    ):
+        return redirect(
+            url_for(
+                "tax.client_tax_returns",
+                client_id=client_id,
+            )
+        )
+
+    if tax_return.get("approval_status") != "APPROVED":
+        return render_template(
+            "message.html",
+            title="Tax return is not ready to lodge",
+            message=(
+                "Approve the annual tax return first. Mock lodgement is only "
+                "available for returns with status Approved - Ready to Lodge."
+            ),
+            back_url=url_for(
+                "tax.company_tax_return",
+                client_id=client_id,
+                tax_return_id=tax_return_id,
+            ),
+        ), 400
+
+    mock_reference = (
+        f"MOCK-TAX-{client_id}-"
+        f"{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    )
+
+    lodged = mark_tax_return_lodged(
+        client_id,
+        tax_return_id,
+        lodgement_reference=mock_reference,
+    )
+
+    if not lodged or not lodged.get("lodged_at"):
+        return render_template(
+            "message.html",
+            title="Mock lodgement failed",
+            message="The annual tax return could not be marked as lodged.",
+            back_url=url_for(
+                "tax.company_tax_return",
+                client_id=client_id,
+                tax_return_id=tax_return_id,
+            ),
+        ), 500
+
+    return redirect(
+        url_for(
+            "tax.client_tax_returns",
+            client_id=client_id,
+        )
+    )
+
+
+@tax_bp.route(
     "/clients/<int:client_id>/tax-returns/<int:tax_return_id>/approve",
     methods=["POST"],
 )
@@ -527,7 +643,7 @@ def approve_tax_return(client_id, tax_return_id):
     if not client or not tax_return:
         return redirect(url_for("clients.index"))
 
-    if tax_return.get("approval_status") == "APPROVED":
+    if tax_return.get("approval_status") in {"APPROVED", "LODGED"}:
         return redirect(
             url_for(
                 "tax.company_tax_return",
