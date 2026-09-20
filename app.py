@@ -8,6 +8,15 @@ from routes.qbo_routes import qbo_bp
 from services.database import init_db
 
 
+def client_initials(company_name):
+    words = [word for word in (company_name or "").split() if word]
+
+    if not words:
+        return "?"
+
+    return "".join(word[0] for word in words[:2]).upper()
+
+
 def create_app():
     app = Flask(__name__)
     app.secret_key = FLASK_SECRET_KEY
@@ -16,6 +25,8 @@ def create_app():
         SESSION_COOKIE_SAMESITE="Lax",
     )
     init_db()
+
+    app.jinja_env.filters["client_initials"] = client_initials
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(clients_bp)
