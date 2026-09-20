@@ -30,7 +30,7 @@
                 <tr>
                     <td>
                         <a class="history-client-link"
-                           href="{{ url_for('clients.client_home', client_id=record.client_id) }}">
+                           href="{{ url_for('clients.business_details', client_id=record.client_id) }}">
                             <span class="history-client-avatar">{{ record.client_name|client_initials }}</span>
                             <span class="history-client-copy">
                                 <strong>{{ record.client_name }}</strong>
