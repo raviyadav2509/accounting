@@ -53,6 +53,10 @@
             </div>
 
             <div class="client-list-action">
+                <a class="client-inline-edit"
+                   href="{{ url_for('clients.edit_client', client_id=client.id) }}">
+                    Edit
+                </a>
                 <a class="secondary-button client-details-button"
                    href="{{ url_for('clients.client_home', client_id=client.id) }}">
                     View client
