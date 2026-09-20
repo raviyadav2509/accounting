@@ -219,6 +219,27 @@ def _decorate_record(record):
     return item
 
 
+def _record_for_period(client_id, start, end):
+    return next(
+        (
+            _decorate_record(record)
+            for record in get_history(client_id, limit=100)
+            if record["start_date"] == start
+            and record["end_date"] == end
+        ),
+        None,
+    )
+
+
+def _lodged_period_response(client, start, end):
+    record = _record_for_period(client["id"], start, end)
+    if record and record["is_lodged"]:
+        return redirect(
+            url_for("bas.bas_history_detail", record_id=record["id"])
+        )
+    return None
+
+
 @bas_bp.route("/")
 def dashboard():
     session.pop("client_id", None)
@@ -245,7 +266,6 @@ def dashboard():
                     "url": url_for("clients.client_home", client_id=client["id"]),
                 }
             )
-            continue
 
         records = [
             _decorate_record(record)
@@ -393,15 +413,7 @@ def calculate_new_bas():
             back_url=url_for("bas.client_dashboard", client_id=client["id"]),
         ), 400
 
-    matching_record = next(
-        (
-            _decorate_record(record)
-            for record in get_history(client_id, limit=100)
-            if record["start_date"] == start
-            and record["end_date"] == end
-        ),
-        None,
-    )
+    matching_record = _record_for_period(client_id, start, end)
 
     if matching_record:
         if matching_record["is_lodged"]:
@@ -508,6 +520,11 @@ def bas_review():
 
     client_id = client["id"]
     start, end = _period_from_request()
+
+    lodged_response = _lodged_period_response(client, start, end)
+    if lodged_response:
+        return lodged_response
+
     bas = calculate_bas(client_id, start, end)
     signature, _ = _persist_bas(client_id, bas)
 
@@ -536,6 +553,11 @@ def ai_review():
 
     client_id = client["id"]
     start, end = _period_from_request()
+
+    lodged_response = _lodged_period_response(client, start, end)
+    if lodged_response:
+        return lodged_response
+
     bas = calculate_bas(client_id, start, end)
     signature, _ = _persist_bas(client_id, bas)
 
@@ -578,6 +600,11 @@ def review_details():
 
     client_id = client["id"]
     start, end = _period_from_request()
+
+    lodged_response = _lodged_period_response(client, start, end)
+    if lodged_response:
+        return lodged_response
+
     bas = calculate_bas(client_id, start, end)
     signature, _ = _persist_bas(client_id, bas)
     review = load_ai_review(client_id, start, end, signature)
@@ -630,6 +657,11 @@ def resolve_review():
 
     client_id = client["id"]
     start, end = _period_from_request()
+
+    lodged_response = _lodged_period_response(client, start, end)
+    if lodged_response:
+        return lodged_response
+
     bas = calculate_bas(client_id, start, end)
     signature, _ = _persist_bas(client_id, bas)
     review = load_ai_review(client_id, start, end, signature)
@@ -673,6 +705,11 @@ def approve_bas():
 
     client_id = client["id"]
     start, end = _period_from_request()
+
+    lodged_response = _lodged_period_response(client, start, end)
+    if lodged_response:
+        return lodged_response
+
     bas = calculate_bas(client_id, start, end)
     signature, _ = _persist_bas(client_id, bas)
     review = load_ai_review(client_id, start, end, signature)
@@ -737,6 +774,11 @@ def reject_bas():
 
     client_id = client["id"]
     start, end = _period_from_request()
+
+    lodged_response = _lodged_period_response(client, start, end)
+    if lodged_response:
+        return lodged_response
+
     bas = calculate_bas(client_id, start, end)
     signature, _ = _persist_bas(client_id, bas)
 
