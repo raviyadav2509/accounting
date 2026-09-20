@@ -5215,3 +5215,208 @@ textarea:focus-visible {
         grid-column: auto;
     }
 }
+
+
+/* Multi-year client compliance organization */
+.client-context-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.client-context-group-label {
+    padding: 7px 10px 2px;
+    color: #8a958e;
+    font-size: 9px;
+    font-weight: 850;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.client-context-group + .client-context-group {
+    margin-top: 10px;
+}
+
+.client-context-group + a {
+    margin-top: 8px;
+}
+
+.financial-year-filter {
+    min-width: 210px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.financial-year-filter label {
+    color: var(--bas-muted);
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.financial-year-filter select {
+    min-height: 38px;
+    padding: 8px 30px 8px 10px;
+    border: 1px solid #cfd8d2;
+    border-radius: 8px;
+    background: #fff;
+    color: #243129;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.financial-year-filter select:focus {
+    outline: none;
+    border-color: var(--bas-green);
+    box-shadow: 0 0 0 3px rgba(44, 160, 28, .10);
+}
+
+.financial-year-context {
+    margin: -2px 0 12px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border: 1px solid #e0e7e2;
+    border-radius: 8px;
+    background: #fafcfb;
+}
+
+.financial-year-context > div {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.financial-year-context span,
+.financial-year-context small {
+    color: var(--bas-muted);
+    font-size: 10px;
+}
+
+.financial-year-context strong {
+    color: #26332b;
+    font-size: 12px;
+}
+
+.client-compliance-section {
+    max-width: 900px;
+    margin-top: 30px;
+}
+
+.client-compliance-heading {
+    margin-bottom: 10px;
+}
+
+.compliance-summary-card {
+    margin: 0;
+}
+
+.compliance-summary-table {
+    min-width: 680px;
+}
+
+.compliance-status-links {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.compliance-inline-status {
+    color: inherit;
+    text-decoration: none;
+}
+
+.compliance-inline-status:hover .status-badge {
+    filter: brightness(.97);
+    box-shadow: 0 0 0 2px rgba(44, 160, 28, .08);
+}
+
+.compliance-summary-actions {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.compliance-summary-actions a {
+    color: var(--bas-green-dark);
+    font-size: 11px;
+    font-weight: 750;
+    text-decoration: none;
+}
+
+.compliance-summary-actions a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.compact-empty-state {
+    padding-top: 18px;
+    padding-bottom: 18px;
+}
+
+@media (min-width: 941px) {
+    .client-pane-collapsed .client-context-group-label {
+        display: none;
+    }
+
+    .client-pane-collapsed .client-context-group {
+        margin-top: 4px;
+        align-items: center;
+    }
+
+    .client-pane-collapsed .client-context-group + .client-context-group,
+    .client-pane-collapsed .client-context-group + a {
+        margin-top: 4px;
+    }
+}
+
+@media (max-width: 940px) {
+    .client-context-group {
+        flex: 0 0 auto;
+        flex-direction: row;
+        align-items: center;
+        margin-top: 0;
+    }
+
+    .client-context-group + .client-context-group,
+    .client-context-group + a {
+        margin-top: 0;
+    }
+
+    .client-context-group-label {
+        display: none;
+    }
+}
+
+@media (max-width: 760px) {
+    .financial-year-filter {
+        width: 100%;
+        min-width: 0;
+        align-items: stretch;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .financial-year-filter select {
+        width: 100%;
+    }
+
+    .financial-year-context {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .compliance-summary-actions {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+}
