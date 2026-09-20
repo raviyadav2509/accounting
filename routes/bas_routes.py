@@ -20,6 +20,7 @@ from services.database import (
     get_history_for_user,
     get_record_for_user,
     mark_lodged,
+    reopen_bas,
     save_bas_snapshot,
 )
 from services.review_store import (
@@ -579,7 +580,7 @@ def bas_review():
         return lodged_response
 
     bas = calculate_bas(client_id, start, end)
-    signature, _ = _persist_bas(client_id, bas)
+    signature, bas_record = _persist_bas(client_id, bas)
 
     ai_review = load_ai_review(client_id, start, end, signature)
     ai_status = ai_review["status"] if ai_review else "NOT REVIEWED"
@@ -594,6 +595,7 @@ def bas_review():
         ai_status=ai_status,
         ai_review=ai_review,
         review_resolved=review_resolved,
+        bas_record=bas_record,
         **_amount_display_data(bas["payable"]),
     )
 
@@ -816,6 +818,68 @@ def approve_bas():
             "lodged with the ATO yet. Status: Ready to Lodge."
         ),
         back_url=url_for("bas.active_bas", client_id=client["id"]),
+    )
+
+
+@bas_bp.route("/reopen-bas", methods=["POST"])
+def reopen_approved_bas():
+    client, response = _require_client()
+    if response:
+        return response
+
+    start = request.form.get("start", "").strip()
+    end = request.form.get("end", "").strip()
+    signature = request.form.get("signature", "").strip()
+
+    record = _record_for_period(client["id"], start, end)
+
+    if not record or record.get("signature") != signature:
+        return render_template(
+            "message.html",
+            title="BAS record not found",
+            message="The BAS selected for editing could not be found.",
+            back_url=url_for("bas.active_bas", client_id=client["id"]),
+        ), 404
+
+    if record["is_lodged"]:
+        return redirect(
+            url_for(
+                "bas.bas_history_detail",
+                record_id=record["id"],
+                client_context=1,
+            )
+        )
+
+    if record.get("approval_status") != "APPROVED":
+        return redirect(
+            url_for(
+                "bas.bas_review",
+                start=start,
+                end=end,
+            )
+        )
+
+    reopened = reopen_bas(
+        client["id"],
+        start,
+        end,
+        signature,
+    )
+
+    if not reopened or reopened.get("approval_status") == "APPROVED":
+        return render_template(
+            "message.html",
+            title="BAS could not be reopened",
+            message="The BAS approval could not be cleared for editing.",
+            back_url=url_for("bas.active_bas", client_id=client["id"]),
+        ), 400
+
+    return redirect(
+        url_for(
+            "bas.bas_review",
+            start=start,
+            end=end,
+        )
     )
 
 
