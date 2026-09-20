@@ -225,9 +225,83 @@ def dashboard():
     g.client = None
     firm = get_firm_for_user(g.user["id"])
 
+    clients = list(g.clients)
+    active_bas_count = 0
+    review_required_count = 0
+    ready_to_lodge_count = 0
+    qbo_attention_count = 0
+    attention_items = []
+
+    for client in clients:
+        if not client.get("qbo_connected"):
+            qbo_attention_count += 1
+            attention_items.append(
+                {
+                    "client": client,
+                    "title": "Connect QuickBooks",
+                    "detail": "Accounting data is not connected for this client.",
+                    "status": "Connection required",
+                    "status_class": "warning",
+                    "url": url_for("clients.client_home", client_id=client["id"]),
+                }
+            )
+            continue
+
+        records = [
+            _decorate_record(record)
+            for record in get_history(client["id"], limit=100)
+        ]
+        active_records = [
+            record
+            for record in records
+            if not record["is_lodged"]
+        ]
+        active_bas_count += len(active_records)
+
+        for record in active_records:
+            if record.get("approval_status") == "APPROVED":
+                ready_to_lodge_count += 1
+                attention_items.append(
+                    {
+                        "client": client,
+                        "title": "BAS ready to lodge",
+                        "detail": record["period_display"],
+                        "status": "Ready to lodge",
+                        "status_class": "approved",
+                        "url": url_for(
+                            "bas.client_dashboard",
+                            client_id=client["id"],
+                        ),
+                    }
+                )
+            elif (
+                record.get("review_status") == "REVIEW REQUIRED"
+                and record.get("resolution_status") != "RESOLVED"
+            ):
+                review_required_count += 1
+                attention_items.append(
+                    {
+                        "client": client,
+                        "title": "BAS review required",
+                        "detail": record["period_display"],
+                        "status": "Review required",
+                        "status_class": "review-required",
+                        "url": url_for(
+                            "bas.client_dashboard",
+                            client_id=client["id"],
+                        ),
+                    }
+                )
+
     return render_template(
         "dashboard.html",
         firm=firm,
+        total_clients=len(clients),
+        active_bas_count=active_bas_count,
+        review_required_count=review_required_count,
+        ready_to_lodge_count=ready_to_lodge_count,
+        qbo_attention_count=qbo_attention_count,
+        attention_items=attention_items[:8],
     )
 
 
