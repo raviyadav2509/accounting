@@ -16,7 +16,9 @@ from services.database import (
     get_client_for_user,
     get_firm_for_user,
     get_history,
+    get_history_for_user,
     get_record_by_id,
+    get_record_for_user,
     save_bas_snapshot,
 )
 from services.review_store import (
@@ -442,30 +444,37 @@ def calculate_new_bas():
 
 @bas_bp.route("/bas-history")
 def bas_history():
-    client, response = _require_client()
-    if response:
-        return response
+    session.pop("client_id", None)
+    g.client = None
 
     records = [
         _decorate_record(record)
-        for record in get_history(client["id"], limit=100)
+        for record in get_history_for_user(g.user["id"], limit=250)
     ]
-    return render_template("bas_history.html", records=records, client=client)
+    return render_template("bas_history.html", records=records)
 
 
 @bas_bp.route("/bas-history/<int:record_id>")
 def bas_history_detail(record_id):
-    client, response = _require_client()
-    if response:
-        return response
+    session.pop("client_id", None)
+    g.client = None
 
-    record = get_record_by_id(client["id"], record_id)
+    record = get_record_for_user(g.user["id"], record_id)
 
     if not record:
         return render_template(
             "message.html",
             title="BAS record not found",
             message="The requested BAS history record could not be found.",
+            back_url=url_for("bas.bas_history"),
+        ), 404
+
+    client = get_client_for_user(record["client_id"], g.user["id"])
+    if not client:
+        return render_template(
+            "message.html",
+            title="Client not found",
+            message="The client associated with this BAS record could not be found.",
             back_url=url_for("bas.bas_history"),
         ), 404
 
