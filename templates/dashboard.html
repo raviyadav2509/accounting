@@ -41,60 +41,79 @@
     </div>
 </div>
 
-{% if firm %}
-<div class="card firm-context-card">
-    <div class="firm-context-main">
-        <div class="firm-context-icon" aria-hidden="true">
-            {{ firm.firm_name[:1]|upper }}
-        </div>
-
+<section class="dashboard-identity-section">
+    <div class="section-heading identity-section-heading">
         <div>
-            <div class="firm-context-label">Accounting firm</div>
-            <div class="firm-context-name">{{ firm.firm_name }}</div>
-            <div class="firm-context-subtitle">Director / Principal: {{ firm.director_name }}</div>
+            <div class="dashboard-section-title">Accounting Firm Details</div>
+            <p>The accounting practice preparing and managing BAS for this client.</p>
         </div>
+        <a class="firm-edit-link" href="{{ url_for('auth.firm_profile') }}">
+            {% if firm %}Edit firm details{% else %}Complete firm profile{% endif %}
+        </a>
     </div>
 
-    <div class="firm-context-details">
-        <div>
-            <span>ABN</span>
-            <strong>{{ firm.abn or "Not provided" }}</strong>
+    {% if firm %}
+    <div class="card firm-details-card">
+        <div class="firm-details-header">
+            <div class="firm-context-icon" aria-hidden="true">
+                {{ firm.firm_name[:1]|upper }}
+            </div>
+
+            <div>
+                <div class="firm-context-label">Accounting practice</div>
+                <div class="firm-context-name">{{ firm.firm_name }}</div>
+                <div class="firm-context-subtitle">Director / Principal: {{ firm.director_name }}</div>
+            </div>
         </div>
 
-        {% if firm.acn %}
-        <div>
-            <span>ACN</span>
-            <strong>{{ firm.acn }}</strong>
-        </div>
-        {% endif %}
+        <div class="firm-details-grid">
+            <div class="firm-detail">
+                <span>Firm name</span>
+                <strong>{{ firm.firm_name }}</strong>
+            </div>
 
-        {% if firm.email %}
-        <div>
-            <span>Firm email</span>
-            <strong>{{ firm.email }}</strong>
-        </div>
-        {% endif %}
+            <div class="firm-detail">
+                <span>Director / Principal</span>
+                <strong>{{ firm.director_name }}</strong>
+            </div>
 
-        {% if firm.phone %}
-        <div>
-            <span>Firm phone</span>
-            <strong>{{ firm.phone }}</strong>
+            <div class="firm-detail">
+                <span>ABN</span>
+                <strong>{{ firm.abn or "Not provided" }}</strong>
+            </div>
+
+            <div class="firm-detail">
+                <span>ACN</span>
+                <strong>{{ firm.acn or "Not provided" }}</strong>
+            </div>
+
+            <div class="firm-detail firm-detail-wide">
+                <span>Business address</span>
+                <strong>{{ firm.address or "Not provided" }}</strong>
+            </div>
+
+            <div class="firm-detail">
+                <span>Email</span>
+                <strong>{{ firm.email or "Not provided" }}</strong>
+            </div>
+
+            <div class="firm-detail">
+                <span>Phone</span>
+                <strong>{{ firm.phone or "Not provided" }}</strong>
+            </div>
         </div>
-        {% endif %}
     </div>
-
-    <a class="firm-edit-link" href="{{ url_for('auth.firm_profile') }}">Edit firm details</a>
-</div>
-{% else %}
-<div class="card firm-context-card firm-context-missing">
-    <div>
-        <div class="firm-context-label">Accounting firm profile</div>
-        <div class="firm-context-name">Complete your firm details</div>
-        <div class="firm-context-subtitle">Add your accounting firm name, director, ABN and contact details.</div>
+    {% else %}
+    <div class="card firm-context-card firm-context-missing">
+        <div>
+            <div class="firm-context-label">Accounting firm profile</div>
+            <div class="firm-context-name">Complete your firm details</div>
+            <div class="firm-context-subtitle">Add your accounting firm name, director, ABN, ACN, address and contact details.</div>
+        </div>
+        <a class="button" href="{{ url_for('auth.firm_profile') }}">Complete firm profile</a>
     </div>
-    <a class="button" href="{{ url_for('auth.firm_profile') }}">Complete firm profile</a>
-</div>
-{% endif %}
+    {% endif %}
+</section>
 
 <div class="card client-card">
     <div class="client-card-main">
