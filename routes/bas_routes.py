@@ -221,6 +221,8 @@ def _decorate_record(record):
 
 @bas_bp.route("/")
 def dashboard():
+    session.pop("client_id", None)
+    g.client = None
     firm = get_firm_for_user(g.user["id"])
 
     return render_template(
