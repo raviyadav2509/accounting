@@ -10,19 +10,13 @@
     <span>Edit details</span>
 </div>
 
-<div class="page-back-row">
-    <a class="page-back-link" href="{{ url_for('clients.client_home', client_id=client.id) }}">
-        <span aria-hidden="true">←</span>
-        Back to client
-    </a>
-</div>
-
 <div class="page-heading">
     <div>
         <div class="eyebrow">Client settings</div>
         <h1>Edit client details</h1>
         <div class="subtitle">Update the registered business information for {{ client.company_name }}.</div>
     </div>
+    <a class="secondary-button" href="{{ url_for('clients.client_home', client_id=client.id) }}">Back to client</a>
 </div>
 
 <div class="card client-form-card client-edit-card">
