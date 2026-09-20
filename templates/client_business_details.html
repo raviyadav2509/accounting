@@ -127,7 +127,7 @@
                             </a>
                             {% else %}
                             <a class="compliance-inline-status"
-                               href="{{ url_for('tax.client_tax_returns', client_id=client.id) }}">
+                               href="{{ url_for('tax.client_tax_returns', client_id=client.id, year=row.financial_year) }}">
                                 <span class="status-badge not-reviewed">Not started</span>
                             </a>
                             {% endif %}
