@@ -14,6 +14,7 @@ from services.bas_service import (
 )
 from services.database import (
     get_client_for_user,
+    get_firm_for_user,
     get_history,
     get_record_by_id,
     save_bas_snapshot,
@@ -257,12 +258,15 @@ def dashboard():
         if record["is_lodged"]
     ][:5]
 
+    firm = get_firm_for_user(g.user["id"])
+
     return render_template(
         "dashboard.html",
         bas=bas,
         current=current_display,
         current_records=current_records,
         client=client,
+        firm=firm,
         ai_status=ai_status,
         review_resolved=review_resolved,
         previous=previous,
