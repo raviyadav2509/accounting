@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Set up {{ client.company_name }} | BAS Automation{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <div class="eyebrow">Client setup</div>
+        <h1>{{ client.company_name }}</h1>
+        <div class="subtitle">Connect this client's accounting data before calculating BAS.</div>
+    </div>
+    <a class="secondary-button" href="{{ url_for('clients.index') }}">Switch client</a>
+</div>
+
+<div class="card setup-card">
+    <div class="setup-icon">
+        <svg viewBox="0 0 24 24" fill="none">
+            <path d="M8.5 8.5 6 11a4 4 0 0 0 5.7 5.7l2.5-2.5M15.5 15.5 18 13a4 4 0 1 0-5.7-5.7L9.8 9.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+    </div>
+    <div class="setup-copy">
+        <h2>Connect QuickBooks</h2>
+        <p>
+            Each client has their own QuickBooks connection. BAS calculations for
+            {{ client.company_name }} will only use this client's accounting data.
+        </p>
+        <a class="button" href="{{ url_for('qbo.connect') }}">Connect QuickBooks for this client</a>
+    </div>
+</div>
+
+<div class="card setup-client-details">
+    <h3>Registered client details</h3>
+    <div class="setup-detail-grid">
+        <div><span>Business name</span><strong>{{ client.company_name }}</strong></div>
+        <div><span>ABN</span><strong>{{ client.abn or "Not provided" }}</strong></div>
+        <div><span>ACN</span><strong>{{ client.acn or "Not provided" }}</strong></div>
+        <div><span>Email</span><strong>{{ client.email or "Not provided" }}</strong></div>
+    </div>
+</div>
+{% endblock %}
