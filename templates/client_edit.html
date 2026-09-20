@@ -5,7 +5,7 @@
 <div class="workspace-breadcrumbs">
     <a href="{{ url_for('clients.index') }}">Clients</a>
     <span>›</span>
-    <a href="{{ url_for('clients.client_home', client_id=client.id) }}">{{ client.company_name }}</a>
+    <a href="{{ url_for('clients.business_details', client_id=client.id) }}">{{ client.company_name }}</a>
     <span>›</span>
     <span>Edit details</span>
 </div>
@@ -16,7 +16,7 @@
         <h1>Edit client details</h1>
         <div class="subtitle">Update the registered business information for {{ client.company_name }}.</div>
     </div>
-    <a class="secondary-button" href="{{ url_for('clients.client_home', client_id=client.id) }}">Back to client</a>
+    <a class="secondary-button" href="{{ url_for('clients.business_details', client_id=client.id) }}">Back to business details</a>
 </div>
 
 <div class="card client-form-card client-edit-card">
@@ -68,7 +68,7 @@
         </div>
 
         <div class="client-form-actions">
-            <a class="secondary-button" href="{{ url_for('clients.client_home', client_id=client.id) }}">Cancel</a>
+            <a class="secondary-button" href="{{ url_for('clients.business_details', client_id=client.id) }}">Cancel</a>
             <button class="button" type="submit">Save changes</button>
         </div>
     </form>
