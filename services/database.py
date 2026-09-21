@@ -152,6 +152,9 @@ def init_db():
                 email_verification_token_hash TEXT,
                 email_verification_expires_at TEXT,
                 email_verification_sent_at TEXT,
+                password_reset_token_hash TEXT,
+                password_reset_expires_at TEXT,
+                password_reset_sent_at TEXT,
                 created_at TEXT NOT NULL,
                 last_login_at TEXT
             )
@@ -222,10 +225,32 @@ def init_db():
                 "ALTER TABLE users ADD COLUMN email_verification_sent_at TEXT"
             )
 
+        if "password_reset_token_hash" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN password_reset_token_hash TEXT"
+            )
+
+        if "password_reset_expires_at" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN password_reset_expires_at TEXT"
+            )
+
+        if "password_reset_sent_at" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN password_reset_sent_at TEXT"
+            )
+
         connection.execute(
             """
             CREATE INDEX IF NOT EXISTS idx_users_verification_token
             ON users(email_verification_token_hash)
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_users_password_reset_token
+            ON users(password_reset_token_hash)
             """
         )
 
@@ -534,6 +559,84 @@ def update_unverified_user_email(user_id, email):
                 )
     except sqlite3.IntegrityError:
         return None
+
+    return get_user_by_id(user_id)
+
+
+def set_password_reset(
+    user_id,
+    token_hash,
+    expires_at,
+):
+    now = _now()
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE users
+            SET password_reset_token_hash = ?,
+                password_reset_expires_at = ?,
+                password_reset_sent_at = ?
+            WHERE id = ?
+              AND is_active = 1
+            """,
+            (
+                token_hash,
+                expires_at,
+                now,
+                user_id,
+            ),
+        )
+
+    return get_user_by_id(user_id)
+
+
+def get_user_by_password_reset_token_hash(token_hash):
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT *
+            FROM users
+            WHERE password_reset_token_hash = ?
+              AND is_active = 1
+            LIMIT 1
+            """,
+            (token_hash,),
+        ).fetchone()
+
+    return dict(row) if row else None
+
+
+def update_user_password(user_id, password_hash):
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE users
+            SET password_hash = ?,
+                password_reset_token_hash = NULL,
+                password_reset_expires_at = NULL,
+                password_reset_sent_at = NULL
+            WHERE id = ?
+              AND is_active = 1
+            """,
+            (password_hash, user_id),
+        )
+
+    return get_user_by_id(user_id)
+
+
+def clear_password_reset(user_id):
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE users
+            SET password_reset_token_hash = NULL,
+                password_reset_expires_at = NULL,
+                password_reset_sent_at = NULL
+            WHERE id = ?
+            """,
+            (user_id,),
+        )
 
     return get_user_by_id(user_id)
 
