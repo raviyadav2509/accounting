@@ -5775,3 +5775,207 @@ textarea:focus-visible {
     text-decoration: underline;
     text-underline-offset: 2px;
 }
+
+
+/* Dashboard compliance grouping */
+.dashboard-summary-group {
+    margin-top: 28px;
+}
+
+.dashboard-summary-group-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 11px;
+    padding-left: 12px;
+    border-left: 3px solid var(--bas-green);
+}
+
+.bas-summary-group .dashboard-summary-group-heading {
+    border-left-color: var(--bas-blue);
+}
+
+.tax-summary-group .dashboard-summary-group-heading {
+    border-left-color: var(--bas-purple);
+}
+
+.dashboard-summary-group-heading h2 {
+    margin: 2px 0 3px;
+    color: #1f2c24;
+    font-size: 20px;
+    line-height: 1.2;
+}
+
+.dashboard-summary-group-heading p {
+    margin: 0;
+    color: var(--bas-muted);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.dashboard-summary-group-heading > a {
+    flex: 0 0 auto;
+    color: var(--bas-green-dark);
+    font-size: 11px;
+    font-weight: 750;
+    text-decoration: none;
+}
+
+.dashboard-summary-group-heading > a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.dashboard-summary-kicker {
+    color: var(--bas-muted);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+}
+
+.firm-dashboard-metrics-three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.firm-dashboard-metric.metric-clients,
+.firm-dashboard-metric.metric-connected {
+    border-top-color: var(--bas-green);
+}
+
+.firm-dashboard-metric.metric-setup {
+    border-top-color: var(--bas-amber);
+}
+
+.firm-dashboard-metric.metric-bas-progress {
+    border-top-color: var(--bas-blue);
+}
+
+.firm-dashboard-metric.metric-tax-progress {
+    border-top-color: var(--bas-purple);
+}
+
+.firm-dashboard-metric.metric-lodged {
+    border-top-color: #50826b;
+}
+
+.dashboard-attention-section {
+    margin-top: 34px;
+}
+
+.attention-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.attention-filter {
+    min-height: 34px;
+    padding: 7px 11px;
+    border: 1px solid #d7dfda;
+    border-radius: 999px;
+    background: #fff;
+    color: #536058;
+    font-size: 11px;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+.attention-filter span {
+    margin-left: 4px;
+    color: #7b8780;
+}
+
+.attention-filter:hover {
+    background: #f8faf8;
+    border-color: #c4cec7;
+}
+
+.attention-filter.active {
+    border-color: #acd3a5;
+    background: var(--bas-mint-soft);
+    color: var(--bas-green-dark);
+}
+
+.attention-filter.active span {
+    color: var(--bas-green-dark);
+}
+
+.dashboard-attention-copy {
+    min-width: 0;
+}
+
+.dashboard-attention-type-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.work-type-badge {
+    flex: 0 0 auto;
+    min-height: 21px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 850;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: .045em;
+}
+
+.work-type-badge.client {
+    background: var(--bas-mint);
+    color: var(--bas-green-deep);
+}
+
+.work-type-badge.bas {
+    background: #edf4ff;
+    color: #2b5fa8;
+}
+
+.work-type-badge.tax {
+    background: #f3effc;
+    color: #6548a3;
+}
+
+.dashboard-filter-empty {
+    padding: 22px 18px;
+    color: var(--bas-muted);
+    font-size: 12px;
+    text-align: center;
+}
+
+.dashboard-attention-row[hidden] {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .firm-dashboard-metrics-three {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .dashboard-summary-group-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .firm-dashboard-metrics-three {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-attention-type-line {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 5px;
+    }
+}
