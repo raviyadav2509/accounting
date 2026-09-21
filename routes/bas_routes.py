@@ -469,7 +469,7 @@ def dashboard():
         tax_review_required_count=tax_review_required_count,
         tax_ready_to_lodge_count=tax_ready_to_lodge_count,
         tax_lodged_this_fy_count=tax_lodged_this_fy_count,
-        attention_items=attention_items[:25],
+        attention_items=attention_items,
         attention_counts=attention_counts,
     )
 
