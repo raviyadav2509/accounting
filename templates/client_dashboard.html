@@ -12,7 +12,7 @@
     <div>
         <div class="eyebrow">Client BAS workspace</div>
         <h1>{{ client.company_name }}</h1>
-        <div class="subtitle">Review this client's details, active BAS and lodged history.</div>
+        <div class="subtitle">Review this client's details, BAS in progress and lodged history.</div>
         <div class="client-workspace-badges">
             <span class="status-badge pass">QuickBooks connected</span>
             {% if client.abn %}
@@ -113,7 +113,7 @@
 <section id="active-bas" class="bas-dashboard-section client-anchor-section">
     <div class="section-heading bas-section-heading">
         <div>
-            <div class="dashboard-section-title">Active BAS</div>
+            <div class="dashboard-section-title">BAS in Progress</div>
             <p>BAS periods still being prepared, reviewed, approved or waiting to be lodged.</p>
         </div>
         <span class="section-count">{{ current_records|length }} active</span>
