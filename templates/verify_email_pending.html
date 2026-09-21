@@ -1,0 +1,56 @@
+{% extends "auth_base.html" %}
+{% block title %}Verify email | BAS Automation{% endblock %}
+
+{% block content %}
+<div class="auth-form-header">
+    <div class="auth-mobile-brand">
+        <span class="brand-mark">B</span>
+        <strong>BAS Automation</strong>
+    </div>
+
+    <h2>Verify your email</h2>
+    <p>We need to confirm your email address before you can access client, BAS or tax-return data.</p>
+</div>
+
+{% if notice %}
+<div class="auth-success">{{ notice }}</div>
+{% endif %}
+
+{% if error %}
+<div class="auth-alert">{{ error }}</div>
+{% endif %}
+
+<div class="verification-card">
+    <div class="verification-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+            <path d="M3 6.5 12 13l9-6.5M4 5h16v14H4V5Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </div>
+    <div>
+        <span>Verification email</span>
+        <strong>{{ user.email }}</strong>
+        <p>Open the email and click the verification link. The link expires after {{ expiry_minutes }} minutes.</p>
+    </div>
+</div>
+
+<div class="verification-actions">
+    <form method="post" action="{{ url_for('auth.resend_verification_email') }}">
+        <button class="auth-primary-button" type="submit">Resend verification email</button>
+    </form>
+
+    <a class="auth-secondary-link" href="{{ url_for('auth.change_verification_email') }}">Change email address</a>
+</div>
+
+{% if debug_verification_url %}
+<div class="verification-debug">
+    <strong>Local testing</strong>
+    <p>Email verification debug links are enabled. This link bypasses email delivery and should never be enabled in production.</p>
+    <a href="{{ debug_verification_url }}">Open local verification link</a>
+</div>
+{% endif %}
+
+<div class="auth-switch">
+    <span>Already verified?</span>
+    <a href="{{ url_for('auth.login', email=user.email) }}">Return to sign in</a>
+</div>
+{% endblock %}
