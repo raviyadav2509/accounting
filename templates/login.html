@@ -36,7 +36,10 @@
     </div>
 
     <div class="auth-field">
-        <label for="password">Password</label>
+        <div class="auth-field-label-row">
+            <label for="password">Password</label>
+            <a href="{{ url_for('auth.forgot_password', email=email) }}">Forgot password?</a>
+        </div>
         <input
             id="password"
             name="password"
