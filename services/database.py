@@ -148,6 +148,10 @@ def init_db():
                 email TEXT NOT NULL UNIQUE COLLATE NOCASE,
                 password_hash TEXT NOT NULL,
                 is_active INTEGER NOT NULL DEFAULT 1,
+                email_verified_at TEXT,
+                email_verification_token_hash TEXT,
+                email_verification_expires_at TEXT,
+                email_verification_sent_at TEXT,
                 created_at TEXT NOT NULL,
                 last_login_at TEXT
             )
@@ -187,6 +191,44 @@ def init_db():
             ON users(firm_id)
             """
         )
+
+        user_columns = _column_names(connection, "users")
+
+        if "email_verified_at" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN email_verified_at TEXT"
+            )
+            connection.execute(
+                """
+                UPDATE users
+                SET email_verified_at = COALESCE(created_at, ?)
+                WHERE email_verified_at IS NULL
+                """,
+                (_now(),),
+            )
+
+        if "email_verification_token_hash" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN email_verification_token_hash TEXT"
+            )
+
+        if "email_verification_expires_at" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN email_verification_expires_at TEXT"
+            )
+
+        if "email_verification_sent_at" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN email_verification_sent_at TEXT"
+            )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_users_verification_token
+            ON users(email_verification_token_hash)
+            """
+        )
+
 
         connection.execute(
             """
@@ -381,6 +423,115 @@ def create_user(
                 ),
             )
             user_id = cursor.lastrowid
+    except sqlite3.IntegrityError:
+        return None
+
+    return get_user_by_id(user_id)
+
+
+def set_email_verification(
+    user_id,
+    token_hash,
+    expires_at,
+):
+    now = _now()
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE users
+            SET email_verification_token_hash = ?,
+                email_verification_expires_at = ?,
+                email_verification_sent_at = ?
+            WHERE id = ?
+              AND email_verified_at IS NULL
+            """,
+            (
+                token_hash,
+                expires_at,
+                now,
+                user_id,
+            ),
+        )
+
+    return get_user_by_id(user_id)
+
+
+def get_user_by_verification_token_hash(token_hash):
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT *
+            FROM users
+            WHERE email_verification_token_hash = ?
+            LIMIT 1
+            """,
+            (token_hash,),
+        ).fetchone()
+
+    return dict(row) if row else None
+
+
+def mark_email_verified(user_id):
+    now = _now()
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE users
+            SET email_verified_at = ?,
+                email_verification_token_hash = NULL,
+                email_verification_expires_at = NULL,
+                email_verification_sent_at = NULL
+            WHERE id = ?
+            """,
+            (now, user_id),
+        )
+
+    return get_user_by_id(user_id)
+
+
+def update_unverified_user_email(user_id, email):
+    normalized_email = email.strip().lower()
+
+    try:
+        with get_connection() as connection:
+            user = connection.execute(
+                """
+                SELECT id, firm_id
+                FROM users
+                WHERE id = ?
+                  AND email_verified_at IS NULL
+                LIMIT 1
+                """,
+                (user_id,),
+            ).fetchone()
+
+            if not user:
+                return None
+
+            connection.execute(
+                """
+                UPDATE users
+                SET email = ?,
+                    email_verification_token_hash = NULL,
+                    email_verification_expires_at = NULL,
+                    email_verification_sent_at = NULL
+                WHERE id = ?
+                """,
+                (normalized_email, user_id),
+            )
+
+            if user["firm_id"]:
+                connection.execute(
+                    """
+                    UPDATE accounting_firms
+                    SET email = ?,
+                        updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (normalized_email, _now(), user["firm_id"]),
+                )
     except sqlite3.IntegrityError:
         return None
 
