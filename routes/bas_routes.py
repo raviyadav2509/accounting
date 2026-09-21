@@ -615,7 +615,7 @@ def calculate_new_bas():
             title="BAS already calculated",
             message=(
                 "A BAS for this reporting period has already been calculated "
-                "and is listed under Active BAS."
+                "and is listed under BAS in Progress."
             ),
             back_url=url_for("bas.active_bas", client_id=client["id"]),
         )
