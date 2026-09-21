@@ -1,0 +1,22 @@
+{% extends "auth_base.html" %}
+{% block title %}Email verification | BAS Automation{% endblock %}
+
+{% block content %}
+<div class="auth-form-header">
+    <div class="auth-mobile-brand">
+        <span class="brand-mark">B</span>
+        <strong>BAS Automation</strong>
+    </div>
+
+    <h2>{{ title }}</h2>
+    <p>{{ message }}</p>
+</div>
+
+{% if success %}
+<div class="auth-success">{{ message }}</div>
+{% else %}
+<div class="auth-alert">{{ message }}</div>
+{% endif %}
+
+<a class="auth-primary-link" href="{{ url_for('auth.login') }}">Go to sign in</a>
+{% endblock %}
