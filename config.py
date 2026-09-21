@@ -34,6 +34,13 @@ EMAIL_VERIFICATION_DEBUG_LINKS = _env_flag(
     "EMAIL_VERIFICATION_DEBUG_LINKS",
     False,
 )
+PASSWORD_RESET_EXPIRY_MINUTES = int(
+    os.getenv("PASSWORD_RESET_EXPIRY_MINUTES", "30")
+)
+PASSWORD_RESET_DEBUG_LINKS = _env_flag(
+    "PASSWORD_RESET_DEBUG_LINKS",
+    EMAIL_VERIFICATION_DEBUG_LINKS,
+)
 
 QBO_AUTH_URL = "https://appcenter.intuit.com/connect/oauth2"
 QBO_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer"
