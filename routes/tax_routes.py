@@ -99,6 +99,24 @@ def _recalculate(client_id, tax_return_id):
     )
 
 
+def _populate_demo_profit(client, tax_return):
+    """Initialise empty demo drafts; preserve manual figures and locked returns."""
+    if (
+        not is_demo(client)
+        or tax_return.get("accounting_profit") is not None
+        or tax_return.get("approval_status") in {"APPROVED", "LODGED"}
+        or tax_return.get("lodged_at")
+    ):
+        return tax_return
+
+    profit = import_accounting_profit(
+        client["id"], tax_return["start_date"], tax_return["end_date"]
+    )
+    update_tax_return(client["id"], tax_return["id"], accounting_profit=profit)
+    _reset_review_and_approval(client["id"], tax_return["id"])
+    return _recalculate(client["id"], tax_return["id"])
+
+
 def _approved_response(client, tax_return):
     status = tax_return.get("approval_status")
     if status not in {"APPROVED", "LODGED"}:
@@ -232,6 +250,7 @@ def new_tax_return(client_id):
         end_date,
         client["entity_type"],
     )
+    tax_return = _populate_demo_profit(client, tax_return)
 
     return redirect(
         url_for(
@@ -257,6 +276,7 @@ def company_tax_return(client_id, tax_return_id):
             back_url=url_for("tax.client_tax_returns", client_id=client_id),
         ), 404
 
+    tax_return = _populate_demo_profit(client, tax_return)
     adjustments = get_tax_adjustments(client_id, tax_return_id)
     calculation = calculate_company_return(tax_return, adjustments)
     record = _decorate_return(tax_return)

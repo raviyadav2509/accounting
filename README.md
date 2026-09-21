@@ -122,6 +122,10 @@ Australian financial years at creation/reset time. Future dates are fictional.
 The BAS uses the existing calculator; annual profit is derived from these same
 transactions, then passed to the existing company-return calculation/review.
 Example quarterly BAS payable is $6,300; full-year accounting profit is $72,000.
+Demo annual returns automatically load accounting profit and calculate taxable
+income when created, or when an existing empty draft is opened. Manually entered
+figures and approved/lodged returns are preserved. Estimated tax is calculated
+after the user confirms a company tax rate; the rate is never assumed.
 Dates outside the seeded range have no transactions. No real tax eligibility or
 compliance is validated by these sample scenarios.
 
