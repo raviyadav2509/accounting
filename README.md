@@ -181,7 +181,7 @@ Before lodgement, approved BAS and annual tax returns can be reopened for editin
 With the switch enabled:
 
 - an approved BAS shows **Edit BAS** and **Simulate ATO Lodgement**
-- the mock action records a `MOCK-BAS-...` reference, marks the BAS as lodged, removes it from **Active BAS**, and places it under **BAS History**
+- the mock action records a `MOCK-BAS-...` reference, marks the BAS as lodged, removes it from **BAS in Progress**, and places it under **BAS History**
 - an approved annual tax return shows **Edit Return** and **Simulate ATO Lodgement**
 - the mock action records a `MOCK-TAX-...` reference, marks the return as lodged, and moves it from **Active Tax Returns** to **Tax Return History**
 
