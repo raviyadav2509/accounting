@@ -108,6 +108,44 @@ http://127.0.0.1:8000/
 
 Unauthenticated users are redirected to the login page.
 
+## Automated tests and CI
+
+Install the development dependencies and run the test suite locally:
+
+```cmd
+py -m pip install -r requirements-dev.txt
+py -m pytest
+```
+
+Once registered in Azure DevOps, `azure-pipelines.yml` runs the same tests for
+`main`, `feature/*` and GitHub pull requests targeting those branches containing
+this YAML. It publishes JUnit results, code coverage and a tested application
+ZIP containing only allowlisted application files (no databases or credentials).
+Tests use a fresh temporary SQLite database per test, disable `.env` loading,
+block network connections, and stub external integrations. No real QuickBooks,
+OpenAI, SMTP or ATO credentials are required. Coverage measures the starting
+baseline; there is not yet a minimum overall coverage gate.
+
+### Register the Azure DevOps pipeline
+
+1. Connect the GitHub repository to your Azure DevOps project.
+2. Create a pipeline using the existing `/azure-pipelines.yml` on
+   `feature/annual-tax-return`; keep `main` unchanged until review/merge.
+3. Run it on the feature branch and confirm test results, coverage and the
+   `accounting` ZIP artifact are published.
+4. Configure the resulting build status as a required GitHub check separately
+   if merges should be blocked on failures; YAML alone does not protect branches.
+
+CD is deliberately not active yet. Before adding a deployment stage, identify
+the Azure service connection, App Service target and Azure DevOps environment,
+then configure environment approval checks outside YAML. Configure runtime
+secrets securely and persistent storage for SQLite; never deploy a test database.
+The existing production-readiness gaps below still apply. No Azure resources,
+deployment, or ATO lodgement are created by this CI pipeline.
+
+The coverage publisher includes the .NET prerequisite documented by
+[Microsoft](https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/publish-code-coverage-results-v2?view=azure-pipelines).
+
 ## Email verification
 
 New firm accounts must verify their login email before accessing clients, QuickBooks, BAS or annual tax returns.
