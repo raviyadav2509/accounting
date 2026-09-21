@@ -12,13 +12,18 @@ from services.bas_service import (
     calculate_bas,
     get_payroll_bas,
 )
-from services.financial_year_service import financial_year_for_date, financial_year_sort_key
+from services.financial_year_service import (
+    current_financial_year,
+    financial_year_for_date,
+    financial_year_sort_key,
+)
 from services.database import (
     get_client_for_user,
     get_firm_for_user,
     get_history,
     get_history_for_user,
     get_record_for_user,
+    get_tax_returns_for_user,
     mark_lodged,
     reopen_bas,
     save_bas_snapshot,
@@ -30,6 +35,7 @@ from services.review_store import (
     save_approval,
     save_rejection,
 )
+from services.tax_return_service import tax_return_status
 
 bas_bp = Blueprint("bas", __name__)
 
@@ -256,42 +262,72 @@ def dashboard():
     firm = get_firm_for_user(g.user["id"])
 
     clients = list(g.clients)
-    active_bas_count = 0
-    review_required_count = 0
-    ready_to_lodge_count = 0
+    current_fy = current_financial_year()
+
+    qbo_connected_count = 0
     qbo_attention_count = 0
+
+    bas_in_progress_count = 0
+    bas_review_required_count = 0
+    bas_ready_to_lodge_count = 0
+    bas_lodged_this_fy_count = 0
+
+    tax_in_progress_count = 0
+    tax_review_required_count = 0
+    tax_ready_to_lodge_count = 0
+    tax_lodged_this_fy_count = 0
+
     attention_items = []
 
     for client in clients:
-        if not client.get("qbo_connected"):
+        if client.get("qbo_connected"):
+            qbo_connected_count += 1
+        else:
             qbo_attention_count += 1
             attention_items.append(
                 {
+                    "type": "client",
+                    "type_label": "Client",
                     "client": client,
-                    "title": "Connect QuickBooks",
+                    "title": "QuickBooks connection required",
                     "detail": "Accounting data is not connected for this client.",
-                    "status": "Connection required",
+                    "status": "Setup required",
                     "status_class": "warning",
-                    "url": url_for("clients.quickbooks_client", client_id=client["id"]),
+                    "url": url_for(
+                        "clients.quickbooks_client",
+                        client_id=client["id"],
+                    ),
+                    "priority": 1,
                 }
             )
 
         records = [
             _decorate_record(record)
-            for record in get_history(client["id"], limit=100)
+            for record in get_history(client["id"], limit=200)
         ]
-        active_records = [
+
+        in_progress_records = [
             record
             for record in records
             if not record["is_lodged"]
         ]
-        active_bas_count += len(active_records)
+        bas_in_progress_count += len(in_progress_records)
 
-        for record in active_records:
+        bas_lodged_this_fy_count += sum(
+            1
+            for record in records
+            if record["is_lodged"]
+            and record.get("lodged_at")
+            and financial_year_for_date(record["lodged_at"]) == current_fy
+        )
+
+        for record in in_progress_records:
             if record.get("approval_status") == "APPROVED":
-                ready_to_lodge_count += 1
+                bas_ready_to_lodge_count += 1
                 attention_items.append(
                     {
+                        "type": "bas",
+                        "type_label": "BAS",
                         "client": client,
                         "title": "BAS ready to lodge",
                         "detail": record["period_display"],
@@ -301,36 +337,140 @@ def dashboard():
                             "bas.active_bas",
                             client_id=client["id"],
                         ),
+                        "priority": 3,
                     }
                 )
             elif (
                 record.get("review_status") == "REVIEW REQUIRED"
                 and record.get("resolution_status") != "RESOLVED"
             ):
-                review_required_count += 1
+                bas_review_required_count += 1
                 attention_items.append(
                     {
+                        "type": "bas",
+                        "type_label": "BAS",
                         "client": client,
                         "title": "BAS review required",
                         "detail": record["period_display"],
                         "status": "Review required",
                         "status_class": "review-required",
                         "url": url_for(
-                            "bas.active_bas",
-                            client_id=client["id"],
+                            "bas.bas_review",
+                            start=record["start_date"],
+                            end=record["end_date"],
                         ),
+                        "priority": 2,
                     }
                 )
+
+    tax_returns = get_tax_returns_for_user(g.user["id"], limit=500)
+
+    for tax_return in tax_returns:
+        is_lodged = (
+            tax_return.get("approval_status") == "LODGED"
+            or bool(tax_return.get("lodged_at"))
+        )
+
+        if is_lodged:
+            if (
+                tax_return.get("lodged_at")
+                and financial_year_for_date(tax_return["lodged_at"]) == current_fy
+            ):
+                tax_lodged_this_fy_count += 1
+            continue
+
+        tax_in_progress_count += 1
+
+        client = next(
+            (
+                item
+                for item in clients
+                if item["id"] == tax_return["client_id"]
+            ),
+            None,
+        )
+        if not client:
+            continue
+
+        display_status, status_class = tax_return_status(tax_return)
+
+        if tax_return.get("approval_status") == "APPROVED":
+            tax_ready_to_lodge_count += 1
+            attention_items.append(
+                {
+                    "type": "tax",
+                    "type_label": "Tax Return",
+                    "client": client,
+                    "title": "Annual tax return ready to lodge",
+                    "detail": f"FY {tax_return['financial_year']}",
+                    "status": "Ready to lodge",
+                    "status_class": status_class,
+                    "url": url_for(
+                        "tax.company_tax_return",
+                        client_id=client["id"],
+                        tax_return_id=tax_return["id"],
+                    ),
+                    "priority": 3,
+                }
+            )
+        elif tax_return.get("review_status") == "REVIEW REQUIRED":
+            tax_review_required_count += 1
+            attention_items.append(
+                {
+                    "type": "tax",
+                    "type_label": "Tax Return",
+                    "client": client,
+                    "title": "Annual tax return review required",
+                    "detail": f"FY {tax_return['financial_year']}",
+                    "status": display_status,
+                    "status_class": status_class,
+                    "url": url_for(
+                        "tax.company_tax_return",
+                        client_id=client["id"],
+                        tax_return_id=tax_return["id"],
+                    ),
+                    "priority": 2,
+                }
+            )
+
+    attention_items.sort(
+        key=lambda item: (
+            item["priority"],
+            item["client"]["company_name"].lower(),
+            item["type"],
+        )
+    )
+
+    attention_counts = {
+        "all": len(attention_items),
+        "client": sum(
+            1 for item in attention_items if item["type"] == "client"
+        ),
+        "bas": sum(
+            1 for item in attention_items if item["type"] == "bas"
+        ),
+        "tax": sum(
+            1 for item in attention_items if item["type"] == "tax"
+        ),
+    }
 
     return render_template(
         "dashboard.html",
         firm=firm,
+        current_financial_year=current_fy,
         total_clients=len(clients),
-        active_bas_count=active_bas_count,
-        review_required_count=review_required_count,
-        ready_to_lodge_count=ready_to_lodge_count,
+        qbo_connected_count=qbo_connected_count,
         qbo_attention_count=qbo_attention_count,
-        attention_items=attention_items[:8],
+        bas_in_progress_count=bas_in_progress_count,
+        bas_review_required_count=bas_review_required_count,
+        bas_ready_to_lodge_count=bas_ready_to_lodge_count,
+        bas_lodged_this_fy_count=bas_lodged_this_fy_count,
+        tax_in_progress_count=tax_in_progress_count,
+        tax_review_required_count=tax_review_required_count,
+        tax_ready_to_lodge_count=tax_ready_to_lodge_count,
+        tax_lodged_this_fy_count=tax_lodged_this_fy_count,
+        attention_items=attention_items[:25],
+        attention_counts=attention_counts,
     )
 
 
