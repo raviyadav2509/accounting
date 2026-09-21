@@ -6,25 +6,33 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from config import (
     EMAIL_VERIFICATION_DEBUG_LINKS,
     EMAIL_VERIFICATION_EXPIRY_MINUTES,
+    PASSWORD_RESET_DEBUG_LINKS,
+    PASSWORD_RESET_EXPIRY_MINUTES,
 )
 from services.database import (
+    clear_password_reset,
     create_user,
     get_client_for_user,
     get_clients_for_user,
     get_firm_for_user,
     get_user_by_email,
     get_user_by_id,
+    get_user_by_password_reset_token_hash,
     get_user_by_verification_token_hash,
     mark_email_verified,
     set_email_verification,
+    set_password_reset,
     update_firm_for_user,
     update_last_login,
     update_unverified_user_email,
+    update_user_password,
 )
 from services.email_verification_service import (
     create_verification_token,
     email_delivery_configured,
     hash_verification_token,
+    password_reset_expiry,
+    send_password_reset_email,
     send_verification_email,
     verification_expiry,
 )
@@ -33,6 +41,7 @@ auth_bp = Blueprint("auth", __name__)
 
 PENDING_VERIFICATION_KEY = "pending_verification_user_id"
 DEBUG_VERIFICATION_URL_KEY = "debug_verification_url"
+DEBUG_PASSWORD_RESET_URL_KEY = "debug_password_reset_url"
 RESEND_COOLDOWN_SECONDS = 60
 
 
@@ -107,8 +116,7 @@ def _issue_verification(user):
     return True, None
 
 
-def _recently_sent(user):
-    sent_at = user.get("email_verification_sent_at")
+def _recently_sent_at(sent_at):
     if not sent_at:
         return False, 0
 
@@ -121,6 +129,47 @@ def _recently_sent(user):
     remaining = int(RESEND_COOLDOWN_SECONDS - elapsed)
 
     return remaining > 0, max(remaining, 0)
+
+
+def _recently_sent(user):
+    return _recently_sent_at(user.get("email_verification_sent_at"))
+
+
+def _issue_password_reset(user):
+    token = create_verification_token()
+    token_hash = hash_verification_token(token)
+    expires_at = password_reset_expiry()
+
+    set_password_reset(
+        user["id"],
+        token_hash,
+        expires_at,
+    )
+
+    reset_url = url_for(
+        "auth.reset_password",
+        token=token,
+        _external=True,
+    )
+
+    if PASSWORD_RESET_DEBUG_LINKS:
+        session[DEBUG_PASSWORD_RESET_URL_KEY] = reset_url
+    else:
+        session.pop(DEBUG_PASSWORD_RESET_URL_KEY, None)
+
+    if not email_delivery_configured():
+        return PASSWORD_RESET_DEBUG_LINKS
+
+    try:
+        send_password_reset_email(
+            user["email"],
+            user.get("first_name"),
+            reset_url,
+        )
+    except Exception:
+        return PASSWORD_RESET_DEBUG_LINKS
+
+    return True
 
 
 @auth_bp.before_app_request
@@ -174,6 +223,8 @@ def login():
 
     if request.args.get("verified") == "1":
         notice = "Email verified successfully. Sign in to continue."
+    elif request.args.get("reset") == "1":
+        notice = "Password changed successfully. Sign in with your new password."
 
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
@@ -200,6 +251,122 @@ def login():
         error=error,
         notice=notice,
         email=email,
+    )
+
+
+@auth_bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if g.user is not None and g.user.get("email_verified_at"):
+        return redirect(url_for("bas.dashboard"))
+
+    error = None
+    notice = None
+    email = request.args.get("email", "").strip().lower()
+    debug_reset_url = None
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        session.pop(DEBUG_PASSWORD_RESET_URL_KEY, None)
+
+        if not _valid_email(email):
+            error = "Enter a valid email address."
+        else:
+            user = get_user_by_email(email)
+
+            if user and user.get("is_active"):
+                recently_sent, _ = _recently_sent_at(
+                    user.get("password_reset_sent_at")
+                )
+
+                if not recently_sent:
+                    _issue_password_reset(user)
+
+                if PASSWORD_RESET_DEBUG_LINKS:
+                    debug_reset_url = session.get(
+                        DEBUG_PASSWORD_RESET_URL_KEY
+                    )
+
+            notice = (
+                "If an active account exists for that email address, "
+                "a password reset link has been sent."
+            )
+
+    return render_template(
+        "forgot_password.html",
+        email=email,
+        error=error,
+        notice=notice,
+        debug_reset_url=debug_reset_url,
+        expiry_minutes=PASSWORD_RESET_EXPIRY_MINUTES,
+    )
+
+
+@auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    token_hash = hash_verification_token(token)
+    user = get_user_by_password_reset_token_hash(token_hash)
+
+    if not user:
+        return render_template(
+            "password_reset_result.html",
+            success=False,
+            title="Password reset link is invalid",
+            message=(
+                "This password reset link is invalid or has already been used."
+            ),
+        ), 400
+
+    expires_at = user.get("password_reset_expires_at")
+
+    try:
+        expired = (
+            not expires_at
+            or datetime.now() > datetime.fromisoformat(expires_at)
+        )
+    except ValueError:
+        expired = True
+
+    if expired:
+        clear_password_reset(user["id"])
+        return render_template(
+            "password_reset_result.html",
+            success=False,
+            title="Password reset link has expired",
+            message=(
+                "Request a new password reset link and try again."
+            ),
+        ), 400
+
+    error = None
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if len(password) < 8:
+            error = "Password must be at least 8 characters."
+        elif password != confirm_password:
+            error = "The passwords do not match."
+        else:
+            update_user_password(
+                user["id"],
+                generate_password_hash(password),
+            )
+            session.clear()
+            return redirect(
+                url_for(
+                    "auth.login",
+                    reset=1,
+                    email=user["email"],
+                )
+            )
+
+    return render_template(
+        "reset_password.html",
+        token=token,
+        email=user["email"],
+        error=error,
+        expiry_minutes=PASSWORD_RESET_EXPIRY_MINUTES,
     )
 
 
