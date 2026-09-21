@@ -108,6 +108,35 @@ http://127.0.0.1:8000/
 
 Unauthenticated users are redirected to the login page.
 
+## Email verification
+
+New firm accounts must verify their login email before accessing clients, QuickBooks, BAS or annual tax returns.
+
+Configure SMTP in `.env`:
+
+```text
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=your-smtp-username
+SMTP_PASSWORD=your-smtp-password
+SMTP_USE_TLS=true
+SMTP_USE_SSL=false
+EMAIL_FROM=no-reply@example.com
+EMAIL_VERIFICATION_EXPIRY_MINUTES=30
+```
+
+Signup now creates an unverified account, sends a time-limited verification link, and keeps the user outside the authenticated workspace until the link is used. Users can resend the verification email or correct the address before verification.
+
+Verification tokens are stored only as SHA-256 hashes in the database. Existing users are grandfathered as verified during the schema migration so current accounts are not locked out.
+
+For local development without SMTP, enable:
+
+```text
+EMAIL_VERIFICATION_DEBUG_LINKS=true
+```
+
+The verification page will then expose a clearly labelled local-only verification link. Do not enable debug verification links in production.
+
 ## Mock ATO lodgement for local testing
 
 Real ATO/SBR lodgement is not connected. The feature branch includes a disabled-by-default mock lodgement mode for testing the workflow after approval.
@@ -137,7 +166,7 @@ Before production use:
 - add CSRF protection
 - set a strong `FLASK_SECRET_KEY`
 - set secure cookies under HTTPS
-- add password reset and email verification
+- add password reset
 - make payroll/tax account mappings client-specific
 - support proper BAS obligation/period discovery instead of sandbox defaults
 - implement and verify supported ATO/SBR lodgement
