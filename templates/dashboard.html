@@ -7,7 +7,7 @@
         <div class="dashboard-eyebrow">{{ firm.firm_name if firm else "Accounting firm workspace" }}</div>
         <h1 id="dashboard-greeting" data-user-name="{{ g.user.first_name }}">Welcome, {{ g.user.first_name }}</h1>
         <div class="subtitle dashboard-welcome-subtitle">
-            Here is an overview of your clients, BAS and annual tax work.
+            Overview of your clients, BAS compliance and annual tax-return work.
         </div>
     </div>
 
@@ -17,51 +17,148 @@
     </div>
 </div>
 
-<div class="firm-dashboard-metrics">
-    <a class="card firm-dashboard-metric" href="{{ url_for('clients.index') }}">
-        <div class="firm-dashboard-metric-label">Registered clients</div>
-        <div class="firm-dashboard-metric-value">{{ total_clients }}</div>
-        <div class="firm-dashboard-metric-help">Businesses registered under your firm</div>
-    </a>
-
-    <div class="card firm-dashboard-metric">
-        <div class="firm-dashboard-metric-label">Active BAS</div>
-        <div class="firm-dashboard-metric-value">{{ active_bas_count }}</div>
-        <div class="firm-dashboard-metric-help">BAS periods not yet lodged</div>
+<section class="dashboard-summary-group client-summary-group">
+    <div class="dashboard-summary-group-heading">
+        <div>
+            <div class="dashboard-summary-kicker">Portfolio</div>
+            <h2>Clients</h2>
+            <p>Client registration and accounting-data connectivity.</p>
+        </div>
+        <a href="{{ url_for('clients.index') }}">View clients</a>
     </div>
 
-    <div class="card firm-dashboard-metric attention">
-        <div class="firm-dashboard-metric-label">Review required</div>
-        <div class="firm-dashboard-metric-value">{{ review_required_count }}</div>
-        <div class="firm-dashboard-metric-help">BAS periods requiring action</div>
+    <div class="firm-dashboard-metrics firm-dashboard-metrics-three">
+        <a class="card firm-dashboard-metric metric-clients" href="{{ url_for('clients.index') }}">
+            <div class="firm-dashboard-metric-label">Total clients</div>
+            <div class="firm-dashboard-metric-value">{{ total_clients }}</div>
+            <div class="firm-dashboard-metric-help">Businesses registered under your firm</div>
+        </a>
+
+        <a class="card firm-dashboard-metric metric-connected" href="{{ url_for('clients.index') }}">
+            <div class="firm-dashboard-metric-label">QuickBooks connected</div>
+            <div class="firm-dashboard-metric-value">{{ qbo_connected_count }}</div>
+            <div class="firm-dashboard-metric-help">Clients with accounting data connected</div>
+        </a>
+
+        <a class="card firm-dashboard-metric metric-setup" href="{{ url_for('clients.index') }}">
+            <div class="firm-dashboard-metric-label">Setup required</div>
+            <div class="firm-dashboard-metric-value">{{ qbo_attention_count }}</div>
+            <div class="firm-dashboard-metric-help">Clients still requiring a QuickBooks connection</div>
+        </a>
+    </div>
+</section>
+
+<section class="dashboard-summary-group bas-summary-group">
+    <div class="dashboard-summary-group-heading">
+        <div>
+            <div class="dashboard-summary-kicker">Compliance</div>
+            <h2>BAS Summary</h2>
+            <p>Current BAS workload across all clients.</p>
+        </div>
+        <a href="{{ url_for('bas.bas_history') }}">View firm BAS records</a>
     </div>
 
-    <div class="card firm-dashboard-metric ready">
-        <div class="firm-dashboard-metric-label">Ready to lodge</div>
-        <div class="firm-dashboard-metric-value">{{ ready_to_lodge_count }}</div>
-        <div class="firm-dashboard-metric-help">Approved BAS awaiting lodgement</div>
-    </div>
-</div>
+    <div class="firm-dashboard-metrics">
+        <div class="card firm-dashboard-metric metric-bas-progress">
+            <div class="firm-dashboard-metric-label">BAS in Progress</div>
+            <div class="firm-dashboard-metric-value">{{ bas_in_progress_count }}</div>
+            <div class="firm-dashboard-metric-help">BAS periods not yet lodged</div>
+        </div>
 
-<section class="firm-dashboard-section">
+        <div class="card firm-dashboard-metric attention">
+            <div class="firm-dashboard-metric-label">Review required</div>
+            <div class="firm-dashboard-metric-value">{{ bas_review_required_count }}</div>
+            <div class="firm-dashboard-metric-help">BAS periods requiring accountant action</div>
+        </div>
+
+        <div class="card firm-dashboard-metric ready">
+            <div class="firm-dashboard-metric-label">Ready to lodge</div>
+            <div class="firm-dashboard-metric-value">{{ bas_ready_to_lodge_count }}</div>
+            <div class="firm-dashboard-metric-help">Approved BAS waiting for lodgement</div>
+        </div>
+
+        <div class="card firm-dashboard-metric metric-lodged">
+            <div class="firm-dashboard-metric-label">Lodged this FY</div>
+            <div class="firm-dashboard-metric-value">{{ bas_lodged_this_fy_count }}</div>
+            <div class="firm-dashboard-metric-help">BAS lodged during FY {{ current_financial_year }}</div>
+        </div>
+    </div>
+</section>
+
+<section class="dashboard-summary-group tax-summary-group">
+    <div class="dashboard-summary-group-heading">
+        <div>
+            <div class="dashboard-summary-kicker">Compliance</div>
+            <h2>Annual Tax Return Summary</h2>
+            <p>Annual tax-return workload across all clients.</p>
+        </div>
+        <a href="{{ url_for('tax.tax_returns') }}">View tax returns</a>
+    </div>
+
+    <div class="firm-dashboard-metrics">
+        <div class="card firm-dashboard-metric metric-tax-progress">
+            <div class="firm-dashboard-metric-label">Returns in Progress</div>
+            <div class="firm-dashboard-metric-value">{{ tax_in_progress_count }}</div>
+            <div class="firm-dashboard-metric-help">Annual tax returns not yet lodged</div>
+        </div>
+
+        <div class="card firm-dashboard-metric attention">
+            <div class="firm-dashboard-metric-label">Review required</div>
+            <div class="firm-dashboard-metric-value">{{ tax_review_required_count }}</div>
+            <div class="firm-dashboard-metric-help">Annual returns requiring accountant action</div>
+        </div>
+
+        <div class="card firm-dashboard-metric ready">
+            <div class="firm-dashboard-metric-label">Ready to lodge</div>
+            <div class="firm-dashboard-metric-value">{{ tax_ready_to_lodge_count }}</div>
+            <div class="firm-dashboard-metric-help">Approved annual returns waiting for lodgement</div>
+        </div>
+
+        <div class="card firm-dashboard-metric metric-lodged">
+            <div class="firm-dashboard-metric-label">Lodged this FY</div>
+            <div class="firm-dashboard-metric-value">{{ tax_lodged_this_fy_count }}</div>
+            <div class="firm-dashboard-metric-help">Annual returns lodged during FY {{ current_financial_year }}</div>
+        </div>
+    </div>
+</section>
+
+<section class="firm-dashboard-section dashboard-attention-section">
     <div class="section-heading firm-dashboard-section-heading">
         <div>
-            <div class="dashboard-section-title">Needs attention</div>
-            <p>Items that may require action across your client portfolio.</p>
+            <div class="dashboard-section-title">Needs Attention</div>
+            <p>Action items are labelled by client, BAS or annual tax return.</p>
         </div>
-        {% if qbo_attention_count %}
-            <span class="section-count warning-count">{{ qbo_attention_count }} connection issue{% if qbo_attention_count != 1 %}s{% endif %}</span>
+        {% if attention_counts.all %}
+            <span class="section-count warning-count">{{ attention_counts.all }} item{% if attention_counts.all != 1 %}s{% endif %}</span>
         {% endif %}
     </div>
 
     {% if attention_items %}
-    <div class="card dashboard-attention-card">
+    <div class="attention-filter-bar" role="group" aria-label="Filter needs attention">
+        <button class="attention-filter active" type="button" data-attention-filter="all" aria-pressed="true">
+            All <span>{{ attention_counts.all }}</span>
+        </button>
+        <button class="attention-filter" type="button" data-attention-filter="client" aria-pressed="false">
+            Clients <span>{{ attention_counts.client }}</span>
+        </button>
+        <button class="attention-filter" type="button" data-attention-filter="bas" aria-pressed="false">
+            BAS <span>{{ attention_counts.bas }}</span>
+        </button>
+        <button class="attention-filter" type="button" data-attention-filter="tax" aria-pressed="false">
+            Tax Returns <span>{{ attention_counts.tax }}</span>
+        </button>
+    </div>
+
+    <div class="card dashboard-attention-card" id="attention-list">
         {% for item in attention_items %}
-        <a class="dashboard-attention-row" href="{{ item.url }}">
+        <a class="dashboard-attention-row" href="{{ item.url }}" data-attention-type="{{ item.type }}">
             <div class="dashboard-attention-client">
                 <span class="dashboard-attention-avatar">{{ item.client.company_name|client_initials }}</span>
-                <div>
-                    <strong>{{ item.client.company_name }}</strong>
+                <div class="dashboard-attention-copy">
+                    <div class="dashboard-attention-type-line">
+                        <span class="work-type-badge {{ item.type }}">{{ item.type_label }}</span>
+                        <strong>{{ item.client.company_name }}</strong>
+                    </div>
                     <span>{{ item.title }}{% if item.detail %} · {{ item.detail }}{% endif %}</span>
                 </div>
             </div>
@@ -72,13 +169,17 @@
             </div>
         </a>
         {% endfor %}
+
+        <div class="dashboard-filter-empty" id="attention-filter-empty" hidden>
+            No items in this category currently require attention.
+        </div>
     </div>
     {% else %}
     <div class="card dashboard-clear-state">
         <div class="dashboard-clear-icon">✓</div>
         <div>
             <strong>No urgent items right now</strong>
-            <p>There are no BAS reviews, lodgements or QuickBooks connections currently requiring attention.</p>
+            <p>There are no client setup issues, BAS reviews, BAS lodgements or annual tax-return actions currently requiring attention.</p>
         </div>
     </div>
     {% endif %}
@@ -95,7 +196,7 @@
     <div class="dashboard-quick-actions">
         <a class="card dashboard-quick-action" href="{{ url_for('clients.index') }}">
             <strong>Clients</strong>
-            <span>Open the client list and access individual BAS workspaces.</span>
+            <span>Open the client list and access individual compliance workspaces.</span>
         </a>
 
         <a class="card dashboard-quick-action" href="{{ url_for('clients.new_client') }}">
@@ -105,7 +206,7 @@
 
         <a class="card dashboard-quick-action" href="{{ url_for('tax.tax_returns') }}">
             <strong>Tax Returns</strong>
-            <span>Open annual tax return drafts across all clients.</span>
+            <span>Open annual tax-return work across all clients.</span>
         </a>
 
         <a class="card dashboard-quick-action" href="{{ url_for('auth.firm_profile') }}">
@@ -118,19 +219,54 @@
 <script>
 (function () {
     const heading = document.getElementById("dashboard-greeting");
-    if (!heading) return;
+    if (heading) {
+        const name = heading.dataset.userName || "";
+        const hour = new Date().getHours();
+        let greeting = "Good evening";
 
-    const name = heading.dataset.userName || "";
-    const hour = new Date().getHours();
-    let greeting = "Good evening";
+        if (hour < 12) {
+            greeting = "Good morning";
+        } else if (hour < 17) {
+            greeting = "Good afternoon";
+        }
 
-    if (hour < 12) {
-        greeting = "Good morning";
-    } else if (hour < 17) {
-        greeting = "Good afternoon";
+        heading.textContent = greeting + (name ? ", " + name : "");
     }
 
-    heading.textContent = greeting + (name ? ", " + name : "");
+    const filterButtons = Array.from(
+        document.querySelectorAll("[data-attention-filter]")
+    );
+    const attentionRows = Array.from(
+        document.querySelectorAll("[data-attention-type]")
+    );
+    const emptyState = document.getElementById("attention-filter-empty");
+
+    if (!filterButtons.length || !attentionRows.length) return;
+
+    filterButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            const filter = button.dataset.attentionFilter;
+            let visibleCount = 0;
+
+            filterButtons.forEach(function (item) {
+                const selected = item === button;
+                item.classList.toggle("active", selected);
+                item.setAttribute("aria-pressed", selected ? "true" : "false");
+            });
+
+            attentionRows.forEach(function (row) {
+                const visible =
+                    filter === "all" ||
+                    row.dataset.attentionType === filter;
+                row.hidden = !visible;
+                if (visible) visibleCount += 1;
+            });
+
+            if (emptyState) {
+                emptyState.hidden = visibleCount !== 0;
+            }
+        });
+    });
 })();
 </script>
 {% endblock %}
