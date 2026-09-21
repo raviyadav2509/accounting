@@ -7,7 +7,7 @@
     <span>›</span>
     <a href="{{ url_for('clients.business_details', client_id=client.id) }}">{{ client.company_name }}</a>
     <span>›</span>
-    <a href="{{ url_for('bas.active_bas', client_id=client.id) }}">Active BAS</a>
+    <a href="{{ url_for('bas.active_bas', client_id=client.id) }}">BAS in Progress</a>
     <span>›</span>
     <span>BAS review</span>
 </div>
@@ -18,7 +18,7 @@
         <h1>BAS Review</h1>
         <div class="subtitle">Reporting period {{ bas.start }} to {{ bas.end }}</div>
     </div>
-    <a class="secondary-button" href="{{ url_for('bas.active_bas', client_id=client.id) }}">Back to Active BAS</a>
+    <a class="secondary-button" href="{{ url_for('bas.active_bas', client_id=client.id) }}">Back to BAS in Progress</a>
 </div>
 
 <div class="card amount-card">
