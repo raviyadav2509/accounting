@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Active BAS | {{ client.company_name }}{% endblock %}
+{% block title %}BAS in Progress | {{ client.company_name }}{% endblock %}
 
 {% block content %}
 <div class="workspace-breadcrumbs">
@@ -7,13 +7,13 @@
     <span>›</span>
     <a href="{{ url_for('clients.business_details', client_id=client.id) }}">{{ client.company_name }}</a>
     <span>›</span>
-    <span>Active BAS</span>
+    <span>BAS in Progress</span>
 </div>
 
 <div class="page-heading client-section-heading">
     <div>
         <div class="eyebrow">Client BAS</div>
-        <h1>Active BAS</h1>
+        <h1>BAS in Progress</h1>
         <div class="subtitle">BAS periods still being prepared, reviewed, approved or waiting to be lodged.</div>
     </div>
 
@@ -166,7 +166,7 @@
 </div>
 {% else %}
 <div class="card empty-state">
-    <strong>No active BAS periods.</strong>
+    <strong>No BAS periods in progress.</strong>
     <p>Use Calculate new BAS to create a reporting period for this client.</p>
 </div>
 {% endif %}
