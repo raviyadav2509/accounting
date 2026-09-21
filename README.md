@@ -137,6 +137,35 @@ EMAIL_VERIFICATION_DEBUG_LINKS=true
 
 The verification page will then expose a clearly labelled local-only verification link. Do not enable debug verification links in production.
 
+## Password reset
+
+The sign-in page includes **Forgot password?**. Password reset uses the same SMTP configuration as email verification.
+
+The workflow is:
+
+1. Enter the login email.
+2. If an active account exists, a time-limited reset link is issued.
+3. The token is stored only as a SHA-256 hash.
+4. The user chooses a new password.
+5. The token is invalidated immediately after use.
+6. The user signs in with the new password.
+
+The response to the forgot-password form is deliberately generic so it does not reveal whether an email address is registered.
+
+Configure the reset lifetime with:
+
+```text
+PASSWORD_RESET_EXPIRY_MINUTES=30
+```
+
+For local testing without working SMTP, enable:
+
+```text
+PASSWORD_RESET_DEBUG_LINKS=true
+```
+
+This exposes a clearly labelled local password-reset link after a request for an existing active account. Never enable it in production.
+
 ## Mock ATO lodgement for local testing
 
 Real ATO/SBR lodgement is not connected. The feature branch includes a disabled-by-default mock lodgement mode for testing the workflow after approval.
@@ -166,7 +195,6 @@ Before production use:
 - add CSRF protection
 - set a strong `FLASK_SECRET_KEY`
 - set secure cookies under HTTPS
-- add password reset
 - make payroll/tax account mappings client-specific
 - support proper BAS obligation/period discovery instead of sandbox defaults
 - implement and verify supported ATO/SBR lodgement
