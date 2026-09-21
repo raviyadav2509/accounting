@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import Blueprint, g, redirect, render_template, request, session, url_for
 
 from config import ENABLE_MOCK_ATO_LODGEMENT
+from services.demo_service import is_demo
 
 from services.database import (
     add_tax_adjustment,
@@ -188,7 +189,7 @@ def client_tax_returns(client_id):
         financial_year_options=financial_year_options,
         default_financial_year=default_financial_year,
         supported_entity_type=SUPPORTED_ENTITY_TYPE,
-        mock_ato_lodgement_enabled=ENABLE_MOCK_ATO_LODGEMENT,
+        mock_ato_lodgement_enabled=ENABLE_MOCK_ATO_LODGEMENT or is_demo(client),
     )
 
 
@@ -267,7 +268,7 @@ def company_tax_return(client_id, tax_return_id):
         adjustments=adjustments,
         calculation=calculation,
         tax_rates=SUPPORTED_TAX_RATES,
-        mock_ato_lodgement_enabled=ENABLE_MOCK_ATO_LODGEMENT,
+        mock_ato_lodgement_enabled=ENABLE_MOCK_ATO_LODGEMENT or is_demo(client),
     )
 
 
@@ -286,7 +287,7 @@ def refresh_tax_return_from_qbo(client_id, tax_return_id):
     if approved:
         return approved
 
-    if not client.get("qbo_connected"):
+    if not client.get("qbo_connected") and not is_demo(client):
         return redirect(url_for("clients.quickbooks_client", client_id=client_id))
 
     try:
@@ -619,7 +620,9 @@ def reopen_tax_return(client_id, tax_return_id):
     methods=["POST"],
 )
 def mock_lodge_tax_return(client_id, tax_return_id):
-    if not ENABLE_MOCK_ATO_LODGEMENT:
+    if not ENABLE_MOCK_ATO_LODGEMENT and not is_demo(
+        get_client_for_user(client_id, g.user["id"])
+    ):
         return render_template(
             "message.html",
             title="Mock lodgement disabled",

@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 
-from services.qbo_service import get_report
+from services.accounting_data_service import get_report
 
 
 SUPPORTED_ENTITY_TYPE = "COMPANY"

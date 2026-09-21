@@ -12,6 +12,7 @@ from services.database import (
 )
 from services.financial_year_service import financial_year_for_date, financial_year_sort_key
 from services.tax_return_service import tax_return_status
+from services.demo_service import is_demo
 
 clients_bp = Blueprint("clients", __name__, url_prefix="/clients")
 
@@ -242,6 +243,9 @@ def quickbooks_client(client_id):
     client = get_client_for_user(client_id, g.user["id"])
     if not client:
         return redirect(url_for("clients.index"))
+
+    if is_demo(client):
+        return redirect(url_for("demo.demo_client", client_id=client_id))
 
     session["client_id"] = client_id
     g.client = client

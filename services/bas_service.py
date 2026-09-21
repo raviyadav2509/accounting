@@ -1,7 +1,7 @@
 import hashlib
 
 from config import PAYG_ACCOUNT_ID, WAGE_ACCOUNT_ID
-from services.qbo_service import query
+from services.accounting_data_service import query
 
 
 def _entities(data, entity_name):

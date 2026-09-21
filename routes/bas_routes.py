@@ -6,6 +6,7 @@ from flask import Blueprint, g, redirect, render_template, request, session, url
 
 from config import DEFAULT_BAS_END, DEFAULT_BAS_START, ENABLE_MOCK_ATO_LODGEMENT
 from services.ai_review_service import run_ai_review
+from services.demo_service import is_demo, demo_periods, demo_review
 from services.bas_service import (
     bas_signature,
     bas_summary_payload,
@@ -53,7 +54,7 @@ def _require_client():
     if not client:
         return None, redirect(url_for("clients.index"))
 
-    if not client.get("qbo_connected"):
+    if not client.get("qbo_connected") and not is_demo(client):
         return client, redirect(
             url_for("clients.quickbooks_client", client_id=client["id"])
         )
@@ -62,9 +63,10 @@ def _require_client():
 
 
 def _period_from_request():
+    defaults = demo_periods() if is_demo(g.client) else {"start": DEFAULT_BAS_START, "end": DEFAULT_BAS_END}
     return (
-        request.values.get("start", DEFAULT_BAS_START),
-        request.values.get("end", DEFAULT_BAS_END),
+        request.values.get("start", defaults["start"]),
+        request.values.get("end", defaults["end"]),
     )
 
 
@@ -282,7 +284,7 @@ def dashboard():
     for client in clients:
         if client.get("qbo_connected"):
             qbo_connected_count += 1
-        else:
+        elif not is_demo(client):
             qbo_attention_count += 1
             attention_items.append(
                 {
@@ -355,9 +357,8 @@ def dashboard():
                         "status": "Review required",
                         "status_class": "review-required",
                         "url": url_for(
-                            "bas.bas_review",
-                            start=record["start_date"],
-                            end=record["end_date"],
+                            "bas.active_bas",
+                            client_id=client["id"],
                         ),
                         "priority": 2,
                     }
@@ -489,7 +490,7 @@ def active_bas(client_id):
     session["client_id"] = client_id
     g.client = client
 
-    if not client.get("qbo_connected"):
+    if not client.get("qbo_connected") and not is_demo(client):
         return redirect(
             url_for("clients.quickbooks_client", client_id=client_id)
         )
@@ -508,7 +509,7 @@ def active_bas(client_id):
         "client_active_bas.html",
         client=client,
         current_records=current_records,
-        mock_ato_lodgement_enabled=ENABLE_MOCK_ATO_LODGEMENT,
+        mock_ato_lodgement_enabled=ENABLE_MOCK_ATO_LODGEMENT or is_demo(client),
     )
 
 
@@ -756,7 +757,7 @@ def ai_review():
     bas = calculate_bas(client_id, start, end)
     signature, _ = _persist_bas(client_id, bas)
 
-    result = run_ai_review(bas)
+    result = demo_review(bas) if is_demo(client) else run_ai_review(bas)
 
     save_ai_review(
         client_id,
@@ -1025,7 +1026,7 @@ def reopen_approved_bas():
 
 @bas_bp.route("/mock-lodge-bas", methods=["POST"])
 def mock_lodge_bas():
-    if not ENABLE_MOCK_ATO_LODGEMENT:
+    if not ENABLE_MOCK_ATO_LODGEMENT and not is_demo(_active_client()):
         return render_template(
             "message.html",
             title="Mock lodgement disabled",

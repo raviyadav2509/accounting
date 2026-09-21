@@ -158,6 +158,7 @@
                     <div class="dashboard-attention-type-line">
                         <span class="work-type-badge {{ item.type }}">{{ item.type_label }}</span>
                         <strong>{{ item.client.company_name }}</strong>
+                        {% if item.client.data_source == "DEMO" %}<span class="status-badge warning">Demo</span>{% endif %}
                     </div>
                     <span>{{ item.title }}{% if item.detail %} · {{ item.detail }}{% endif %}</span>
                 </div>

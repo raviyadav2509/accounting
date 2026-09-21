@@ -86,14 +86,14 @@
         <div>
             <div class="tax-card-label">Current accounting profit</div>
             <div class="tax-source-amount">{{ tax_return.accounting_profit_display }}</div>
-            <p>QuickBooks import uses the Profit &amp; Loss report for {{ tax_return.start_date }} to {{ tax_return.end_date }}.</p>
+            <p>{{ "Demo import derives profit from local sample transactions" if client.data_source == "DEMO" else "QuickBooks import uses the Profit & Loss report" }} for {{ tax_return.start_date }} to {{ tax_return.end_date }}.</p>
         </div>
 
         {% if tax_return.approval_status not in ["APPROVED", "LODGED"] %}
         <div class="tax-source-actions">
-            {% if client.qbo_connected %}
+            {% if client.qbo_connected or client.data_source == "DEMO" %}
             <form method="post" action="{{ url_for('tax.refresh_tax_return_from_qbo', client_id=client.id, tax_return_id=tax_return.id) }}">
-                <button class="secondary-button" type="submit">Import from QuickBooks</button>
+                <button class="secondary-button" type="submit">{{ "Import demo profit" if client.data_source == "DEMO" else "Import from QuickBooks" }}</button>
             </form>
             {% else %}
             <a class="secondary-button" href="{{ url_for('clients.quickbooks_client', client_id=client.id) }}">Connect QuickBooks</a>

@@ -11,13 +11,13 @@
     <span>›</span>
     <a href="{{ url_for('bas.bas_review', start=bas.start, end=bas.end) }}">BAS review</a>
     <span>›</span>
-    <span>AI review</span>
+    <span>{{ "Simulated review" if client.data_source == "DEMO" else "AI review" }}</span>
 </div>
 
 <div class="page-heading bas-review-heading">
     <div>
         <div class="eyebrow">Client BAS</div>
-        <h1>AI Transaction Review</h1>
+        <h1>{{ "Simulated Transaction Review" if client.data_source == "DEMO" else "AI Transaction Review" }}</h1>
         <div class="subtitle">Reporting period {{ bas.start }} to {{ bas.end }}</div>
     </div>
     <a class="secondary-button" href="{{ url_for('bas.bas_review', start=bas.start, end=bas.end) }}">Back to BAS</a>
@@ -79,7 +79,7 @@
 </div>
 
 <div class="card review-content">
-    <h2>AI transaction review</h2>
+    <h2>{{ "Simulated transaction review" if client.data_source == "DEMO" else "AI transaction review" }}</h2>
     {{ review_html|safe }}
 </div>
 
@@ -95,8 +95,13 @@
             <div class="resolution-path-number">1</div>
             <div class="resolution-path-content">
                 <h3>The transaction is wrong</h3>
+                {% if client.data_source == "DEMO" %}
+                <p>Demo source transactions are fixed fixtures. To practise another scenario, reset the demo data. To complete this review exercise, confirm business use and record a resolution below.</p>
+                <a class="secondary-button" href="{{ url_for('demo.demo_client', client_id=client.id) }}">Demo scenarios &amp; reset</a>
+                {% else %}
                 <p>Correct it in QuickBooks, then run the AI review again so the BAS is checked using the updated data.</p>
                 <a class="button" href="{{ url_for('bas.ai_review', start=bas.start, end=bas.end) }}">Run AI Review Again</a>
+                {% endif %}
             </div>
         </div>
 

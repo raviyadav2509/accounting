@@ -5979,3 +5979,12 @@ textarea:focus-visible {
         gap: 5px;
     }
 }
+/* Self-contained demo workspace */
+.demo-banner { padding: 16px 20px; margin-bottom: 20px; border: 1px solid #d49d27; border-radius: 10px; background: #fff7df; color: #513d13; }
+.demo-banner a { margin-left: 12px; color: #513d13; text-decoration: underline; }
+.demo-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.demo-form { display: grid; gap: 12px; max-width: 500px; }
+.demo-form select, .demo-form input { padding: 10px; border: 1px solid #aeb9c9; border-radius: 6px; }
+.demo-table-wrap { overflow-x: auto; }
+.demo-table { width: 100%; border-collapse: collapse; }
+.demo-table th, .demo-table td { padding: 10px; text-align: left; border-bottom: 1px solid #dde3ec; }

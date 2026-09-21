@@ -286,6 +286,21 @@ def init_db():
                 "ALTER TABLE clients ADD COLUMN entity_type TEXT NOT NULL DEFAULT 'UNSPECIFIED'"
             )
 
+        if "data_source" not in _column_names(connection, "clients"):
+            connection.execute(
+                "ALTER TABLE clients ADD COLUMN data_source TEXT NOT NULL DEFAULT 'QUICKBOOKS'"
+            )
+        connection.execute(
+            """CREATE TABLE IF NOT EXISTS demo_transactions (
+                client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+                entity TEXT NOT NULL,
+                transaction_id TEXT NOT NULL,
+                transaction_date TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                PRIMARY KEY (client_id, entity, transaction_id)
+            )"""
+        )
+
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS tax_returns (
@@ -1288,6 +1303,7 @@ def get_history_for_user(owner_user_id, limit=200):
                 SELECT
                     b.*,
                     c.company_name AS client_name,
+                    c.data_source,
                     c.abn AS client_abn,
                     ROW_NUMBER() OVER (
                         PARTITION BY b.client_id, b.start_date, b.end_date
@@ -1314,6 +1330,7 @@ def get_record_for_user(owner_user_id, record_id):
             SELECT
                 b.*,
                 c.company_name AS client_name,
+                c.data_source,
                 c.abn AS client_abn
             FROM bas_records b
             JOIN clients c ON c.id = b.client_id
@@ -1417,6 +1434,7 @@ def get_tax_returns_for_user(owner_user_id, limit=250):
             SELECT
                 t.*,
                 c.company_name AS client_name,
+                c.data_source,
                 c.abn AS client_abn
             FROM tax_returns t
             JOIN clients c ON c.id = t.client_id

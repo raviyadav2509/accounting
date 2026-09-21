@@ -26,18 +26,18 @@
         <div class="new-bas-popover">
             <div class="new-bas-popover-heading">
                 <strong>Calculate a new BAS</strong>
-                <span>Select the reporting period to calculate from this client's QuickBooks data.</span>
+                <span>Select the reporting period to calculate from this client's {{ "demo" if client.data_source == "DEMO" else "QuickBooks" }} data.</span>
             </div>
 
             <form class="new-bas-form" action="{{ url_for('bas.calculate_new_bas') }}" method="post">
                 <div class="date-field">
                     <label for="new-bas-start">Start date</label>
-                    <input id="new-bas-start" name="start" type="date" required>
+                    <input id="new-bas-start" name="start" type="date" value="{{ demo_periods().start if client.data_source == 'DEMO' else '' }}" required>
                 </div>
 
                 <div class="date-field">
                     <label for="new-bas-end">End date</label>
-                    <input id="new-bas-end" name="end" type="date" required>
+                    <input id="new-bas-end" name="end" type="date" value="{{ demo_periods().end if client.data_source == 'DEMO' else '' }}" required>
                 </div>
 
                 <button class="button" type="submit">Calculate BAS</button>

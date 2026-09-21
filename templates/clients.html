@@ -7,7 +7,10 @@
         <h1>Clients</h1>
         <div class="subtitle">Manage the businesses whose BAS you prepare and lodge.</div>
     </div>
-    <a class="button" href="{{ url_for('clients.new_client') }}">+ Add client</a>
+    <div class="demo-actions">
+        <a class="secondary-button" href="{{ url_for('demo.new_demo') }}">Try demo company</a>
+        <a class="button" href="{{ url_for('clients.new_client') }}">+ Add client</a>
+    </div>
 </div>
 
 {% if clients %}
@@ -15,7 +18,7 @@
     <div class="client-list-header">
         <div>Client</div>
         <div>ABN</div>
-        <div>QuickBooks</div>
+        <div>Data source</div>
         <div></div>
     </div>
 
@@ -49,7 +52,9 @@
 
             <div class="client-list-status">
                 <span class="mobile-client-label">QuickBooks</span>
-                {% if client.qbo_connected %}
+                {% if client.data_source == "DEMO" %}
+                    <span class="status-badge warning">Demo — local data</span>
+                {% elif client.qbo_connected %}
                     <span class="status-badge pass">Connected</span>
                 {% else %}
                     <span class="status-badge warning">Not connected</span>

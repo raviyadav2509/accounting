@@ -33,6 +33,7 @@
                             <span class="history-client-avatar">{{ record.client_name|client_initials }}</span>
                             <span class="history-client-copy">
                                 <strong>{{ record.client_name }}</strong>
+                                {% if record.data_source == "DEMO" %}<small>DEMO — simulated workflow</small>{% endif %}
                                 {% if record.client_abn %}<small>ABN {{ record.client_abn }}</small>{% endif %}
                             </span>
                         </a>

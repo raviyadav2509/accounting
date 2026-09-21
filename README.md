@@ -108,6 +108,45 @@ http://127.0.0.1:8000/
 
 Unauthenticated users are redirected to the login page.
 
+## Self-contained demo mode
+
+On `feature/annual-tax-return`, sign in with a verified account and choose
+**Clients → Try demo company**. Pick the standard company or expense-review
+exercise. Each created company belongs only to your account; its `data_source`
+is permanently `DEMO`. Existing clients remain `QUICKBOOKS` after migration.
+
+The demo page provides a sample BAS link and annual-return workflow. Underlying
+fictional invoices, sales receipts, bills, purchases and balanced payroll journals
+are stored per client in SQLite. They cover the previous completed and current
+Australian financial years at creation/reset time. Future dates are fictional.
+The BAS uses the existing calculator; annual profit is derived from these same
+transactions, then passed to the existing company-return calculation/review.
+Example quarterly BAS payable is $6,300; full-year accounting profit is $72,000.
+Dates outside the seeded range have no transactions. No real tax eligibility or
+compliance is validated by these sample scenarios.
+
+Demo reviews are deterministic **simulations, not AI assessments**. They never
+call OpenAI. QuickBooks/OAuth calls are blocked for demo clients. No QuickBooks
+credentials or OpenAI key are needed for demo workflows; the app can now start
+without an OpenAI key. Existing signup email verification still requires SMTP
+or explicitly enabled local-only debug links; demo mode does not bypass login.
+
+Human review/approval remains mandatory. Demo clients can simulate lodgement
+without enabling the global `ENABLE_MOCK_ATO_LODGEMENT` switch; this exception
+does not apply to connected clients. References remain labelled `MOCK-*`, and
+no ATO request is sent. A permanent client banner identifies demo mode.
+
+**Demo data & reset** allows a scenario reset after typing `RESET`. The action
+requires a session CSRF token and verified client ownership, and is atomic.
+It permanently deletes only that demo client's BAS records, reviews, approvals,
+simulated receipts, tax returns and adjustments, then restores sample data.
+Account/business details and all other clients are retained. Up to five demo
+clients per user are allowed. Source fixtures are not editable in the UI.
+
+This feature does not deploy a hosted sandbox or resolve the production-security
+gaps below. New demo forms have CSRF protection; existing forms still need the
+application-wide CSRF work described in the production checklist.
+
 ## Automated tests and CI
 
 Install the development dependencies and run the test suite locally:
