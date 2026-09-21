@@ -5615,3 +5615,142 @@ textarea:focus-visible {
         flex-direction: column;
     }
 }
+
+
+/* Email verification */
+.auth-success {
+    margin-bottom: 18px;
+    padding: 12px 14px;
+    border: 1px solid #b9dfb3;
+    border-radius: 8px;
+    background: #f2fbef;
+    color: #236c2a;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.verification-card {
+    padding: 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    border: 1px solid #e0e7e2;
+    border-radius: 10px;
+    background: #fbfdfb;
+}
+
+.verification-icon {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bas-mint);
+    color: var(--bas-green-dark);
+}
+
+.verification-icon svg {
+    width: 21px;
+    height: 21px;
+}
+
+.verification-card span,
+.verification-card strong {
+    display: block;
+}
+
+.verification-card span {
+    color: var(--bas-muted);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.verification-card strong {
+    margin-top: 3px;
+    color: #223029;
+    font-size: 15px;
+    overflow-wrap: anywhere;
+}
+
+.verification-card p {
+    margin: 6px 0 0;
+    color: var(--bas-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.verification-actions {
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.verification-actions form,
+.verification-actions .auth-primary-button {
+    width: 100%;
+}
+
+.auth-secondary-link,
+.auth-primary-link {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 750;
+    text-decoration: none;
+}
+
+.auth-secondary-link {
+    border: 1px solid #d8e0da;
+    background: #fff;
+    color: var(--bas-green-dark);
+}
+
+.auth-secondary-link:hover {
+    background: var(--bas-mint-soft);
+}
+
+.auth-primary-link {
+    width: 100%;
+    background: var(--bas-green);
+    color: #fff;
+}
+
+.auth-primary-link:hover {
+    background: #258b18;
+}
+
+.verification-debug {
+    margin-top: 18px;
+    padding: 13px 14px;
+    border: 1px dashed #c5b36b;
+    border-radius: 8px;
+    background: #fffbeb;
+    color: #67551a;
+}
+
+.verification-debug strong {
+    display: block;
+    font-size: 12px;
+}
+
+.verification-debug p {
+    margin: 4px 0 8px;
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.verification-debug a {
+    color: #725c00;
+    font-size: 12px;
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
