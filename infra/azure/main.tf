@@ -1,6 +1,6 @@
 locals {
   web_app_name = "${var.name_prefix}-${random_string.suffix.result}"
-  tags         = {
+  tags = {
     application = "quickbooks-accounting"
     environment = "development"
     managed_by  = "terraform"

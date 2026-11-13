@@ -15,6 +15,10 @@ This package was matched to `raviyadav2509/accounting` on GitHub. The Azure DevO
 
 The app reads `BAS_DATABASE_FILE`, so the web app uses `/home/bas-data/bas_history.db`. This is outside the deployed application files and persists across ordinary app restarts and code deployments. Existing local data is **not migrated**. Deleting the web app/resource group deletes its associated data. Persistence is not a backup.
 
+## Azure Pipeline
+
+Use [PIPELINE.md](PIPELINE.md) to configure `/azure-pipelines-terraform.yml` for manual Terraform plan/apply runs with an Azure workload identity service connection. Create the remote state backend first; this pipeline provisions infrastructure only.
+
 ## 1. Prerequisites
 
 Install Terraform 1.6 or newer (below 2.0), Azure CLI, Git and Python 3.12. Use a recent Azure CLI that supports Entra-authenticated App Service ZIP deployment with publishing basic authentication disabled.
@@ -47,7 +51,7 @@ Set-TerraformSecret "qbo_client_id"
 Set-TerraformSecret "qbo_client_secret"
 Set-TerraformSecret "openai_api_key"
 
-terraform init
+# Initialize the remote backend using the command in PIPELINE.md first.
 terraform fmt -check
 terraform validate
 terraform plan -out=deployment.tfplan
@@ -56,7 +60,7 @@ terraform apply deployment.tfplan
 
 Review the plan before apply. If F1 is unavailable due to region capacity or subscription quotas, try another supported region or request the quota. Changing to B1 incurs charges; it is not an automatic fallback. Do not use `terraform init -upgrade` routinely; retain and commit `.terraform.lock.hcl` once generated.
 
-**Secret handling:** `sensitive = true` hides normal Terraform output but does not encrypt state. The QBO/OpenAI credentials and generated Flask signing key are stored in state and the saved plan. Keep `.tfstate`, `.tfplan`, credentials and `.terraform/` out of Git. For shared use, configure an Azure Storage backend with Entra authentication and restricted RBAC before the first apply; this package uses local state and does not provision that backend. The included `.gitignore` applies when this folder is committed as a unit.
+**Secret handling:** `sensitive = true` hides normal Terraform output but does not encrypt state. The QBO/OpenAI credentials and generated Flask signing key are stored in state and the saved plan. Keep `.tfstate`, `.tfplan`, credentials and `.terraform/` out of Git. The configuration requires an Azure Storage backend with Entra authentication and restricted RBAC. Create it and initialize Terraform as described in PIPELINE.md before the first apply. Migrate existing local state before using the pipeline. The included `.gitignore` applies when this folder is committed as a unit.
 
 ## 3. Deploy your application code
 
@@ -72,7 +76,7 @@ terraform output -raw application_url
 
 The ZIP contains the app at its root, not inside an extra folder. The packager adds Gunicorn to the deployment requirements and includes `azure_wsgi.py`; it does not change your checkout. `.env`, databases, token files, Terraform files and Git history are excluded. Review the archive before deployment if you have added sensitive files to `static/` or `templates/`.
 
-App Service's Oryx build installs the requirements. Startup uses one Gunicorn worker and one thread to limit SQLite write contention. Initial deployment/build can take a few minutes. This does not configure an Azure DevOps service connection or CI/CD pipeline; the same package can later be deployed by Azure Pipelines.
+App Service's Oryx build installs the requirements. Startup uses one Gunicorn worker and one thread to limit SQLite write contention. Initial deployment/build can take a few minutes. The separate Terraform pipeline is described in PIPELINE.md; it does not deploy this application ZIP.
 
 ## 4. Configure QuickBooks
 
@@ -116,3 +120,4 @@ Run `terraform init`, `terraform validate` and `terraform plan` in your authenti
 - https://learn.microsoft.com/en-us/azure/app-service/configure-language-python
 - https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/linux_web_app
 - https://azure.microsoft.com/en-us/pricing/details/app-service/linux/
+
