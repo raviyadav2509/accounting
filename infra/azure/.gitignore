@@ -1,0 +1,10 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+*.auto.tfvars
+crash.log
+app-deploy.zip
+__pycache__/
+# Commit .terraform.lock.hcl after terraform init.
