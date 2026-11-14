@@ -24,12 +24,12 @@ variables:
     value: '$(Pipeline.Workspace)/terraform-plan'
 
 stages:
-  - template: infra/azure/pipeline-steps/environment-stages.yml
+  - template: steps/environment-stages.yml
     parameters:
       stageSuffix: Dev
       environmentName: dev
       azureEnvironment: Terraform-Dev-Env
-      variableGroup: accounting-terraform-dev
+      variableGroup: accounting-terraform
       # Preserve the exact existing Dev blob; do not reset or copy its state.
       stateKey: $(stateKey)
       azureServiceConnection: ${{ parameters.azureServiceConnection }}

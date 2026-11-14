@@ -76,8 +76,9 @@ key would make Terraform lose track of those existing resources.
 
 ## 3. Dev secrets
 
-Create or keep the **`accounting-terraform-dev`** Library variable group and
-authorize this pipeline to use it. It must contain:
+Keep Dev secrets in the existing **`accounting-terraform`** Library variable group
+alongside the shared backend settings, and authorize this pipeline to use it.
+It must also contain:
 
 | Variable | Secret | Value |
 | --- | --- | --- |
@@ -87,7 +88,7 @@ authorize this pipeline to use it. It must contain:
 | `qboEnvironment` | No | `sandbox` or `production` |
 
 Use the current Intuit sandbox credentials and set `qboEnvironment` to `sandbox`
-for initial testing. Avoid adding shared backend keys to this secrets group.
+for initial testing. Preserve the existing shared backend values in this group.
 
 Dev hosting remains **F1** unless deliberately changed in Terraform. There is no
 automatic paid fallback. Application deployment and Intuit callback registration
@@ -106,7 +107,7 @@ automatically. The YAML has no ManualValidation task or approval stage.
 
 ## 5. Run and review
 
-Use `/azure-pipelines-terraform.yml` from `feature/annual-tax-return` in GitHub.
+Use `/Pipelines/azure-pipelines-terraform.yml` from `feature/annual-tax-return` in GitHub.
 Start one run. Review PlanDev and approve ApplyDev on `Terraform-Dev-Env`.
 A rejected approval prevents ApplyDev from deploying. Environment checks run before the
 deployment job starts; no agent is occupied during the approval wait.

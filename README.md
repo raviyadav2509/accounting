@@ -160,7 +160,7 @@ py -m pip install -r requirements-dev.txt
 py -m pytest
 ```
 
-Once registered in Azure DevOps, `azure-pipelines.yml` runs the same tests for
+Once registered in Azure DevOps, `Pipelines/azure-pipelines.yml` runs the same tests for
 `main`, `feature/*` and GitHub pull requests targeting those branches containing
 this YAML. It publishes JUnit results, code coverage and a tested application
 ZIP containing only allowlisted application files (no databases or credentials).
@@ -172,7 +172,7 @@ baseline; there is not yet a minimum overall coverage gate.
 ### Register the Azure DevOps pipeline
 
 1. Connect the GitHub repository to your Azure DevOps project.
-2. Create a pipeline using the existing `/azure-pipelines.yml` on
+2. Create a pipeline using the existing `/Pipelines/azure-pipelines.yml` on
    `feature/annual-tax-return`; keep `main` unchanged until review/merge.
 3. Run it on the feature branch and confirm test results, coverage and the
    `accounting` ZIP artifact are published.
