@@ -18,16 +18,25 @@ resource "random_password" "flask_secret" {
   special = false
 }
 
-resource "azurerm_resource_group" "app" {
-  name     = "rg-${local.web_app_name}"
-  location = var.location
-  tags     = local.tags
+# The application group is owned outside this Terraform configuration.
+data "azurerm_resource_group" "app" {
+  name = var.resource_group_name
+}
+
+# Previous versions created a group. Forget it without deleting the group or
+# unrelated contents when existing state is upgraded to this configuration.
+removed {
+  from = azurerm_resource_group.app
+
+  lifecycle {
+    destroy = false
+  }
 }
 
 resource "azurerm_service_plan" "app" {
   name                = "asp-${local.web_app_name}"
-  resource_group_name = azurerm_resource_group.app.name
-  location            = azurerm_resource_group.app.location
+  resource_group_name = data.azurerm_resource_group.app.name
+  location            = data.azurerm_resource_group.app.location
   os_type             = "Linux"
   sku_name            = var.sku_name
   worker_count        = 1
@@ -36,8 +45,8 @@ resource "azurerm_service_plan" "app" {
 
 resource "azurerm_linux_web_app" "app" {
   name                = local.web_app_name
-  resource_group_name = azurerm_resource_group.app.name
-  location            = azurerm_resource_group.app.location
+  resource_group_name = data.azurerm_resource_group.app.name
+  location            = data.azurerm_resource_group.app.location
   service_plan_id     = azurerm_service_plan.app.id
   https_only          = true
 

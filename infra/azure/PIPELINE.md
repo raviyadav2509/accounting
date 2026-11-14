@@ -12,9 +12,11 @@ connection → Azure Resource Manager**. Select **Workload identity federation**
 your subscription, and name it `azure-accounting-wif`. Authorize this pipeline
 to use it. A different name can be selected when running the pipeline.
 
-Because Terraform creates a resource group, the identity needs **Contributor**
-at subscription scope. Register `Microsoft.Web` beforehand, or ensure the
-identity can register providers. Give the identity **Storage Blob Data
+Terraform uses the existing **`rg-quickbooks-accounting`** group. The identity
+needs read access to that group and **Contributor** to deploy its App Service
+resources. An existing subscription-level Contributor assignment also covers it.
+Register required providers (including `Microsoft.Web`) beforehand if the identity
+cannot register providers at subscription scope. Give the identity **Storage Blob Data
 Contributor** on the state container/account separately. Contributor alone does
 not grant blob data access. The pipeline does not create role assignments.
 
@@ -84,6 +86,11 @@ The subscription ID is taken from the service connection. Do not commit
 this environment across branches and runs. A different environment needs separate
 state and a distinct app name prefix. To override defaults, add explicit `TF_VAR_*`
 environment mappings to the YAML; Azure secret variables are not exported implicitly.
+
+When upgrading from the earlier configuration that created a group, read
+README's **Switching an earlier deployment to the existing group** section first.
+Run `plan` and review any app/hosting-plan replacements before `apply`. The backend
+variables above must continue pointing to the original state storage.
 
 ## 4. Create and run the pipeline
 

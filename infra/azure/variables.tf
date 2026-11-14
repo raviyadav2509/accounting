@@ -3,10 +3,15 @@ variable "subscription_id" {
   type        = string
 }
 
-variable "location" {
-  description = "Azure region; free Linux capacity is subscription- and region-dependent."
+variable "resource_group_name" {
+  description = "Existing Azure resource group for the application; Terraform does not create or delete it."
   type        = string
-  default     = "australiaeast"
+  default     = "rg-quickbooks-accounting"
+
+  validation {
+    condition     = length(trimspace(var.resource_group_name)) > 0
+    error_message = "Supply the existing application resource group name."
+  }
 }
 
 variable "name_prefix" {

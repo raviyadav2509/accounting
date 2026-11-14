@@ -1,8 +1,8 @@
-subscription_id = "REPLACE-WITH-YOUR-SUBSCRIPTION-ID"
-location        = "australiaeast"
-name_prefix     = "ravi-accounting"
-sku_name        = "F1"
-qbo_environment = "sandbox"
+subscription_id     = "REPLACE-WITH-YOUR-SUBSCRIPTION-ID"
+resource_group_name = "rg-quickbooks-accounting"
+name_prefix         = "ravi-accounting"
+sku_name            = "F1"
+qbo_environment     = "sandbox"
 
 # Set QBO and OpenAI credentials using TF_VAR_* environment variables.
 # Do not commit credentials or Terraform state to Git.
