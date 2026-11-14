@@ -13,7 +13,8 @@ Terraform and is expected in **`rg-tfstate-sa`**.
 
 Follow [PIPELINE.md](PIPELINE.md) for the storage-account move, variable groups and
 Environment approval. One run executes **PlanDev → ApplyDev**. Apply uses the
-exact saved plan and is controlled by checks on **`Terraform-Dev-Env`**.
+exact saved plan, is controlled by checks on **`Terraform-Dev-Env`**, and only runs
+from `main`; other branches stop after PlanDev.
 
 Azure resource groups cannot be renamed. Move the existing state storage account
 from `rg-quickbooks-accounting` into a newly created `rg-tfstate-sa` group first.

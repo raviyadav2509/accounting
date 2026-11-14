@@ -8,6 +8,12 @@ Apply is controlled by approvals and checks on **`Terraform-Dev-Env`**.
 It consumes the exact saved plan from PlanDev;
 it does not run Terraform plan again.
 
+ApplyDev runs only when the pipeline is run from `main`. Runs from any other branch
+stop after PlanDev, so feature branches can be planned and reviewed but never
+deployed. `run-terraform.sh` also refuses to apply outside `main`. Because a
+branch could edit both, add a **Branch control** check (allowed branches
+`refs/heads/main`) on `Terraform-Dev-Env` to enforce this in Azure DevOps itself.
+
 | Target | New managed resource group | Azure DevOps Environment | State blob |
 | --- | --- | --- | --- |
 | Dev | `rg-quickbooks-dev` | `Terraform-Dev-Env` | Existing `stateKey` value, normally `accounting-dev.tfstate` |

@@ -8,7 +8,7 @@ required=(servicePrincipalId tenantId idToken TF_ACTION TF_PLAN_DIRECTORY
   TF_STATE_RESOURCE_GROUP TF_STATE_STORAGE_ACCOUNT TF_STATE_CONTAINER TF_STATE_KEY)
 case "${TF_ACTION:-}" in
   plan) required+=(TF_VAR_qbo_client_id TF_VAR_qbo_client_secret TF_VAR_openai_api_key TF_VAR_qbo_environment) ;;
-  apply) ;;
+  apply) required+=(TF_SOURCE_BRANCH) ;;
   *) echo "TF_ACTION must be plan or apply" >&2; exit 1 ;;
 esac
 for name in "${required[@]}"; do
@@ -18,6 +18,12 @@ for name in "${required[@]}"; do
     exit 1
   fi
 done
+
+# Backstop for the Apply stage condition, in case the YAML is edited on a branch.
+if [[ "$TF_ACTION" == apply && "$TF_SOURCE_BRANCH" != refs/heads/main ]]; then
+  echo "Apply is only allowed from main (this run is from $TF_SOURCE_BRANCH)" >&2
+  exit 1
+fi
 
 if [[ "$TF_DEPLOYMENT_ENVIRONMENT" != "$TF_VAR_deployment_environment" ]]; then
   echo "Pipeline and Terraform environment must match" >&2
