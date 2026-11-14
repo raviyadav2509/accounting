@@ -1,4 +1,4 @@
-# One run: generate a saved plan, wait for approval, then apply that exact plan.
+# One run: save a plan, pass Terraform-Dev-Env checks, then apply that exact plan.
 trigger: none
 pr: none
 
@@ -64,69 +64,51 @@ stages:
 
           - template: infra/azure/pipeline-steps/cleanup.yml
 
-  - stage: Approval
-    displayName: Review and approve plan
+  - stage: Apply
+    displayName: Apply approved Terraform plan
     dependsOn: Plan
     condition: succeeded()
     jobs:
-      - job: WaitForApproval
-        displayName: Wait for manual approval
-        pool: server
-        timeoutInMinutes: 1450
-        steps:
-          - task: ManualValidation@1
-            displayName: Approve Terraform apply
-            timeoutInMinutes: 1440
-            inputs:
-              notifyUsers: ''
-              allowApproversToApproveTheirOwnRuns: true
-              instructions: |
-                Review this run's Plan stage logs, especially replacements/deletions
-                when switching to rg-quickbooks-accounting.
-                Resume to apply the saved plan from this run, or Reject to stop.
-                Do not approve destructive changes until application data is backed up.
-              onTimeout: reject
-
-  - stage: Apply
-    displayName: Apply approved Terraform plan
-    dependsOn:
-      - Plan
-      - Approval
-    condition: succeeded()
-    jobs:
-      - job: ApplySavedPlan
+      - deployment: ApplySavedPlan
+        displayName: Deploy Terraform to development
         timeoutInMinutes: 60
-        steps:
-          - template: infra/azure/pipeline-steps/setup.yml
+        environment: Terraform-Dev-Env
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                # Download only the explicitly selected artifact from this run.
+                - download: none
+                - template: infra/azure/pipeline-steps/setup.yml
 
-          - task: DownloadPipelineArtifact@2
-            displayName: Download this run's saved plan
-            inputs:
-              buildType: current
-              artifactName: terraform-plan
-              targetPath: $(terraformPlanDirectory)
+                - task: DownloadPipelineArtifact@2
+                  displayName: Download this run's saved plan
+                  inputs:
+                    buildType: current
+                    artifactName: terraform-plan
+                    targetPath: $(terraformPlanDirectory)
 
-          - task: AzureCLI@2
-            displayName: Apply saved plan without replanning
-            inputs:
-              azureSubscription: ${{ parameters.azureServiceConnection }}
-              scriptType: bash
-              scriptLocation: scriptPath
-              scriptPath: '$(terraformDirectory)/scripts/run-terraform.sh'
-              workingDirectory: $(terraformDirectory)
-              addSpnToEnvironment: true
-              visibleAzLogin: false
-            env:
-              TF_IN_AUTOMATION: 'true'
-              TF_INPUT: 'false'
-              TF_ACTION: apply
-              TF_PLAN_DIRECTORY: $(terraformPlanDirectory)
-              TF_RUN_ID: $(Build.BuildId)
-              TF_SOURCE_VERSION: $(Build.SourceVersion)
-              TERRAFORM_VERSION: $(terraformVersion)
-              TF_STATE_RESOURCE_GROUP: $(stateResourceGroup)
-              TF_STATE_STORAGE_ACCOUNT: $(stateStorageAccount)
-              TF_STATE_CONTAINER: $(stateContainer)
-              TF_STATE_KEY: $(stateKey)
+                - task: AzureCLI@2
+                  displayName: Apply saved plan without replanning
+                  inputs:
+                    azureSubscription: ${{ parameters.azureServiceConnection }}
+                    scriptType: bash
+                    scriptLocation: scriptPath
+                    scriptPath: '$(terraformDirectory)/scripts/run-terraform.sh'
+                    workingDirectory: $(terraformDirectory)
+                    addSpnToEnvironment: true
+                    visibleAzLogin: false
+                  env:
+                    TF_IN_AUTOMATION: 'true'
+                    TF_INPUT: 'false'
+                    TF_ACTION: apply
+                    TF_PLAN_DIRECTORY: $(terraformPlanDirectory)
+                    TF_RUN_ID: $(Build.BuildId)
+                    TF_SOURCE_VERSION: $(Build.SourceVersion)
+                    TERRAFORM_VERSION: $(terraformVersion)
+                    TF_STATE_RESOURCE_GROUP: $(stateResourceGroup)
+                    TF_STATE_STORAGE_ACCOUNT: $(stateStorageAccount)
+                    TF_STATE_CONTAINER: $(stateContainer)
+                    TF_STATE_KEY: $(stateKey)
 
-          - template: infra/azure/pipeline-steps/cleanup.yml
+                - template: infra/azure/pipeline-steps/cleanup.yml
