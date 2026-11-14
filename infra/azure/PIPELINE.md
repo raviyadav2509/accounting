@@ -116,12 +116,15 @@ automatically. The YAML has no ManualValidation task or approval stage.
 Use `/Pipelines/azure-pipelines-terraform.yml` from `feature/annual-tax-return` in GitHub.
 Start one run. Review PlanDev and approve ApplyDev on `Terraform-Dev-Env`.
 
-PlanDev publishes a short **Terraform plan summary** on the run's summary page
-(the **Extensions** tab). It lists destroyed, replaced, created and updated
-resources, most disruptive first, with the attribute names that changed or forced
-a replacement. Values are never shown because the plan contains secrets. A
-warning annotation appears when anything is destroyed or replaced. The full plan
-is still in the step log, collapsed under **Full Terraform plan**.
+PlanDev ends with a readable **Terraform plan summary** in the step log: a one-line
+total (for example `Plan: 1 to destroy, 2 to replace, 1 to create.`), an overview
+listing each resource with its Azure name and why it changes, and one collapsible
+section per resource showing before -> after values (click to expand). Attributes
+that force a replacement are marked. Values Terraform marks sensitive, and
+attributes whose names look like secrets, are shown only as `(sensitive)`. The same
+summary, as tables, is on the run's summary page (**Extensions** tab). A warning
+annotation appears when anything is destroyed or replaced. The raw Terraform plan
+is still in the log, collapsed under **Full Terraform plan**.
 A rejected approval prevents ApplyDev from deploying. Environment checks run before the
 deployment job starts; no agent is occupied during the approval wait.
 

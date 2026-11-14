@@ -71,7 +71,6 @@ if [[ "$TF_ACTION" == plan ]]; then
 
   # Kept outside the plan artifact directory so the artifact is unchanged.
   summary_path="${AGENT_TEMPDIRECTORY:-$TF_PLAN_DIRECTORY}/terraform-plan-summary-$TF_DEPLOYMENT_ENVIRONMENT.md"
-  echo "##[section]Terraform plan summary"
   terraform show -json "$plan_path" \
     | python3 "$summary_script" "$TF_DEPLOYMENT_ENVIRONMENT" "$summary_path"
   echo "##vso[task.uploadsummary]$summary_path"
