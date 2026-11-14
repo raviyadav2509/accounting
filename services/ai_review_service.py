@@ -4,7 +4,6 @@ from openai import OpenAI
 
 from config import OPENAI_API_KEY
 
-client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 def _build_prompt(bas):
@@ -109,6 +108,9 @@ def _status_details(review_text):
 
 
 def run_ai_review(bas):
+    if not OPENAI_API_KEY:
+        raise RuntimeError("Configure OPENAI_API_KEY for connected-client AI reviews.")
+    client = OpenAI(api_key=OPENAI_API_KEY)
     response = client.responses.create(
         model="gpt-5.6-terra",
         input=_build_prompt(bas),

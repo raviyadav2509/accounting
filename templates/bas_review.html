@@ -7,7 +7,7 @@
     <span>›</span>
     <a href="{{ url_for('clients.business_details', client_id=client.id) }}">{{ client.company_name }}</a>
     <span>›</span>
-    <a href="{{ url_for('bas.active_bas', client_id=client.id) }}">Active BAS</a>
+    <a href="{{ url_for('bas.active_bas', client_id=client.id) }}">BAS in Progress</a>
     <span>›</span>
     <span>BAS review</span>
 </div>
@@ -18,7 +18,7 @@
         <h1>BAS Review</h1>
         <div class="subtitle">Reporting period {{ bas.start }} to {{ bas.end }}</div>
     </div>
-    <a class="secondary-button" href="{{ url_for('bas.active_bas', client_id=client.id) }}">Back to Active BAS</a>
+    <a class="secondary-button" href="{{ url_for('bas.active_bas', client_id=client.id) }}">Back to BAS in Progress</a>
 </div>
 
 <div class="card amount-card">
@@ -30,7 +30,7 @@
 <div class="section-heading bas-review-section-heading">
     <div>
         <div class="dashboard-section-title">BAS at a glance</div>
-        <p>Key figures calculated from this client's QuickBooks data.</p>
+        <p>Key figures calculated from this client's {{ "local demo" if client.data_source == "DEMO" else "QuickBooks" }} data.</p>
     </div>
 </div>
 <div class="grid">
@@ -87,23 +87,41 @@
     </div>
 </div>
 <div class="process">
-    <div class="step"><div class="step-number">Step 1</div><div class="step-title">BAS calculated</div><div class="step-text">QuickBooks transactions have been used to calculate your BAS.</div></div>
-    <div class="step"><div class="step-number">Step 2</div><div class="step-title">Run AI review</div><div class="step-text">AI checks transactions for unusual GST, duplicates and other possible problems.</div></div>
+    <div class="step"><div class="step-number">Step 1</div><div class="step-title">BAS calculated</div><div class="step-text">{{ "Demo" if client.data_source == "DEMO" else "QuickBooks" }} transactions have been used to calculate your BAS.</div></div>
+    <div class="step"><div class="step-number">Step 2</div><div class="step-title">{{ "Run simulated review" if client.data_source == "DEMO" else "Run AI review" }}</div><div class="step-text">{{ "A local training scenario tests the review workflow. No AI service is called." if client.data_source == "DEMO" else "AI checks transactions for unusual GST, duplicates and other possible problems." }}</div></div>
     <div class="step"><div class="step-number">Step 3</div><div class="step-title">Human review and approval</div><div class="step-text">Review the figures and AI findings before approving the BAS.</div></div>
 </div>
 
+{% if bas_record and bas_record.approval_status == "APPROVED" %}
+<div class="card prelodgement-edit-banner">
+    <div>
+        <div class="actions-title">Approved — ready to lodge</div>
+        <div class="actions-description">
+            This BAS can still be changed because it has not been lodged. Reopening it removes the approval so you can update the QuickBooks data, recalculate and run the review again.
+        </div>
+    </div>
+
+    <form action="{{ url_for('bas.reopen_approved_bas') }}" method="post">
+        <input type="hidden" name="start" value="{{ bas.start }}">
+        <input type="hidden" name="end" value="{{ bas.end }}">
+        <input type="hidden" name="signature" value="{{ bas_record.signature }}">
+        <button class="secondary-button edit-before-lodgement-button" type="submit">Edit BAS</button>
+    </form>
+</div>
+{% else %}
 <div class="card actions">
     <div class="actions-title">Review and approve</div>
     <div class="actions-description">
-        Run the AI review first. Once the review is complete, the approval option will appear here when appropriate.
+        Run the {{ "simulated" if client.data_source == "DEMO" else "AI" }} review first. Once the review is complete, the approval option will appear here when appropriate.
     </div>
 
     {% if ai_status == "REVIEW REQUIRED" and not review_resolved %}
         <div class="resolution-summary">
             <div>
-                <div class="resolution-summary-title">AI found items that need your decision</div>
+                <div class="resolution-summary-title">{{ "Demo review flagged" if client.data_source == "DEMO" else "AI found" }} items that need your decision</div>
                 <div class="resolution-summary-text">
-                    Open the review to see exactly what was flagged. You can either correct the transaction in QuickBooks and run the review again, or confirm that no BAS change is required.
+                    {% if client.data_source == "DEMO" %}Open the simulated review and record why the fictional expense is business-related. You can reset this client to try a different scenario.
+                    {% else %}Open the review to see exactly what was flagged. You can either correct the transaction in QuickBooks and run the review again, or confirm that no BAS change is required.{% endif %}
                 </div>
             </div>
             <a class="secondary-button" href="{{ url_for('bas.review_details', start=bas.start, end=bas.end) }}">
@@ -128,7 +146,7 @@
                 <input type="hidden" name="start" value="{{ bas.start }}">
                 <input type="hidden" name="end" value="{{ bas.end }}">
                 <button class="ai-button" type="submit">
-                    {% if ai_status == "NOT REVIEWED" %}Run AI Review{% else %}Run AI Review Again{% endif %}
+                    {% if client.data_source == "DEMO" %}Run simulated review{% elif ai_status == "NOT REVIEWED" %}Run AI Review{% else %}Run AI Review Again{% endif %}
                 </button>
             </form>
 
@@ -162,4 +180,6 @@
         <strong>Approval does not lodge the BAS.</strong> Approval currently records the BAS as ready to lodge. ATO lodgement is not yet connected.
     </div>
 </div>
+
+{% endif %}
 {% endblock %}

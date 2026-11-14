@@ -7,3 +7,8 @@ __pycache__/
 .venv/
 bas_history.db
 *.db-journal
+.coverage
+coverage.xml
+test-results.xml
+htmlcov/
+.pytest_cache/

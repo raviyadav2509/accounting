@@ -1,0 +1,120 @@
+parameters:
+  - name: stageSuffix
+    type: string
+  - name: environmentName
+    type: string
+    values: [dev]
+  - name: azureEnvironment
+    type: string
+  - name: variableGroup
+    type: string
+  - name: stateKey
+    type: string
+  - name: azureServiceConnection
+    type: string
+  - name: dependsOn
+    type: object
+    default: []
+
+stages:
+  - stage: Plan${{ parameters.stageSuffix }}
+    displayName: Plan ${{ parameters.environmentName }}
+    dependsOn: ${{ parameters.dependsOn }}
+    variables:
+      - group: ${{ parameters.variableGroup }}
+    jobs:
+      - job: GeneratePlan
+        timeoutInMinutes: 60
+        steps:
+          - template: setup.yml
+
+          - task: AzureCLI@2
+            displayName: Validate and save ${{ parameters.environmentName }} plan
+            inputs:
+              azureSubscription: ${{ parameters.azureServiceConnection }}
+              scriptType: bash
+              scriptLocation: scriptPath
+              scriptPath: '$(terraformDirectory)/scripts/run-terraform.sh'
+              workingDirectory: $(terraformDirectory)
+              addSpnToEnvironment: true
+              visibleAzLogin: false
+            env:
+              TF_ACTION: plan
+              TF_IN_AUTOMATION: 'true'
+              TF_INPUT: 'false'
+              TF_PLAN_DIRECTORY: '$(terraformPlanDirectory)/${{ parameters.environmentName }}'
+              TF_RUN_ID: $(Build.BuildId)
+              TF_SOURCE_VERSION: $(Build.SourceVersion)
+              TERRAFORM_VERSION: $(terraformVersion)
+              TF_DEPLOYMENT_ENVIRONMENT: ${{ parameters.environmentName }}
+              TF_VAR_deployment_environment: ${{ parameters.environmentName }}
+              TF_VAR_resource_group_name: 'rg-quickbooks-${{ parameters.environmentName }}'
+              TF_VAR_name_prefix: 'quickbooks-${{ parameters.environmentName }}'
+              TF_STATE_RESOURCE_GROUP: $(stateResourceGroup)
+              TF_STATE_STORAGE_ACCOUNT: $(stateStorageAccount)
+              TF_STATE_CONTAINER: $(stateContainer)
+              TF_STATE_KEY: ${{ parameters.stateKey }}
+              TF_VAR_qbo_client_id: $(qboClientId)
+              TF_VAR_qbo_client_secret: $(qboClientSecret)
+              TF_VAR_openai_api_key: $(openaiApiKey)
+              TF_VAR_qbo_environment: $(qboEnvironment)
+
+          - task: PublishPipelineArtifact@1
+            displayName: Retain this environment's saved plan
+            inputs:
+              targetPath: '$(terraformPlanDirectory)/${{ parameters.environmentName }}'
+              artifact: terraform-plan-${{ parameters.environmentName }}
+
+          - template: cleanup.yml
+
+  - stage: Apply${{ parameters.stageSuffix }}
+    displayName: Apply ${{ parameters.environmentName }}
+    dependsOn: Plan${{ parameters.stageSuffix }}
+    condition: succeeded()
+    jobs:
+      - deployment: ApplySavedPlan
+        displayName: Deploy ${{ parameters.environmentName }} infrastructure
+        timeoutInMinutes: 60
+        environment: ${{ parameters.azureEnvironment }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: none
+                - template: setup.yml
+
+                - task: DownloadPipelineArtifact@2
+                  displayName: Download this environment's plan from this run
+                  inputs:
+                    buildType: current
+                    artifactName: terraform-plan-${{ parameters.environmentName }}
+                    targetPath: '$(terraformPlanDirectory)/${{ parameters.environmentName }}'
+
+                - task: AzureCLI@2
+                  displayName: Apply saved plan without replanning
+                  inputs:
+                    azureSubscription: ${{ parameters.azureServiceConnection }}
+                    scriptType: bash
+                    scriptLocation: scriptPath
+                    scriptPath: '$(terraformDirectory)/scripts/run-terraform.sh'
+                    workingDirectory: $(terraformDirectory)
+                    addSpnToEnvironment: true
+                    visibleAzLogin: false
+                  env:
+                    TF_ACTION: apply
+                    TF_IN_AUTOMATION: 'true'
+                    TF_INPUT: 'false'
+                    TF_PLAN_DIRECTORY: '$(terraformPlanDirectory)/${{ parameters.environmentName }}'
+                    TF_RUN_ID: $(Build.BuildId)
+                    TF_SOURCE_VERSION: $(Build.SourceVersion)
+                    TERRAFORM_VERSION: $(terraformVersion)
+                    TF_DEPLOYMENT_ENVIRONMENT: ${{ parameters.environmentName }}
+                    TF_VAR_deployment_environment: ${{ parameters.environmentName }}
+                    TF_VAR_resource_group_name: 'rg-quickbooks-${{ parameters.environmentName }}'
+                    TF_VAR_name_prefix: 'quickbooks-${{ parameters.environmentName }}'
+                    TF_STATE_RESOURCE_GROUP: $(stateResourceGroup)
+                    TF_STATE_STORAGE_ACCOUNT: $(stateStorageAccount)
+                    TF_STATE_CONTAINER: $(stateContainer)
+                    TF_STATE_KEY: ${{ parameters.stateKey }}
+
+                - template: cleanup.yml

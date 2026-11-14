@@ -4,13 +4,19 @@ from datetime import datetime
 import markdown
 from flask import Blueprint, g, redirect, render_template, request, session, url_for
 
-from config import DEFAULT_BAS_END, DEFAULT_BAS_START
+from config import DEFAULT_BAS_END, DEFAULT_BAS_START, ENABLE_MOCK_ATO_LODGEMENT
 from services.ai_review_service import run_ai_review
+from services.demo_service import is_demo, demo_periods, demo_review
 from services.bas_service import (
     bas_signature,
     bas_summary_payload,
     calculate_bas,
     get_payroll_bas,
+)
+from services.financial_year_service import (
+    current_financial_year,
+    financial_year_for_date,
+    financial_year_sort_key,
 )
 from services.database import (
     get_client_for_user,
@@ -18,6 +24,9 @@ from services.database import (
     get_history,
     get_history_for_user,
     get_record_for_user,
+    get_tax_returns_for_user,
+    mark_lodged,
+    reopen_bas,
     save_bas_snapshot,
 )
 from services.review_store import (
@@ -27,6 +36,7 @@ from services.review_store import (
     save_approval,
     save_rejection,
 )
+from services.tax_return_service import tax_return_status
 
 bas_bp = Blueprint("bas", __name__)
 
@@ -44,7 +54,7 @@ def _require_client():
     if not client:
         return None, redirect(url_for("clients.index"))
 
-    if not client.get("qbo_connected"):
+    if not client.get("qbo_connected") and not is_demo(client):
         return client, redirect(
             url_for("clients.quickbooks_client", client_id=client["id"])
         )
@@ -53,9 +63,10 @@ def _require_client():
 
 
 def _period_from_request():
+    defaults = demo_periods() if is_demo(g.client) else {"start": DEFAULT_BAS_START, "end": DEFAULT_BAS_END}
     return (
-        request.values.get("start", DEFAULT_BAS_START),
-        request.values.get("end", DEFAULT_BAS_END),
+        request.values.get("start", defaults["start"]),
+        request.values.get("end", defaults["end"]),
     )
 
 
@@ -186,6 +197,7 @@ def _decorate_record(record):
         item["start_date"],
         item["end_date"],
     )
+    item["financial_year"] = financial_year_for_date(item["end_date"])
 
     for field in (
         "created_at",
@@ -252,42 +264,72 @@ def dashboard():
     firm = get_firm_for_user(g.user["id"])
 
     clients = list(g.clients)
-    active_bas_count = 0
-    review_required_count = 0
-    ready_to_lodge_count = 0
+    current_fy = current_financial_year()
+
+    qbo_connected_count = 0
     qbo_attention_count = 0
+
+    bas_in_progress_count = 0
+    bas_review_required_count = 0
+    bas_ready_to_lodge_count = 0
+    bas_lodged_this_fy_count = 0
+
+    tax_in_progress_count = 0
+    tax_review_required_count = 0
+    tax_ready_to_lodge_count = 0
+    tax_lodged_this_fy_count = 0
+
     attention_items = []
 
     for client in clients:
-        if not client.get("qbo_connected"):
+        if client.get("qbo_connected"):
+            qbo_connected_count += 1
+        elif not is_demo(client):
             qbo_attention_count += 1
             attention_items.append(
                 {
+                    "type": "client",
+                    "type_label": "Client",
                     "client": client,
-                    "title": "Connect QuickBooks",
+                    "title": "QuickBooks connection required",
                     "detail": "Accounting data is not connected for this client.",
-                    "status": "Connection required",
+                    "status": "Setup required",
                     "status_class": "warning",
-                    "url": url_for("clients.quickbooks_client", client_id=client["id"]),
+                    "url": url_for(
+                        "clients.quickbooks_client",
+                        client_id=client["id"],
+                    ),
+                    "priority": 1,
                 }
             )
 
         records = [
             _decorate_record(record)
-            for record in get_history(client["id"], limit=100)
+            for record in get_history(client["id"], limit=200)
         ]
-        active_records = [
+
+        in_progress_records = [
             record
             for record in records
             if not record["is_lodged"]
         ]
-        active_bas_count += len(active_records)
+        bas_in_progress_count += len(in_progress_records)
 
-        for record in active_records:
+        bas_lodged_this_fy_count += sum(
+            1
+            for record in records
+            if record["is_lodged"]
+            and record.get("lodged_at")
+            and financial_year_for_date(record["lodged_at"]) == current_fy
+        )
+
+        for record in in_progress_records:
             if record.get("approval_status") == "APPROVED":
-                ready_to_lodge_count += 1
+                bas_ready_to_lodge_count += 1
                 attention_items.append(
                     {
+                        "type": "bas",
+                        "type_label": "BAS",
                         "client": client,
                         "title": "BAS ready to lodge",
                         "detail": record["period_display"],
@@ -297,15 +339,18 @@ def dashboard():
                             "bas.active_bas",
                             client_id=client["id"],
                         ),
+                        "priority": 3,
                     }
                 )
             elif (
                 record.get("review_status") == "REVIEW REQUIRED"
                 and record.get("resolution_status") != "RESOLVED"
             ):
-                review_required_count += 1
+                bas_review_required_count += 1
                 attention_items.append(
                     {
+                        "type": "bas",
+                        "type_label": "BAS",
                         "client": client,
                         "title": "BAS review required",
                         "detail": record["period_display"],
@@ -315,18 +360,118 @@ def dashboard():
                             "bas.active_bas",
                             client_id=client["id"],
                         ),
+                        "priority": 2,
                     }
                 )
+
+    tax_returns = get_tax_returns_for_user(g.user["id"], limit=500)
+
+    for tax_return in tax_returns:
+        is_lodged = (
+            tax_return.get("approval_status") == "LODGED"
+            or bool(tax_return.get("lodged_at"))
+        )
+
+        if is_lodged:
+            if (
+                tax_return.get("lodged_at")
+                and financial_year_for_date(tax_return["lodged_at"]) == current_fy
+            ):
+                tax_lodged_this_fy_count += 1
+            continue
+
+        tax_in_progress_count += 1
+
+        client = next(
+            (
+                item
+                for item in clients
+                if item["id"] == tax_return["client_id"]
+            ),
+            None,
+        )
+        if not client:
+            continue
+
+        display_status, status_class = tax_return_status(tax_return)
+
+        if tax_return.get("approval_status") == "APPROVED":
+            tax_ready_to_lodge_count += 1
+            attention_items.append(
+                {
+                    "type": "tax",
+                    "type_label": "Tax Return",
+                    "client": client,
+                    "title": "Annual tax return ready to lodge",
+                    "detail": f"FY {tax_return['financial_year']}",
+                    "status": "Ready to lodge",
+                    "status_class": status_class,
+                    "url": url_for(
+                        "tax.company_tax_return",
+                        client_id=client["id"],
+                        tax_return_id=tax_return["id"],
+                    ),
+                    "priority": 3,
+                }
+            )
+        elif tax_return.get("review_status") == "REVIEW REQUIRED":
+            tax_review_required_count += 1
+            attention_items.append(
+                {
+                    "type": "tax",
+                    "type_label": "Tax Return",
+                    "client": client,
+                    "title": "Annual tax return review required",
+                    "detail": f"FY {tax_return['financial_year']}",
+                    "status": display_status,
+                    "status_class": status_class,
+                    "url": url_for(
+                        "tax.company_tax_return",
+                        client_id=client["id"],
+                        tax_return_id=tax_return["id"],
+                    ),
+                    "priority": 2,
+                }
+            )
+
+    attention_items.sort(
+        key=lambda item: (
+            item["priority"],
+            item["client"]["company_name"].lower(),
+            item["type"],
+        )
+    )
+
+    attention_counts = {
+        "all": len(attention_items),
+        "client": sum(
+            1 for item in attention_items if item["type"] == "client"
+        ),
+        "bas": sum(
+            1 for item in attention_items if item["type"] == "bas"
+        ),
+        "tax": sum(
+            1 for item in attention_items if item["type"] == "tax"
+        ),
+    }
 
     return render_template(
         "dashboard.html",
         firm=firm,
+        current_financial_year=current_fy,
         total_clients=len(clients),
-        active_bas_count=active_bas_count,
-        review_required_count=review_required_count,
-        ready_to_lodge_count=ready_to_lodge_count,
+        qbo_connected_count=qbo_connected_count,
         qbo_attention_count=qbo_attention_count,
-        attention_items=attention_items[:8],
+        bas_in_progress_count=bas_in_progress_count,
+        bas_review_required_count=bas_review_required_count,
+        bas_ready_to_lodge_count=bas_ready_to_lodge_count,
+        bas_lodged_this_fy_count=bas_lodged_this_fy_count,
+        tax_in_progress_count=tax_in_progress_count,
+        tax_review_required_count=tax_review_required_count,
+        tax_ready_to_lodge_count=tax_ready_to_lodge_count,
+        tax_lodged_this_fy_count=tax_lodged_this_fy_count,
+        attention_items=attention_items,
+        attention_counts=attention_counts,
     )
 
 
@@ -345,7 +490,7 @@ def active_bas(client_id):
     session["client_id"] = client_id
     g.client = client
 
-    if not client.get("qbo_connected"):
+    if not client.get("qbo_connected") and not is_demo(client):
         return redirect(
             url_for("clients.quickbooks_client", client_id=client_id)
         )
@@ -364,6 +509,7 @@ def active_bas(client_id):
         "client_active_bas.html",
         client=client,
         current_records=current_records,
+        mock_ato_lodgement_enabled=ENABLE_MOCK_ATO_LODGEMENT or is_demo(client),
     )
 
 
@@ -379,18 +525,46 @@ def historical_bas(client_id):
 
     records = [
         _decorate_record(record)
-        for record in get_history(client_id, limit=250)
+        for record in get_history(client_id, limit=500)
     ]
-    historical_records = [
+    all_historical_records = [
         record
         for record in records
         if record["is_lodged"]
     ]
 
+    financial_years = sorted(
+        {record["financial_year"] for record in all_historical_records},
+        key=financial_year_sort_key,
+        reverse=True,
+    )
+
+    selected_year = request.args.get("year", "").strip()
+    if selected_year not in financial_years:
+        selected_year = financial_years[0] if financial_years else None
+
+    historical_records = [
+        record
+        for record in all_historical_records
+        if not selected_year or record["financial_year"] == selected_year
+    ]
+
+    year_counts = {
+        financial_year: sum(
+            1
+            for record in all_historical_records
+            if record["financial_year"] == financial_year
+        )
+        for financial_year in financial_years
+    }
+
     return render_template(
         "client_historical_bas.html",
         client=client,
         historical_records=historical_records,
+        financial_years=financial_years,
+        selected_year=selected_year,
+        year_counts=year_counts,
     )
 
 
@@ -432,7 +606,7 @@ def calculate_new_bas():
                 title="BAS already lodged",
                 message=(
                     "A BAS for this reporting period has already been lodged "
-                    "and is available under Historical BAS."
+                    "and is available under BAS History."
                 ),
                 back_url=url_for("bas.active_bas", client_id=client["id"]),
             )
@@ -442,7 +616,7 @@ def calculate_new_bas():
             title="BAS already calculated",
             message=(
                 "A BAS for this reporting period has already been calculated "
-                "and is listed under Active BAS."
+                "and is listed under BAS in Progress."
             ),
             back_url=url_for("bas.active_bas", client_id=client["id"]),
         )
@@ -547,7 +721,7 @@ def bas_review():
         return lodged_response
 
     bas = calculate_bas(client_id, start, end)
-    signature, _ = _persist_bas(client_id, bas)
+    signature, bas_record = _persist_bas(client_id, bas)
 
     ai_review = load_ai_review(client_id, start, end, signature)
     ai_status = ai_review["status"] if ai_review else "NOT REVIEWED"
@@ -562,6 +736,7 @@ def bas_review():
         ai_status=ai_status,
         ai_review=ai_review,
         review_resolved=review_resolved,
+        bas_record=bas_record,
         **_amount_display_data(bas["payable"]),
     )
 
@@ -582,7 +757,7 @@ def ai_review():
     bas = calculate_bas(client_id, start, end)
     signature, _ = _persist_bas(client_id, bas)
 
-    result = run_ai_review(bas)
+    result = demo_review(bas) if is_demo(client) else run_ai_review(bas)
 
     save_ai_review(
         client_id,
@@ -784,6 +959,149 @@ def approve_bas():
             "lodged with the ATO yet. Status: Ready to Lodge."
         ),
         back_url=url_for("bas.active_bas", client_id=client["id"]),
+    )
+
+
+@bas_bp.route("/reopen-bas", methods=["POST"])
+def reopen_approved_bas():
+    client, response = _require_client()
+    if response:
+        return response
+
+    start = request.form.get("start", "").strip()
+    end = request.form.get("end", "").strip()
+    signature = request.form.get("signature", "").strip()
+
+    record = _record_for_period(client["id"], start, end)
+
+    if not record or record.get("signature") != signature:
+        return render_template(
+            "message.html",
+            title="BAS record not found",
+            message="The BAS selected for editing could not be found.",
+            back_url=url_for("bas.active_bas", client_id=client["id"]),
+        ), 404
+
+    if record["is_lodged"]:
+        return redirect(
+            url_for(
+                "bas.bas_history_detail",
+                record_id=record["id"],
+                client_context=1,
+            )
+        )
+
+    if record.get("approval_status") != "APPROVED":
+        return redirect(
+            url_for(
+                "bas.bas_review",
+                start=start,
+                end=end,
+            )
+        )
+
+    reopened = reopen_bas(
+        client["id"],
+        start,
+        end,
+        signature,
+    )
+
+    if not reopened or reopened.get("approval_status") == "APPROVED":
+        return render_template(
+            "message.html",
+            title="BAS could not be reopened",
+            message="The BAS approval could not be cleared for editing.",
+            back_url=url_for("bas.active_bas", client_id=client["id"]),
+        ), 400
+
+    return redirect(
+        url_for(
+            "bas.bas_review",
+            start=start,
+            end=end,
+        )
+    )
+
+
+@bas_bp.route("/mock-lodge-bas", methods=["POST"])
+def mock_lodge_bas():
+    if not ENABLE_MOCK_ATO_LODGEMENT and not is_demo(_active_client()):
+        return render_template(
+            "message.html",
+            title="Mock lodgement disabled",
+            message=(
+                "Mock ATO lodgement is disabled. Set "
+                "ENABLE_MOCK_ATO_LODGEMENT=true in the local environment to use it."
+            ),
+            back_url=url_for("bas.dashboard"),
+        ), 404
+
+    client, response = _require_client()
+    if response:
+        return response
+
+    start = request.form.get("start", "").strip()
+    end = request.form.get("end", "").strip()
+    signature = request.form.get("signature", "").strip()
+
+    record = _record_for_period(client["id"], start, end)
+
+    if not record or record.get("signature") != signature:
+        return render_template(
+            "message.html",
+            title="BAS record not found",
+            message="The BAS selected for mock lodgement could not be found.",
+            back_url=url_for("bas.active_bas", client_id=client["id"]),
+        ), 404
+
+    if record["is_lodged"]:
+        return redirect(
+            url_for(
+                "bas.historical_bas",
+                client_id=client["id"],
+                year=record["financial_year"],
+            )
+        )
+
+    if record.get("approval_status") != "APPROVED":
+        return render_template(
+            "message.html",
+            title="BAS is not ready to lodge",
+            message=(
+                "Approve the BAS first. Mock lodgement is only available for "
+                "BAS records with status Approved - Ready to Lodge."
+            ),
+            back_url=url_for("bas.active_bas", client_id=client["id"]),
+        ), 400
+
+    mock_reference = (
+        f"MOCK-BAS-{client['id']}-"
+        f"{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    )
+
+    lodged = mark_lodged(
+        client["id"],
+        start,
+        end,
+        signature,
+        lodgement_reference=mock_reference,
+    )
+
+    if not lodged or not lodged.get("lodged_at"):
+        return render_template(
+            "message.html",
+            title="Mock lodgement failed",
+            message="The BAS could not be marked as lodged.",
+            back_url=url_for("bas.active_bas", client_id=client["id"]),
+        ), 500
+
+    return redirect(
+        url_for(
+            "bas.historical_bas",
+            client_id=client["id"],
+            year=financial_year_for_date(end),
+        )
     )
 
 

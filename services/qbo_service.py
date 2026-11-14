@@ -10,7 +10,13 @@ from config import (
     QBO_REDIRECT_URI,
     QBO_TOKEN_URL,
 )
-from services.database import get_qbo_connection, save_qbo_connection
+from services.database import get_qbo_connection, save_qbo_connection, get_client_by_id
+
+
+def _reject_demo(client_id):
+    client = get_client_by_id(client_id)
+    if client and client.get("data_source") == "DEMO":
+        raise ValueError("QuickBooks access is disabled for demo clients.")
 
 
 def build_authorization_url(state):
@@ -25,6 +31,7 @@ def build_authorization_url(state):
 
 
 def exchange_authorization_code(code, realm_id, client_id):
+    _reject_demo(client_id)
     response = requests.post(
         QBO_TOKEN_URL,
         auth=(QBO_CLIENT_ID, QBO_CLIENT_SECRET),
@@ -53,6 +60,7 @@ def _load_tokens(client_id):
 
 
 def refresh_access_token(client_id):
+    _reject_demo(client_id)
     connection = get_qbo_connection(client_id)
     if not connection:
         raise RuntimeError("QuickBooks is not connected for this client.")
@@ -83,6 +91,7 @@ def refresh_access_token(client_id):
 
 
 def _request(client_id, method, url, *, params=None):
+    _reject_demo(client_id)
     connection = get_qbo_connection(client_id)
     if not connection:
         raise RuntimeError("QuickBooks is not connected for this client.")

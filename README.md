@@ -108,6 +108,166 @@ http://127.0.0.1:8000/
 
 Unauthenticated users are redirected to the login page.
 
+## Self-contained demo mode
+
+On `feature/annual-tax-return`, sign in with a verified account and choose
+**Clients → Try demo company**. Pick the standard company or expense-review
+exercise. Each created company belongs only to your account; its `data_source`
+is permanently `DEMO`. Existing clients remain `QUICKBOOKS` after migration.
+
+The demo page provides a sample BAS link and annual-return workflow. Underlying
+fictional invoices, sales receipts, bills, purchases and balanced payroll journals
+are stored per client in SQLite. They cover the previous completed and current
+Australian financial years at creation/reset time. Future dates are fictional.
+The BAS uses the existing calculator; annual profit is derived from these same
+transactions, then passed to the existing company-return calculation/review.
+Example quarterly BAS payable is $6,300; full-year accounting profit is $72,000.
+Demo annual returns automatically load accounting profit and calculate taxable
+income when created, or when an existing empty draft is opened. Manually entered
+figures and approved/lodged returns are preserved. Estimated tax is calculated
+after the user confirms a company tax rate; the rate is never assumed.
+Dates outside the seeded range have no transactions. No real tax eligibility or
+compliance is validated by these sample scenarios.
+
+Demo reviews are deterministic **simulations, not AI assessments**. They never
+call OpenAI. QuickBooks/OAuth calls are blocked for demo clients. No QuickBooks
+credentials or OpenAI key are needed for demo workflows; the app can now start
+without an OpenAI key. Existing signup email verification still requires SMTP
+or explicitly enabled local-only debug links; demo mode does not bypass login.
+
+Human review/approval remains mandatory. Demo clients can simulate lodgement
+without enabling the global `ENABLE_MOCK_ATO_LODGEMENT` switch; this exception
+does not apply to connected clients. References remain labelled `MOCK-*`, and
+no ATO request is sent. A permanent client banner identifies demo mode.
+
+**Demo data & reset** allows a scenario reset after typing `RESET`. The action
+requires a session CSRF token and verified client ownership, and is atomic.
+It permanently deletes only that demo client's BAS records, reviews, approvals,
+simulated receipts, tax returns and adjustments, then restores sample data.
+Account/business details and all other clients are retained. Up to five demo
+clients per user are allowed. Source fixtures are not editable in the UI.
+
+This feature does not deploy a hosted sandbox or resolve the production-security
+gaps below. New demo forms have CSRF protection; existing forms still need the
+application-wide CSRF work described in the production checklist.
+
+## Automated tests and CI
+
+Install the development dependencies and run the test suite locally:
+
+```cmd
+py -m pip install -r requirements-dev.txt
+py -m pytest
+```
+
+Once registered in Azure DevOps, `Pipelines/azure-pipelines.yml` runs the same tests for
+`main`, `feature/*` and GitHub pull requests targeting those branches containing
+this YAML. It publishes JUnit results, code coverage and a tested application
+ZIP containing only allowlisted application files (no databases or credentials).
+Tests use a fresh temporary SQLite database per test, disable `.env` loading,
+block network connections, and stub external integrations. No real QuickBooks,
+OpenAI, SMTP or ATO credentials are required. Coverage measures the starting
+baseline; there is not yet a minimum overall coverage gate.
+
+### Register the Azure DevOps pipeline
+
+1. Connect the GitHub repository to your Azure DevOps project.
+2. Create a pipeline using the existing `/Pipelines/azure-pipelines.yml` on
+   `feature/annual-tax-return`; keep `main` unchanged until review/merge.
+3. Run it on the feature branch and confirm test results, coverage and the
+   `accounting` ZIP artifact are published.
+4. Configure the resulting build status as a required GitHub check separately
+   if merges should be blocked on failures; YAML alone does not protect branches.
+
+CD is deliberately not active yet. Before adding a deployment stage, identify
+the Azure service connection, App Service target and Azure DevOps environment,
+then configure environment approval checks outside YAML. Configure runtime
+secrets securely and persistent storage for SQLite; never deploy a test database.
+The existing production-readiness gaps below still apply. No Azure resources,
+deployment, or ATO lodgement are created by this CI pipeline.
+
+The coverage publisher includes the .NET prerequisite documented by
+[Microsoft](https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/publish-code-coverage-results-v2?view=azure-pipelines).
+
+## Email verification
+
+New firm accounts must verify their login email before accessing clients, QuickBooks, BAS or annual tax returns.
+
+Configure SMTP in `.env`:
+
+```text
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=your-smtp-username
+SMTP_PASSWORD=your-smtp-password
+SMTP_USE_TLS=true
+SMTP_USE_SSL=false
+EMAIL_FROM=no-reply@example.com
+EMAIL_VERIFICATION_EXPIRY_MINUTES=30
+```
+
+Signup now creates an unverified account, sends a time-limited verification link, and keeps the user outside the authenticated workspace until the link is used. Users can resend the verification email or correct the address before verification.
+
+Verification tokens are stored only as SHA-256 hashes in the database. Existing users are grandfathered as verified during the schema migration so current accounts are not locked out.
+
+For local development without SMTP, enable:
+
+```text
+EMAIL_VERIFICATION_DEBUG_LINKS=true
+```
+
+The verification page will then expose a clearly labelled local-only verification link. Do not enable debug verification links in production.
+
+## Password reset
+
+The sign-in page includes **Forgot password?**. Password reset uses the same SMTP configuration as email verification.
+
+The workflow is:
+
+1. Enter the login email.
+2. If an active account exists, a time-limited reset link is issued.
+3. The token is stored only as a SHA-256 hash.
+4. The user chooses a new password.
+5. The token is invalidated immediately after use.
+6. The user signs in with the new password.
+
+The response to the forgot-password form is deliberately generic so it does not reveal whether an email address is registered.
+
+Configure the reset lifetime with:
+
+```text
+PASSWORD_RESET_EXPIRY_MINUTES=30
+```
+
+For local testing without working SMTP, enable:
+
+```text
+PASSWORD_RESET_DEBUG_LINKS=true
+```
+
+This exposes a clearly labelled local password-reset link after a request for an existing active account. Never enable it in production.
+
+## Mock ATO lodgement for local testing
+
+Real ATO/SBR lodgement is not connected. The feature branch includes a disabled-by-default mock lodgement mode for testing the workflow after approval.
+
+Enable it locally in `.env`:
+
+```text
+ENABLE_MOCK_ATO_LODGEMENT=true
+```
+
+Before lodgement, approved BAS and annual tax returns can be reopened for editing. Reopening removes the approval but does not alter a lodged record. If figures are changed, the normal review and approval workflow must be completed again.
+
+With the switch enabled:
+
+- an approved BAS shows **Edit BAS** and **Simulate ATO Lodgement**
+- the mock action records a `MOCK-BAS-...` reference, marks the BAS as lodged, removes it from **BAS in Progress**, and places it under **BAS History**
+- an approved annual tax return shows **Edit Return** and **Simulate ATO Lodgement**
+- the mock action records a `MOCK-TAX-...` reference, marks the return as lodged, and moves it from **Active Tax Returns** to **Tax Return History**
+
+No request is sent to the ATO. Leave the switch unset or set it to `false` outside local/test environments.
+
 ## Production work still required
 
 Before production use:
@@ -116,7 +276,6 @@ Before production use:
 - add CSRF protection
 - set a strong `FLASK_SECRET_KEY`
 - set secure cookies under HTTPS
-- add password reset and email verification
 - make payroll/tax account mappings client-specific
 - support proper BAS obligation/period discovery instead of sandbox defaults
 - implement and verify supported ATO/SBR lodgement

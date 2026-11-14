@@ -1,0 +1,23 @@
+steps:
+  - checkout: self
+    clean: true
+    persistCredentials: false
+
+  - bash: |
+      set -euo pipefail
+      install_dir="$(Agent.TempDirectory)/terraform-bin"
+      mkdir -p "$install_dir"
+      cd "$install_dir"
+      archive="terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+      base_url="https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}"
+      curl --fail --silent --show-error --location --retry 3 "$base_url/$archive" -o "$archive"
+      curl --fail --silent --show-error --location --retry 3 "$base_url/terraform_${TERRAFORM_VERSION}_SHA256SUMS" -o SHA256SUMS
+      awk -v file="$archive" '$2 == file { print }' SHA256SUMS > selected.sha256
+      test -s selected.sha256
+      sha256sum --check selected.sha256
+      unzip -o "$archive" terraform
+      echo "##vso[task.prependpath]$install_dir"
+      ./terraform version
+    displayName: Install checksum-verified Terraform
+    env:
+      TERRAFORM_VERSION: $(terraformVersion)

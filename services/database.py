@@ -148,6 +148,13 @@ def init_db():
                 email TEXT NOT NULL UNIQUE COLLATE NOCASE,
                 password_hash TEXT NOT NULL,
                 is_active INTEGER NOT NULL DEFAULT 1,
+                email_verified_at TEXT,
+                email_verification_token_hash TEXT,
+                email_verification_expires_at TEXT,
+                email_verification_sent_at TEXT,
+                password_reset_token_hash TEXT,
+                password_reset_expires_at TEXT,
+                password_reset_sent_at TEXT,
                 created_at TEXT NOT NULL,
                 last_login_at TEXT
             )
@@ -188,12 +195,73 @@ def init_db():
             """
         )
 
+        user_columns = _column_names(connection, "users")
+
+        if "email_verified_at" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN email_verified_at TEXT"
+            )
+            connection.execute(
+                """
+                UPDATE users
+                SET email_verified_at = COALESCE(created_at, ?)
+                WHERE email_verified_at IS NULL
+                """,
+                (_now(),),
+            )
+
+        if "email_verification_token_hash" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN email_verification_token_hash TEXT"
+            )
+
+        if "email_verification_expires_at" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN email_verification_expires_at TEXT"
+            )
+
+        if "email_verification_sent_at" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN email_verification_sent_at TEXT"
+            )
+
+        if "password_reset_token_hash" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN password_reset_token_hash TEXT"
+            )
+
+        if "password_reset_expires_at" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN password_reset_expires_at TEXT"
+            )
+
+        if "password_reset_sent_at" not in user_columns:
+            connection.execute(
+                "ALTER TABLE users ADD COLUMN password_reset_sent_at TEXT"
+            )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_users_verification_token
+            ON users(email_verification_token_hash)
+            """
+        )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_users_password_reset_token
+            ON users(password_reset_token_hash)
+            """
+        )
+
+
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS clients (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 owner_user_id INTEGER NOT NULL,
                 company_name TEXT NOT NULL,
+                entity_type TEXT NOT NULL DEFAULT 'UNSPECIFIED',
                 legal_name TEXT,
                 abn TEXT,
                 acn TEXT,
@@ -210,6 +278,91 @@ def init_db():
             """
             CREATE INDEX IF NOT EXISTS idx_clients_owner
             ON clients(owner_user_id)
+            """
+        )
+
+        if "entity_type" not in _column_names(connection, "clients"):
+            connection.execute(
+                "ALTER TABLE clients ADD COLUMN entity_type TEXT NOT NULL DEFAULT 'UNSPECIFIED'"
+            )
+
+        if "data_source" not in _column_names(connection, "clients"):
+            connection.execute(
+                "ALTER TABLE clients ADD COLUMN data_source TEXT NOT NULL DEFAULT 'QUICKBOOKS'"
+            )
+        connection.execute(
+            """CREATE TABLE IF NOT EXISTS demo_transactions (
+                client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+                entity TEXT NOT NULL,
+                transaction_id TEXT NOT NULL,
+                transaction_date TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                PRIMARY KEY (client_id, entity, transaction_id)
+            )"""
+        )
+
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tax_returns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id INTEGER NOT NULL,
+                financial_year TEXT NOT NULL,
+                start_date TEXT NOT NULL,
+                end_date TEXT NOT NULL,
+                entity_type TEXT NOT NULL,
+                accounting_profit REAL,
+                tax_rate REAL,
+                taxable_income REAL,
+                estimated_tax REAL,
+                review_status TEXT,
+                review_text TEXT,
+                reviewed_at TEXT,
+                approval_status TEXT,
+                approved_at TEXT,
+                lodged_at TEXT,
+                lodgement_reference TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
+                UNIQUE(client_id, financial_year, entity_type)
+            )
+            """
+        )
+        if "lodged_at" not in _column_names(connection, "tax_returns"):
+            connection.execute(
+                "ALTER TABLE tax_returns ADD COLUMN lodged_at TEXT"
+            )
+
+        if "lodgement_reference" not in _column_names(connection, "tax_returns"):
+            connection.execute(
+                "ALTER TABLE tax_returns ADD COLUMN lodgement_reference TEXT"
+            )
+
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_tax_returns_client_year
+            ON tax_returns(client_id, financial_year)
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS tax_return_adjustments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tax_return_id INTEGER NOT NULL,
+                adjustment_type TEXT NOT NULL,
+                category TEXT NOT NULL,
+                description TEXT NOT NULL,
+                amount REAL NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (tax_return_id) REFERENCES tax_returns(id) ON DELETE CASCADE
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_tax_adjustments_return
+            ON tax_return_adjustments(tax_return_id, id)
             """
         )
 
@@ -312,6 +465,193 @@ def create_user(
             user_id = cursor.lastrowid
     except sqlite3.IntegrityError:
         return None
+
+    return get_user_by_id(user_id)
+
+
+def set_email_verification(
+    user_id,
+    token_hash,
+    expires_at,
+):
+    now = _now()
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE users
+            SET email_verification_token_hash = ?,
+                email_verification_expires_at = ?,
+                email_verification_sent_at = ?
+            WHERE id = ?
+              AND email_verified_at IS NULL
+            """,
+            (
+                token_hash,
+                expires_at,
+                now,
+                user_id,
+            ),
+        )
+
+    return get_user_by_id(user_id)
+
+
+def get_user_by_verification_token_hash(token_hash):
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT *
+            FROM users
+            WHERE email_verification_token_hash = ?
+            LIMIT 1
+            """,
+            (token_hash,),
+        ).fetchone()
+
+    return dict(row) if row else None
+
+
+def mark_email_verified(user_id):
+    now = _now()
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE users
+            SET email_verified_at = ?,
+                email_verification_token_hash = NULL,
+                email_verification_expires_at = NULL,
+                email_verification_sent_at = NULL
+            WHERE id = ?
+            """,
+            (now, user_id),
+        )
+
+    return get_user_by_id(user_id)
+
+
+def update_unverified_user_email(user_id, email):
+    normalized_email = email.strip().lower()
+
+    try:
+        with get_connection() as connection:
+            user = connection.execute(
+                """
+                SELECT id, firm_id
+                FROM users
+                WHERE id = ?
+                  AND email_verified_at IS NULL
+                LIMIT 1
+                """,
+                (user_id,),
+            ).fetchone()
+
+            if not user:
+                return None
+
+            connection.execute(
+                """
+                UPDATE users
+                SET email = ?,
+                    email_verification_token_hash = NULL,
+                    email_verification_expires_at = NULL,
+                    email_verification_sent_at = NULL
+                WHERE id = ?
+                """,
+                (normalized_email, user_id),
+            )
+
+            if user["firm_id"]:
+                connection.execute(
+                    """
+                    UPDATE accounting_firms
+                    SET email = ?,
+                        updated_at = ?
+                    WHERE id = ?
+                    """,
+                    (normalized_email, _now(), user["firm_id"]),
+                )
+    except sqlite3.IntegrityError:
+        return None
+
+    return get_user_by_id(user_id)
+
+
+def set_password_reset(
+    user_id,
+    token_hash,
+    expires_at,
+):
+    now = _now()
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE users
+            SET password_reset_token_hash = ?,
+                password_reset_expires_at = ?,
+                password_reset_sent_at = ?
+            WHERE id = ?
+              AND is_active = 1
+            """,
+            (
+                token_hash,
+                expires_at,
+                now,
+                user_id,
+            ),
+        )
+
+    return get_user_by_id(user_id)
+
+
+def get_user_by_password_reset_token_hash(token_hash):
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT *
+            FROM users
+            WHERE password_reset_token_hash = ?
+              AND is_active = 1
+            LIMIT 1
+            """,
+            (token_hash,),
+        ).fetchone()
+
+    return dict(row) if row else None
+
+
+def update_user_password(user_id, password_hash):
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE users
+            SET password_hash = ?,
+                password_reset_token_hash = NULL,
+                password_reset_expires_at = NULL,
+                password_reset_sent_at = NULL
+            WHERE id = ?
+              AND is_active = 1
+            """,
+            (password_hash, user_id),
+        )
+
+    return get_user_by_id(user_id)
+
+
+def clear_password_reset(user_id):
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE users
+            SET password_reset_token_hash = NULL,
+                password_reset_expires_at = NULL,
+                password_reset_sent_at = NULL
+            WHERE id = ?
+            """,
+            (user_id,),
+        )
 
     return get_user_by_id(user_id)
 
@@ -474,8 +814,8 @@ def update_last_login(user_id):
         )
 
 
-def create_client(owner_user_id, company_name, legal_name=None, abn=None, acn=None,
-                  address=None, email=None, phone=None):
+def create_client(owner_user_id, company_name, entity_type="UNSPECIFIED", legal_name=None,
+                  abn=None, acn=None, address=None, email=None, phone=None):
     now = _now()
 
     with get_connection() as connection:
@@ -484,6 +824,7 @@ def create_client(owner_user_id, company_name, legal_name=None, abn=None, acn=No
             INSERT INTO clients (
                 owner_user_id,
                 company_name,
+                entity_type,
                 legal_name,
                 abn,
                 acn,
@@ -493,11 +834,12 @@ def create_client(owner_user_id, company_name, legal_name=None, abn=None, acn=No
                 created_at,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 owner_user_id,
                 company_name.strip(),
+                (entity_type or "UNSPECIFIED").strip().upper(),
                 (legal_name or "").strip() or None,
                 (abn or "").strip() or None,
                 (acn or "").strip() or None,
@@ -516,6 +858,7 @@ def create_client(owner_user_id, company_name, legal_name=None, abn=None, acn=No
 def update_client(client_id, owner_user_id, **fields):
     allowed = {
         "company_name",
+        "entity_type",
         "legal_name",
         "abn",
         "acn",
@@ -851,6 +1194,36 @@ def mark_rejected(client_id, start, end, signature):
     return get_bas_record(client_id, start, end, signature)
 
 
+def reopen_bas(client_id, start, end, signature):
+    now = _now()
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE bas_records
+            SET approval_status = NULL,
+                approved_at = NULL,
+                rejected_at = NULL,
+                updated_at = ?
+            WHERE client_id = ?
+              AND start_date = ?
+              AND end_date = ?
+              AND signature = ?
+              AND lodged_at IS NULL
+              AND approval_status = 'APPROVED'
+            """,
+            (
+                now,
+                client_id,
+                start,
+                end,
+                signature,
+            ),
+        )
+
+    return get_bas_record(client_id, start, end, signature)
+
+
 def mark_lodged(client_id, start, end, signature, lodgement_reference=None):
     now = _now()
 
@@ -930,6 +1303,7 @@ def get_history_for_user(owner_user_id, limit=200):
                 SELECT
                     b.*,
                     c.company_name AS client_name,
+                    c.data_source,
                     c.abn AS client_abn,
                     ROW_NUMBER() OVER (
                         PARTITION BY b.client_id, b.start_date, b.end_date
@@ -956,6 +1330,7 @@ def get_record_for_user(owner_user_id, record_id):
             SELECT
                 b.*,
                 c.company_name AS client_name,
+                c.data_source,
                 c.abn AS client_abn
             FROM bas_records b
             JOIN clients c ON c.id = b.client_id
@@ -967,3 +1342,277 @@ def get_record_for_user(owner_user_id, record_id):
         ).fetchone()
 
     return dict(row) if row else None
+
+
+
+def create_tax_return(client_id, financial_year, start_date, end_date, entity_type):
+    now = _now()
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            INSERT INTO tax_returns (
+                client_id,
+                financial_year,
+                start_date,
+                end_date,
+                entity_type,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(client_id, financial_year, entity_type)
+            DO NOTHING
+            """,
+            (
+                client_id,
+                financial_year,
+                start_date,
+                end_date,
+                entity_type,
+                now,
+                now,
+            ),
+        )
+
+    return get_tax_return_by_year(client_id, financial_year, entity_type)
+
+
+def get_tax_return_by_year(client_id, financial_year, entity_type="COMPANY"):
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT *
+            FROM tax_returns
+            WHERE client_id = ?
+              AND financial_year = ?
+              AND entity_type = ?
+            LIMIT 1
+            """,
+            (client_id, financial_year, entity_type),
+        ).fetchone()
+
+    return dict(row) if row else None
+
+
+def get_tax_return(client_id, tax_return_id):
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT *
+            FROM tax_returns
+            WHERE id = ?
+              AND client_id = ?
+            LIMIT 1
+            """,
+            (tax_return_id, client_id),
+        ).fetchone()
+
+    return dict(row) if row else None
+
+
+def get_tax_returns_for_client(client_id, limit=50):
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT *
+            FROM tax_returns
+            WHERE client_id = ?
+            ORDER BY end_date DESC, updated_at DESC, id DESC
+            LIMIT ?
+            """,
+            (client_id, limit),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+def get_tax_returns_for_user(owner_user_id, limit=250):
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT
+                t.*,
+                c.company_name AS client_name,
+                c.data_source,
+                c.abn AS client_abn
+            FROM tax_returns t
+            JOIN clients c ON c.id = t.client_id
+            WHERE c.owner_user_id = ?
+            ORDER BY t.end_date DESC, t.updated_at DESC, t.id DESC
+            LIMIT ?
+            """,
+            (owner_user_id, limit),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+def update_tax_return(client_id, tax_return_id, **fields):
+    allowed = {
+        "accounting_profit",
+        "tax_rate",
+        "taxable_income",
+        "estimated_tax",
+        "review_status",
+        "review_text",
+        "reviewed_at",
+        "approval_status",
+        "approved_at",
+        "lodged_at",
+        "lodgement_reference",
+    }
+    updates = []
+    values = []
+
+    for key, value in fields.items():
+        if key not in allowed:
+            continue
+        updates.append(f"{key} = ?")
+        values.append(value)
+
+    if not updates:
+        return get_tax_return(client_id, tax_return_id)
+
+    updates.append("updated_at = ?")
+    values.append(_now())
+    values.extend([tax_return_id, client_id])
+
+    with get_connection() as connection:
+        connection.execute(
+            f"""
+            UPDATE tax_returns
+            SET {", ".join(updates)}
+            WHERE id = ?
+              AND client_id = ?
+            """,
+            values,
+        )
+
+    return get_tax_return(client_id, tax_return_id)
+
+
+def mark_tax_return_lodged(
+    client_id,
+    tax_return_id,
+    lodgement_reference=None,
+):
+    now = _now()
+
+    with get_connection() as connection:
+        connection.execute(
+            """
+            UPDATE tax_returns
+            SET approval_status = 'LODGED',
+                lodged_at = ?,
+                lodgement_reference = ?,
+                updated_at = ?
+            WHERE id = ?
+              AND client_id = ?
+              AND approval_status = 'APPROVED'
+            """,
+            (
+                now,
+                lodgement_reference,
+                now,
+                tax_return_id,
+                client_id,
+            ),
+        )
+
+    return get_tax_return(client_id, tax_return_id)
+
+
+def get_tax_adjustments(client_id, tax_return_id):
+    with get_connection() as connection:
+        rows = connection.execute(
+            """
+            SELECT a.*
+            FROM tax_return_adjustments a
+            JOIN tax_returns t ON t.id = a.tax_return_id
+            WHERE a.tax_return_id = ?
+              AND t.client_id = ?
+            ORDER BY a.id
+            """,
+            (tax_return_id, client_id),
+        ).fetchall()
+
+    return [dict(row) for row in rows]
+
+
+def add_tax_adjustment(
+    client_id,
+    tax_return_id,
+    adjustment_type,
+    category,
+    description,
+    amount,
+):
+    now = _now()
+
+    with get_connection() as connection:
+        parent = connection.execute(
+            """
+            SELECT id
+            FROM tax_returns
+            WHERE id = ?
+              AND client_id = ?
+            LIMIT 1
+            """,
+            (tax_return_id, client_id),
+        ).fetchone()
+
+        if not parent:
+            return None
+
+        cursor = connection.execute(
+            """
+            INSERT INTO tax_return_adjustments (
+                tax_return_id,
+                adjustment_type,
+                category,
+                description,
+                amount,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                tax_return_id,
+                adjustment_type,
+                category,
+                description,
+                amount,
+                now,
+                now,
+            ),
+        )
+        adjustment_id = cursor.lastrowid
+
+    return adjustment_id
+
+
+def delete_tax_adjustment(client_id, tax_return_id, adjustment_id):
+    with get_connection() as connection:
+        cursor = connection.execute(
+            """
+            DELETE FROM tax_return_adjustments
+            WHERE id = ?
+              AND tax_return_id = ?
+              AND tax_return_id IN (
+                  SELECT id
+                  FROM tax_returns
+                  WHERE id = ?
+                    AND client_id = ?
+              )
+            """,
+            (
+                adjustment_id,
+                tax_return_id,
+                tax_return_id,
+                client_id,
+            ),
+        )
+
+    return cursor.rowcount > 0

@@ -5,6 +5,8 @@ from routes.auth_routes import auth_bp
 from routes.bas_routes import bas_bp
 from routes.client_routes import clients_bp
 from routes.qbo_routes import qbo_bp
+from routes.tax_routes import tax_bp
+from routes.demo_routes import demo_bp
 from services.database import init_db
 
 
@@ -32,6 +34,8 @@ def create_app():
     app.register_blueprint(clients_bp)
     app.register_blueprint(qbo_bp)
     app.register_blueprint(bas_bp)
+    app.register_blueprint(tax_bp)
+    app.register_blueprint(demo_bp)
 
     return app
 

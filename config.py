@@ -10,6 +10,38 @@ QBO_BASE_URL = os.getenv("QBO_BASE_URL")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 FLASK_SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "dev-only-change-me")
 
+
+def _env_flag(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+ENABLE_MOCK_ATO_LODGEMENT = _env_flag("ENABLE_MOCK_ATO_LODGEMENT", False)
+
+SMTP_HOST = os.getenv("SMTP_HOST")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USERNAME = os.getenv("SMTP_USERNAME")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+SMTP_USE_TLS = _env_flag("SMTP_USE_TLS", True)
+SMTP_USE_SSL = _env_flag("SMTP_USE_SSL", False)
+EMAIL_FROM = os.getenv("EMAIL_FROM") or SMTP_USERNAME
+EMAIL_VERIFICATION_EXPIRY_MINUTES = int(
+    os.getenv("EMAIL_VERIFICATION_EXPIRY_MINUTES", "30")
+)
+EMAIL_VERIFICATION_DEBUG_LINKS = _env_flag(
+    "EMAIL_VERIFICATION_DEBUG_LINKS",
+    False,
+)
+PASSWORD_RESET_EXPIRY_MINUTES = int(
+    os.getenv("PASSWORD_RESET_EXPIRY_MINUTES", "30")
+)
+PASSWORD_RESET_DEBUG_LINKS = _env_flag(
+    "PASSWORD_RESET_DEBUG_LINKS",
+    EMAIL_VERIFICATION_DEBUG_LINKS,
+)
+
 QBO_AUTH_URL = "https://appcenter.intuit.com/connect/oauth2"
 QBO_TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer"
 

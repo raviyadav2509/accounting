@@ -8,9 +8,9 @@
     <a href="{{ url_for('clients.business_details', client_id=client.id) }}">{{ client.company_name }}</a>
     <span>›</span>
     {% if g.client %}
-        <a href="{{ url_for('bas.historical_bas', client_id=client.id) }}">Historical BAS</a>
+        <a href="{{ url_for('bas.historical_bas', client_id=client.id, year=record.financial_year) }}">BAS History</a>
     {% else %}
-        <a href="{{ url_for('bas.bas_history') }}">BAS history</a>
+        <a href="{{ url_for('bas.bas_history') }}">BAS History</a>
     {% endif %}
     <span>›</span>
     <span>{{ record.period_display }}</span>
@@ -23,7 +23,7 @@
         <div class="subtitle">{{ client.company_name }} · Saved BAS snapshot #{{ record.id }}</div>
     </div>
     {% if g.client %}
-        <a class="secondary-button" href="{{ url_for('bas.historical_bas', client_id=client.id) }}">Back to Historical BAS</a>
+        <a class="secondary-button" href="{{ url_for('bas.historical_bas', client_id=client.id, year=record.financial_year) }}">Back to BAS History</a>
     {% else %}
         <a class="secondary-button" href="{{ url_for('bas.bas_history') }}">Back to History</a>
     {% endif %}

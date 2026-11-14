@@ -1,0 +1,35 @@
+# Dev only: save a plan, pass Terraform-Dev-Env checks, apply the same plan.
+trigger: none
+pr: none
+
+parameters:
+  - name: azureServiceConnection
+    displayName: Azure workload identity service connection
+    type: string
+    default: azure-accounting-wif
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: accounting-terraform
+  # Move the existing storage account here before running this pipeline.
+  - name: stateResourceGroup
+    value: rg-tfstate-sa
+  - name: terraformVersion
+    value: '1.9.8'
+  - name: terraformDirectory
+    value: '$(Build.SourcesDirectory)/infra/azure'
+  - name: terraformPlanDirectory
+    value: '$(Pipeline.Workspace)/terraform-plan'
+
+stages:
+  - template: steps/environment-stages.yml
+    parameters:
+      stageSuffix: Dev
+      environmentName: dev
+      azureEnvironment: Terraform-Dev-Env
+      variableGroup: accounting-terraform
+      # Preserve the exact existing Dev blob; do not reset or copy its state.
+      stateKey: $(stateKey)
+      azureServiceConnection: ${{ parameters.azureServiceConnection }}

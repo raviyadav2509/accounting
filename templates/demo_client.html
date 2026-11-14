@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Demo workspace | BAS Automation{% endblock %}
+{% block content %}
+<div class="page-heading"><div>
+    <h1>{{ demo_client.company_name if demo_client else "Try a demo company" }}</h1>
+    <p class="subtitle">Fictional transactions. No QuickBooks connection, AI API key or real lodgement.</p>
+</div></div>
+{% if error %}<div class="card" role="alert">{{ error }}</div>{% endif %}
+{% if reset_done %}<div class="card" role="status">Demo progress cleared and sample transactions restored. Other clients were not changed.</div>{% endif %}
+{% if demo_client %}
+<section class="card">
+    <h2>Start testing</h2>
+    <p>Sample transactions cover the last completed and current Australian financial years.
+       Transactions in future months are fictional examples, not actual activity.</p>
+    <p>Suggested BAS: {{ period.start }} to {{ period.end }}. Suggested annual return: {{ period.financial_year }}.</p>
+    <p>Monthly example: sales $16,500 including GST; GST collected $1,500; GST credits $400;
+       wages $5,000; PAYG $1,000. Quarterly estimated BAS payable: $6,300.</p>
+    <div class="demo-actions">
+        <a class="button" href="{{ url_for('bas.bas_review', start=period.start, end=period.end) }}">Calculate sample BAS</a>
+        <a class="secondary-button" href="{{ url_for('tax.client_tax_returns', client_id=demo_client.id, year=period.financial_year) }}">Prepare annual return</a>
+    </div>
+    <p>Run the simulated review, resolve any flagged items, explicitly approve, then simulate lodgement.
+       Tax rates and adjustments must still be selected by you. This does not validate real tax compliance.</p>
+</section>
+<section class="card">
+    <h2>Sample quarter transactions</h2>
+    <div class="demo-table-wrap"><table class="demo-table">
+        <thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Amount</th></tr></thead>
+        <tbody>{% for item in transactions %}<tr>
+            <td>{{ item.TxnDate }}</td><td>{{ item.entity }}</td><td>{{ item.PrivateNote }}</td>
+            <td>{% if item.TotalAmt is defined %}${{ "{:,.2f}".format(item.TotalAmt) }}{% else %}Wages $5,000 / PAYG $1,000{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+    </table></div>
+</section>
+{% endif %}
+<section class="card">
+    <h2>{{ "Reset this demo company" if demo_client else "Choose a scenario" }}</h2>
+    {% if demo_client %}<p>This permanently deletes only this demo client's BAS records, reviews,
+       approvals, simulated receipts, annual returns and tax adjustments, then restores sample transactions.
+       Your login and business details are retained. Deleted demo progress cannot be recovered.</p>{% endif %}
+    <form method="post" class="demo-form">
+        <input type="hidden" name="csrf_token" value="{{ demo_csrf_token() }}">
+        <label for="scenario">Scenario</label>
+        <select name="scenario" id="scenario" required>
+            <option value="clean">Standard company — clear review</option>
+            <option value="review">Review exercise — confirm mixed-use expenses</option>
+        </select>
+        {% if demo_client %}
+        <label for="confirm_reset">Type RESET to confirm</label>
+        <input id="confirm_reset" name="confirm_reset" autocomplete="off" required pattern="RESET">
+        {% endif %}
+        <button type="submit" class="button">{{ "Reset demo data" if demo_client else "Create my demo company" }}</button>
+    </form>
+</section>
+{% endblock %}

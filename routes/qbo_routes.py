@@ -1,6 +1,7 @@
 import secrets
 
-from flask import Blueprint, g, redirect, request, session, url_for
+from flask import Blueprint, abort, g, redirect, request, session, url_for
+from services.demo_service import is_demo
 
 from config import DEFAULT_BAS_END, DEFAULT_BAS_START
 from services.database import get_client_for_user, update_client
@@ -15,6 +16,12 @@ from services.qbo_service import (
 )
 
 qbo_bp = Blueprint("qbo", __name__)
+
+
+@qbo_bp.before_request
+def prevent_demo_connection():
+    if is_demo(g.client):
+        abort(400, "Demo clients use local data and cannot connect to QuickBooks.")
 
 
 def _active_client():
@@ -74,6 +81,8 @@ def callback():
     client = get_client_for_user(client_id, g.user["id"])
     if not client:
         return redirect(url_for("clients.index"))
+    if is_demo(client):
+        abort(400, "Demo clients cannot connect to QuickBooks.")
 
     code = request.args.get("code")
     realm_id = request.args.get("realmId")

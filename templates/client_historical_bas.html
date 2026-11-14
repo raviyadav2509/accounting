@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Historical BAS | {{ client.company_name }}{% endblock %}
+{% block title %}BAS History | {{ client.company_name }}{% endblock %}
 
 {% block content %}
 <div class="workspace-breadcrumbs">
@@ -7,16 +7,39 @@
     <span>›</span>
     <a href="{{ url_for('clients.business_details', client_id=client.id) }}">{{ client.company_name }}</a>
     <span>›</span>
-    <span>Historical BAS</span>
+    <span>BAS History</span>
 </div>
 
 <div class="page-heading client-section-heading">
     <div>
         <div class="eyebrow">Client BAS</div>
-        <h1>Historical BAS</h1>
-        <div class="subtitle">Lodged BAS periods retained as read-only records and audit history.</div>
+        <h1>BAS History</h1>
+        <div class="subtitle">Lodged BAS periods grouped by Australian financial year.</div>
     </div>
+
+    {% if financial_years %}
+    <form class="financial-year-filter" method="get">
+        <label for="bas-financial-year">Financial year</label>
+        <select id="bas-financial-year" name="year" onchange="this.form.submit()">
+            {% for financial_year in financial_years %}
+            <option value="{{ financial_year }}" {% if financial_year == selected_year %}selected{% endif %}>
+                FY {{ financial_year }} · {{ year_counts[financial_year] }} BAS
+            </option>
+            {% endfor %}
+        </select>
+    </form>
+    {% endif %}
 </div>
+
+{% if selected_year %}
+<div class="financial-year-context">
+    <div>
+        <span>Showing</span>
+        <strong>FY {{ selected_year }}</strong>
+    </div>
+    <small>{{ historical_records|length }} lodged BAS period{% if historical_records|length != 1 %}s{% endif %}</small>
+</div>
+{% endif %}
 
 {% if historical_records %}
 <div class="card table-card">
@@ -35,7 +58,10 @@
             <tbody>
                 {% for record in historical_records %}
                 <tr>
-                    <td><strong>{{ record.period_display }}</strong></td>
+                    <td>
+                        <strong>{{ record.period_display }}</strong>
+                        <div class="table-subtext">{{ record.start_date }} to {{ record.end_date }}</div>
+                    </td>
                     <td>&#36;{{ "{:,.2f}".format(record.g1) }}</td>
                     <td>{{ record.amount_display }}</td>
                     <td>{{ record.review_status or "Completed" }}</td>
@@ -53,8 +79,8 @@
 </div>
 {% else %}
 <div class="card empty-state">
-    <strong>No historical BAS records yet.</strong>
-    <p>Lodged BAS periods for this client will appear here.</p>
+    <strong>No BAS history yet.</strong>
+    <p>Lodged BAS periods for this client will appear here and be grouped by financial year.</p>
 </div>
 {% endif %}
 {% endblock %}
