@@ -13,17 +13,18 @@ Terraform and is expected in **`rg-tfstate-sa`**.
 
 Follow [PIPELINE.md](PIPELINE.md) for the storage-account move, variable groups and
 Environment approval. One run executes **PlanDev → ApplyDev**. Apply uses the
-exact saved plan and is controlled by checks on **`Terraform-Dev-Env`**.
+exact saved plan, is controlled by checks on **`Terraform-Dev-Env`**, and only runs
+from `main`; other branches stop after PlanDev.
 
 Azure resource groups cannot be renamed. Move the existing state storage account
 from `rg-quickbooks-accounting` into a newly created `rg-tfstate-sa` group first.
 Keep its name, container and existing Dev blob name unchanged. Recheck blob data
 permissions at the new scope. Do not create an empty replacement state account.
 
-The previous managed resource group is forgotten without deletion through a
-`removed` block. Existing Dev app/plan resources may still be replaced to enter
-the new group. Review PlanDev before approval and preserve any SQLite data first.
-Old groups are left for manual inspection; this configuration does not delete them.
+The previous managed resource group (`azurerm_resource_group.app`) is destroyed
+when the plan is applied. Existing Dev app/plan resources are replaced in the new
+group. Review PlanDev before approval and preserve any SQLite data first. Deletion
+fails if the old group still contains resources Terraform does not manage.
 
 ## Local Terraform
 
@@ -83,8 +84,7 @@ Existing application authentication and security limitations still apply.
 
 `terraform destroy` against one environment's state deletes its managed group,
 web app and plan. Keep unrelated resources out of those managed application groups.
-It does not manage/delete the external `rg-tfstate-sa` account or old groups
-removed from state. Back up application data before destructive changes.
+It does not manage/delete the external `rg-tfstate-sa` account. Back up application data before destructive changes.
 
 Provider-schema validation and live plans run on the Azure pipeline agents.
 See [PIPELINE.md](PIPELINE.md) for verification status and migration details.

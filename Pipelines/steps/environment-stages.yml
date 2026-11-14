@@ -70,7 +70,8 @@ stages:
   - stage: Apply${{ parameters.stageSuffix }}
     displayName: Apply ${{ parameters.environmentName }}
     dependsOn: Plan${{ parameters.stageSuffix }}
-    condition: succeeded()
+    # Other branches stop after Plan so their changes can be reviewed but not applied.
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     jobs:
       - deployment: ApplySavedPlan
         displayName: Deploy ${{ parameters.environmentName }} infrastructure
@@ -102,6 +103,7 @@ stages:
                     visibleAzLogin: false
                   env:
                     TF_ACTION: apply
+                    TF_SOURCE_BRANCH: $(Build.SourceBranch)
                     TF_IN_AUTOMATION: 'true'
                     TF_INPUT: 'false'
                     TF_PLAN_DIRECTORY: '$(terraformPlanDirectory)/${{ parameters.environmentName }}'

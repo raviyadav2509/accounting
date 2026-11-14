@@ -8,6 +8,12 @@ Apply is controlled by approvals and checks on **`Terraform-Dev-Env`**.
 It consumes the exact saved plan from PlanDev;
 it does not run Terraform plan again.
 
+ApplyDev runs only when the pipeline is run from `main`. Runs from any other branch
+stop after PlanDev, so feature branches can be planned and reviewed but never
+deployed. `run-terraform.sh` also refuses to apply outside `main`. Because a
+branch could edit both, add a **Branch control** check (allowed branches
+`refs/heads/main`) on `Terraform-Dev-Env` to enforce this in Azure DevOps itself.
+
 | Target | New managed resource group | Azure DevOps Environment | State blob |
 | --- | --- | --- | --- |
 | Dev | `rg-quickbooks-dev` | `Terraform-Dev-Env` | Existing `stateKey` value, normally `accounting-dev.tfstate` |
@@ -100,7 +106,7 @@ remain separate; this pipeline provisions infrastructure only.
 2. Add an **Approval**, choose approvers and timeout, and allow self-approval if
    the requester must approve their own run.
 3. Authorize this pipeline under the environment's pipeline permissions.
-4. Review that environment's Plan logs before approving Apply.
+4. Review that environment's plan summary (see below) before approving Apply.
 
 The environment alone does not cause a pause. Without checks, ApplyDev starts
 automatically. The YAML has no ManualValidation task or approval stage.
@@ -109,13 +115,24 @@ automatically. The YAML has no ManualValidation task or approval stage.
 
 Use `/Pipelines/azure-pipelines-terraform.yml` from `feature/annual-tax-return` in GitHub.
 Start one run. Review PlanDev and approve ApplyDev on `Terraform-Dev-Env`.
+
+PlanDev ends with a readable **Terraform plan summary** in the step log: a one-line
+total (for example `Plan: 1 to destroy, 2 to replace, 1 to create.`), an overview
+listing each resource with its Azure name and why it changes, and one collapsible
+section per resource showing before -> after values (click to expand). Attributes
+that force a replacement are marked. Values Terraform marks sensitive, and
+attributes whose names look like secrets, are shown only as `(sensitive)`. The same
+summary, as tables, is on the run's summary page (**Extensions** tab). A warning
+annotation appears when anything is destroyed or replaced. The raw Terraform plan
+is still in the log, collapsed under **Full Terraform plan**.
 A rejected approval prevents ApplyDev from deploying. Environment checks run before the
 deployment job starts; no agent is occupied during the approval wait.
 
-The previous resource group address `azurerm_resource_group.app` is retained in a
-`removed` block with `destroy = false`. The new managed group uses a different
-address, `azurerm_resource_group.environment`. This avoids Terraform deleting the
-old group when switching configuration. Existing Dev web app/plan resources may
+The previous resource group address `azurerm_resource_group.app` is no longer in
+configuration, so Terraform plans to **destroy** that group from existing state.
+The new managed group uses a different address, `azurerm_resource_group.environment`.
+The azurerm provider refuses to delete a group that still contains resources
+Terraform does not manage; move or remove those first. Existing Dev web app/plan resources may
 still require **replacement** to enter the new group and naming scheme. Back up
 any app data and review the destructive actions before approving. This change
 does not perform an in-place Azure move of application resources.

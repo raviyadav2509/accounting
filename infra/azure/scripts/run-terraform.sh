@@ -8,7 +8,7 @@ required=(servicePrincipalId tenantId idToken TF_ACTION TF_PLAN_DIRECTORY
   TF_STATE_RESOURCE_GROUP TF_STATE_STORAGE_ACCOUNT TF_STATE_CONTAINER TF_STATE_KEY)
 case "${TF_ACTION:-}" in
   plan) required+=(TF_VAR_qbo_client_id TF_VAR_qbo_client_secret TF_VAR_openai_api_key TF_VAR_qbo_environment) ;;
-  apply) ;;
+  apply) required+=(TF_SOURCE_BRANCH) ;;
   *) echo "TF_ACTION must be plan or apply" >&2; exit 1 ;;
 esac
 for name in "${required[@]}"; do
@@ -18,6 +18,12 @@ for name in "${required[@]}"; do
     exit 1
   fi
 done
+
+# Backstop for the Apply stage condition, in case the YAML is edited on a branch.
+if [[ "$TF_ACTION" == apply && "$TF_SOURCE_BRANCH" != refs/heads/main ]]; then
+  echo "Apply is only allowed from main (this run is from $TF_SOURCE_BRANCH)" >&2
+  exit 1
+fi
 
 if [[ "$TF_DEPLOYMENT_ENVIRONMENT" != "$TF_VAR_deployment_environment" ]]; then
   echo "Pipeline and Terraform environment must match" >&2
@@ -35,6 +41,7 @@ export ARM_SUBSCRIPTION_ID
 export TF_VAR_subscription_id="$ARM_SUBSCRIPTION_ID"
 plan_path="$TF_PLAN_DIRECTORY/deployment.tfplan"
 context_script="$(dirname "${BASH_SOURCE[0]}")/plan-context.py"
+summary_script="$(dirname "${BASH_SOURCE[0]}")/plan-summary.py"
 
 # Fail before accessing state if the downloaded plan belongs to another context.
 if [[ "$TF_ACTION" == apply ]]; then
@@ -56,8 +63,17 @@ terraform validate -no-color
 
 if [[ "$TF_ACTION" == plan ]]; then
   mkdir -p "$TF_PLAN_DIRECTORY"
+  # Collapse the verbose plan in the log; the summary below is the review aid.
+  echo "##[group]Full Terraform plan"
   terraform plan -input=false -no-color -lock-timeout=5m -out="$plan_path"
+  echo "##[endgroup]"
   python3 "$context_script" save "$TF_PLAN_DIRECTORY"
+
+  # Kept outside the plan artifact directory so the artifact is unchanged.
+  summary_path="${AGENT_TEMPDIRECTORY:-$TF_PLAN_DIRECTORY}/terraform-plan-summary-$TF_DEPLOYMENT_ENVIRONMENT.md"
+  terraform show -json "$plan_path" \
+    | python3 "$summary_script" "$TF_DEPLOYMENT_ENVIRONMENT" "$summary_path"
+  echo "##vso[task.uploadsummary]$summary_path"
   echo "Plan saved. Apply will use this environment's saved artifact after its Environment checks."
 else
   # Do not run terraform plan here. Use exactly the reviewed artifact.
