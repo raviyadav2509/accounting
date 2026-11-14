@@ -112,10 +112,11 @@ Start one run. Review PlanDev and approve ApplyDev on `Terraform-Dev-Env`.
 A rejected approval prevents ApplyDev from deploying. Environment checks run before the
 deployment job starts; no agent is occupied during the approval wait.
 
-The previous resource group address `azurerm_resource_group.app` is retained in a
-`removed` block with `destroy = false`. The new managed group uses a different
-address, `azurerm_resource_group.environment`. This avoids Terraform deleting the
-old group when switching configuration. Existing Dev web app/plan resources may
+The previous resource group address `azurerm_resource_group.app` is no longer in
+configuration, so Terraform plans to **destroy** that group from existing state.
+The new managed group uses a different address, `azurerm_resource_group.environment`.
+The azurerm provider refuses to delete a group that still contains resources
+Terraform does not manage; move or remove those first. Existing Dev web app/plan resources may
 still require **replacement** to enter the new group and naming scheme. Back up
 any app data and review the destructive actions before approving. This change
 does not perform an in-place Azure move of application resources.

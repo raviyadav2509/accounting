@@ -25,16 +25,6 @@ resource "azurerm_resource_group" "environment" {
   tags     = local.tags
 }
 
-# Previous versions created a group. Forget it without deleting the group or
-# unrelated contents when existing state is upgraded to this configuration.
-removed {
-  from = azurerm_resource_group.app
-
-  lifecycle {
-    destroy = false
-  }
-}
-
 resource "azurerm_service_plan" "app" {
   name                = "asp-${local.web_app_name}"
   resource_group_name = azurerm_resource_group.environment.name
