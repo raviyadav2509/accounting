@@ -100,7 +100,7 @@ remain separate; this pipeline provisions infrastructure only.
 2. Add an **Approval**, choose approvers and timeout, and allow self-approval if
    the requester must approve their own run.
 3. Authorize this pipeline under the environment's pipeline permissions.
-4. Review that environment's Plan logs before approving Apply.
+4. Review that environment's plan summary (see below) before approving Apply.
 
 The environment alone does not cause a pause. Without checks, ApplyDev starts
 automatically. The YAML has no ManualValidation task or approval stage.
@@ -109,6 +109,13 @@ automatically. The YAML has no ManualValidation task or approval stage.
 
 Use `/Pipelines/azure-pipelines-terraform.yml` from `feature/annual-tax-return` in GitHub.
 Start one run. Review PlanDev and approve ApplyDev on `Terraform-Dev-Env`.
+
+PlanDev publishes a short **Terraform plan summary** on the run's summary page
+(the **Extensions** tab). It lists destroyed, replaced, created and updated
+resources, most disruptive first, with the attribute names that changed or forced
+a replacement. Values are never shown because the plan contains secrets. A
+warning annotation appears when anything is destroyed or replaced. The full plan
+is still in the step log, collapsed under **Full Terraform plan**.
 A rejected approval prevents ApplyDev from deploying. Environment checks run before the
 deployment job starts; no agent is occupied during the approval wait.
 

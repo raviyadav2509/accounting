@@ -35,6 +35,7 @@ export ARM_SUBSCRIPTION_ID
 export TF_VAR_subscription_id="$ARM_SUBSCRIPTION_ID"
 plan_path="$TF_PLAN_DIRECTORY/deployment.tfplan"
 context_script="$(dirname "${BASH_SOURCE[0]}")/plan-context.py"
+summary_script="$(dirname "${BASH_SOURCE[0]}")/plan-summary.py"
 
 # Fail before accessing state if the downloaded plan belongs to another context.
 if [[ "$TF_ACTION" == apply ]]; then
@@ -56,8 +57,18 @@ terraform validate -no-color
 
 if [[ "$TF_ACTION" == plan ]]; then
   mkdir -p "$TF_PLAN_DIRECTORY"
+  # Collapse the verbose plan in the log; the summary below is the review aid.
+  echo "##[group]Full Terraform plan"
   terraform plan -input=false -no-color -lock-timeout=5m -out="$plan_path"
+  echo "##[endgroup]"
   python3 "$context_script" save "$TF_PLAN_DIRECTORY"
+
+  # Kept outside the plan artifact directory so the artifact is unchanged.
+  summary_path="${AGENT_TEMPDIRECTORY:-$TF_PLAN_DIRECTORY}/terraform-plan-summary-$TF_DEPLOYMENT_ENVIRONMENT.md"
+  echo "##[section]Terraform plan summary"
+  terraform show -json "$plan_path" \
+    | python3 "$summary_script" "$TF_DEPLOYMENT_ENVIRONMENT" "$summary_path"
+  echo "##vso[task.uploadsummary]$summary_path"
   echo "Plan saved. Apply will use this environment's saved artifact after its Environment checks."
 else
   # Do not run terraform plan here. Use exactly the reviewed artifact.
