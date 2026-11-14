@@ -1,9 +1,10 @@
-subscription_id     = "REPLACE-WITH-YOUR-SUBSCRIPTION-ID"
-resource_group_name = "rg-quickbooks-accounting"
-name_prefix         = "ravi-accounting"
-sku_name            = "F1"
-qbo_environment     = "sandbox"
+subscription_id        = "REPLACE-WITH-YOUR-SUBSCRIPTION-ID"
+deployment_environment = "dev"
+resource_group_name    = "rg-quickbooks-dev"
+name_prefix            = "quickbooks-dev"
+location               = "australiaeast"
+sku_name               = "F1"
+qbo_environment        = "sandbox"
 
-# Set QBO and OpenAI credentials using TF_VAR_* environment variables.
-# Do not commit credentials or Terraform state to Git.
-# Optional: set default_bas_start/end and payroll account IDs for your test company.
+# Supply real QBO/OpenAI credentials through TF_VAR_* environment variables.
+# Use a different backend key for each environment. Never commit secrets/state.

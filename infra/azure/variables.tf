@@ -1,23 +1,40 @@
+variable "deployment_environment" {
+  description = "Application environment; each environment must use its own backend state key."
+  type        = string
+  default     = "dev"
+
+  validation {
+    condition     = contains(["dev", "test", "prod"], var.deployment_environment)
+    error_message = "Choose dev, test or prod."
+  }
+}
+
+variable "location" {
+  description = "Azure region for the environment's resource group and App Service resources."
+  type        = string
+  default     = "australiaeast"
+}
+
 variable "subscription_id" {
   description = "Azure subscription ID. Authenticate using az login before running Terraform."
   type        = string
 }
 
 variable "resource_group_name" {
-  description = "Existing Azure resource group for the application; Terraform does not create or delete it."
+  description = "Application resource group created for this environment. Keep state storage in a separate group."
   type        = string
-  default     = "rg-quickbooks-accounting"
+  default     = "rg-quickbooks-dev"
 
   validation {
     condition     = length(trimspace(var.resource_group_name)) > 0
-    error_message = "Supply the existing application resource group name."
+    error_message = "Supply the application resource group name."
   }
 }
 
 variable "name_prefix" {
   description = "Short lowercase name; a random suffix makes the web app name globally unique."
   type        = string
-  default     = "ravi-accounting"
+  default     = "quickbooks-dev"
 
   validation {
     condition     = can(regex("^[a-z][a-z0-9-]{2,29}$", var.name_prefix)) && !endswith(var.name_prefix, "-")

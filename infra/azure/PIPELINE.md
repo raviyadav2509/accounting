@@ -1,185 +1,160 @@
-# Deploy Terraform with Azure Pipelines
+# Dev, Test and Prod Terraform pipeline
 
-Use the repository-root `azure-pipelines-terraform.yml` as a **separate pipeline**.
-The existing `azure-pipelines.yml` continues testing the application. This pipeline
-provisions infrastructure only; deploy the Python app using the README afterwards.
-One manual run executes **Plan → Apply**. The Apply deployment job targets
-**`Terraform-Dev-Env`**, whose approvals/checks gate the stage. It uses the F1/sandbox
-Terraform defaults.
+One manual run uses the same commit throughout:
 
-## 1. Create the Azure service connection
+**PlanDev → ApplyDev → PlanTest → ApplyTest → PlanProd → ApplyProd**
 
-In Azure DevOps, open **Project settings → Service connections → New service
-connection → Azure Resource Manager**. Select **Workload identity federation**,
-your subscription, and name it `azure-accounting-wif`. Authorize this pipeline
-to use it. A different name can be selected when running the pipeline.
+Each Apply deployment is controlled by its Azure DevOps Environment's approvals
+and checks. Apply consumes the exact saved plan from the corresponding Plan stage;
+it does not run Terraform plan again.
 
-Terraform uses the existing **`rg-quickbooks-accounting`** group. The identity
-needs read access to that group and **Contributor** to deploy its App Service
-resources. An existing subscription-level Contributor assignment also covers it.
-Register required providers (including `Microsoft.Web`) beforehand if the identity
-cannot register providers at subscription scope. Give the identity **Storage Blob Data
-Contributor** on the state container/account separately. Contributor alone does
-not grant blob data access. The pipeline does not create role assignments.
+| Target | New managed resource group | Azure DevOps Environment | State blob |
+| --- | --- | --- | --- |
+| Dev | `rg-quickbooks-dev` | `Terraform-Dev-Env` | Existing `stateKey` value, normally `accounting-dev.tfstate` |
+| Test | `rg-quickbooks-test` | `Terraform-Test-Env` | `accounting-test.tfstate` |
+| Prod | `rg-quickbooks-prod` | `Terraform-Prod-Env` | `accounting-prod.tfstate` |
 
-## 2. Create state storage once
+All blobs use the existing storage account and `tfstate` container, in the
+separate **`rg-tfstate-sa`** resource group. Each state manages its own application
+group, plan, web app and generated values. App names have distinct
+`quickbooks-dev-`, `quickbooks-test-` and `quickbooks-prod-` prefixes.
 
-Use Azure Cloud Shell (Bash), signed in as an administrator allowed to assign
-roles. Replace the subscription, globally unique storage name and service
-connection identity's **principal/object ID** (not its application/client ID).
-Find the identity in the service connection's managed identity/app registration.
+## 1. Move existing state storage first
 
-```bash
-az account set --subscription '<subscription-id>'
-state_rg='rg-accounting-tfstate'
-state_account='<unique-lowercase-storage-name>'
-pipeline_object_id='<service-connection-principal-object-id>'
-az group create --name "$state_rg" --location australiaeast
-az storage account create --name "$state_account" --resource-group "$state_rg" \
-  --location australiaeast --sku Standard_LRS --kind StorageV2 \
-  --https-only true --min-tls-version TLS1_2 \
-  --allow-blob-public-access false --allow-shared-key-access false
-state_scope=$(az storage account show --name "$state_account" \
-  --resource-group "$state_rg" --query id --output tsv)
-az role assignment create --assignee-object-id "$pipeline_object_id" \
-  --assignee-principal-type ServicePrincipal \
-  --role 'Storage Blob Data Contributor' --scope "$state_scope"
-az storage account blob-service-properties update --account-name "$state_account" \
-  --resource-group "$state_rg" --enable-versioning true \
-  --enable-delete-retention true --delete-retention-days 7
-```
+Azure resource groups cannot be renamed. To change `rg-quickbooks-accounting`
+to `rg-tfstate-sa` for storage, **move the existing storage account**, rather than
+creating a replacement storage account or empty state files.
 
-Give your Cloud Shell user **Storage Blob Data Contributor** on this account too,
-then create a private container after role assignments have propagated:
+1. Finish/cancel all Terraform runs, including any pending approvals. Do not move
+   storage while Terraform is running or a state blob is leased by a live run.
+2. Record the current storage account name, container, exact Dev `stateKey`,
+   and storage role assignments. Download a secure backup of the existing state
+   blob if it exists. Do not commit or share state; it contains secrets.
+3. In Azure Portal, create **`rg-tfstate-sa`** in the same QuickBooks subscription.
+4. Open the existing storage account's **Overview → Move → Move to another
+   resource group**. Choose `rg-tfstate-sa`, validate and complete the move.
+   Move only the storage account and any dependencies Azure requires.
+5. Confirm the same account still contains `tfstate` and the original Dev blob.
+   The account name, blob names and content must remain unchanged.
+6. Reassign/check **Storage Blob Data Contributor** for your user and the
+   `azure-accounting-wif` service principal on the storage account's new scope.
+   Resource-level role assignments do not move automatically; permissions inherited
+   from the old group also no longer cover the account.
+7. Give the pipeline identity **Reader** or broader access on the moved storage
+   account for the pipeline's account/group preflight check. Its existing
+   subscription-level Contributor role already satisfies this.
+8. Update `stateResourceGroup` in the existing `accounting-terraform` variable group
+   to `rg-tfstate-sa`. The pipeline YAML explicitly sets that value too.
 
-```bash
-az storage container create --name tfstate --account-name "$state_account" \
-  --auth-mode login --public-access off
-```
+Do not delete `rg-quickbooks-accounting` or the previous randomly named group
+until all their contents have been checked. This pipeline does not delete or
+rename those groups. It does not provision or move the backend storage account.
 
-Keep the state account separate from the application resource group. Blob storage,
-versions and retained deleted blobs incur a small usage charge even with F1 hosting.
-State contains application secrets; restrict access to the account and container.
-The hosted agent must be able to reach the storage endpoint. A private/firewalled
-account requires an appropriately connected self-hosted agent.
+CI initializes from a clean checkout, using the new resource group and the same
+account/container/blob: the Dev state stays at the same blob endpoint, so it does
+not need to be copied to a new key. For an already initialized local checkout,
+use `terraform init -reconfigure` with the updated group **only when the same
+account/container/key has been retained**. Changing storage accounts or Dev keys
+requires a separate deliberate state migration.
 
-**Existing deployment:** if Terraform was already applied with local state, migrate
-that state into this backend before running the pipeline. Use `terraform init
--migrate-state` with the four backend arguments below from the original working
-directory containing the state. Do not point an empty backend at existing resources.
+## 2. Service connection and backend variables
 
-## 3. Add pipeline variables
+Use the existing workload identity service connection `azure-accounting-wif`.
+Because Terraform now creates three resource groups, the identity needs
+**Contributor at subscription scope**, plus the blob role on moved state storage.
+Authorize this pipeline to use the connection.
 
-In **Pipelines → Library**, create the variable group `accounting-terraform` and
-authorize only the new pipeline. Add:
+Keep the existing `accounting-terraform` Library variable group for shared settings:
 
-| Variable | Example / value | Secret |
+| Variable | Value |
+| --- | --- |
+| `stateResourceGroup` | `rg-tfstate-sa` (also explicitly set in YAML) |
+| `stateStorageAccount` | The existing storage account's exact name |
+| `stateContainer` | `tfstate` |
+| `stateKey` | Preserve the exact existing Dev blob name |
+
+Do not set `stateKey` to a Test/Prod filename. Test/Prod keys are fixed separately
+in YAML. Do not copy Dev state into Test or Prod. Terraform creates those state
+blobs during their first apply. If an old Dev deployment exists, losing/changing
+its key would make Terraform lose track of those existing resources.
+
+## 3. Environment-specific secrets
+
+Create and authorize these three Library variable groups:
+
+- `accounting-terraform-dev`
+- `accounting-terraform-test`
+- `accounting-terraform-prod`
+
+Each must contain:
+
+| Variable | Secret | Value |
 | --- | --- | --- |
-| `stateResourceGroup` | `rg-accounting-tfstate` | No |
-| `stateStorageAccount` | Your storage account name | No |
-| `stateContainer` | `tfstate` | No |
-| `stateKey` | `accounting-dev.tfstate` | No |
-| `qboClientId` | Intuit sandbox client ID | Yes |
-| `qboClientSecret` | Intuit sandbox client secret | Yes |
-| `openaiApiKey` | OpenAI API key | Yes |
+| `qboClientId` | Yes | This environment's Intuit client ID |
+| `qboClientSecret` | Yes | This environment's Intuit client secret |
+| `openaiApiKey` | Yes | This environment's OpenAI key |
+| `qboEnvironment` | No | `sandbox` or `production` |
 
-The subscription ID is taken from the service connection. Do not commit
-`terraform.tfvars`, state, plan files or real keys. Keep the same state key for
-this environment across branches and runs. A different environment needs separate
-state and a distinct app name prefix. To override defaults, add explicit `TF_VAR_*`
-environment mappings to the YAML; Azure secret variables are not exported implicitly.
+You can initially copy the current test credentials into the Dev/Test groups.
+Only use `production` with matching Intuit production credentials. The Prod group
+may stay on `sandbox` while validating this application; its name does not force
+live QuickBooks access. Avoid adding shared backend keys to these secret groups.
 
-When upgrading from the earlier configuration that created a group, read
-README's **Switching an earlier deployment to the existing group** section first.
-Review any app/hosting-plan replacements in the Plan stage before approving Apply. The backend
-variables above must continue pointing to the original state storage.
+All hosting tiers remain **F1** unless deliberately changed in Terraform.
+An environment named Prod is not automatically production-ready hosting. F1
+quotas/capacity may limit deploying all three free plans. No paid fallback is
+automatic. Application deployment and Intuit callback registration remain separate
+per web app; this pipeline provisions infrastructure only.
 
-## 4. Configure the Azure DevOps Environment
+## 4. Configure all three Environment gates
 
-1. Open **Pipelines → Environments → Terraform-Dev-Env**.
-2. Open **Approvals and checks → + → Approvals**.
-3. Select the approver(s). For this personal setup, enable approval of your own
-   runs if you are also the requester. Set the approval timeout as required.
-4. Save the check. Under the environment's **Security / Pipeline permissions**,
-   authorize this Terraform pipeline to use the environment.
-5. Review the Plan stage logs before approving Apply, especially any replacements
-   or deletions when switching resource groups.
+For each environment listed in the table:
 
-**Creating the environment alone does not add an approval gate.** Without an
-approval/check on `Terraform-Dev-Env`, Apply starts automatically after Plan.
-Checks are managed in Azure DevOps rather than in repository YAML; the environment
-owner controls approvers, timeout and self-approval. A rejected or timed-out
-approval prevents the stage from deploying. No agent is occupied while it waits.
+1. Open **Pipelines → Environments → [environment] → Approvals and checks**.
+2. Add an **Approval**, choose approvers and timeout, and allow self-approval if
+   the requester must approve their own run.
+3. Authorize this pipeline under the environment's pipeline permissions.
+4. Review that environment's Plan logs before approving Apply.
 
-This YAML targets the existing development environment only. Test and Production
-need their own configuration and state isolation before being used for deployment.
+The environments alone do not cause a pause. Without checks, their Apply stages
+start automatically. The YAML has no ManualValidation task or approval stage.
 
-## 5. Create and run the pipeline
+## 5. Run and review
 
-1. Open **Pipelines → New pipeline** and select the repository (GitHub or Azure Repos).
-2. Choose **Existing Azure Pipelines YAML file**, branch `feature/annual-tax-return`,
-   path `/azure-pipelines-terraform.yml`. If using Azure Repos, first sync the commit
-   containing this YAML and `infra/azure` from GitHub.
-3. Start one run. There is no longer an `action` selector. The **Plan** stage
-   installs Terraform, initializes remote state, validates and saves a binary plan.
-4. The **Apply** stage waits for the checks configured on `Terraform-Dev-Env`.
-   Review the Plan stage logs and the proposed additions, changes, replacements
-   and deletions. Open the pending environment approval and **Approve** or **Reject**.
-5. After approval, **Apply** downloads the plan artifact from this same run, verifies
-   its checksum and run/commit/Azure/backend context, initializes with fresh workload
-   identity credentials, and applies that exact file. It never generates a new plan.
-6. Read the application URL in the Apply log, then follow README sections 3 and 4
-   to deploy the app and configure QuickBooks.
+Use `/azure-pipelines-terraform.yml` from `feature/annual-tax-return` in GitHub.
+Start one run. Review PlanDev and approve ApplyDev on `Terraform-Dev-Env`;
+then review/approve Test and Prod on their own Environments. A rejected/failed
+deployment stops downstream environments. Environment checks run before the
+deployment job starts; no agent is occupied during the approval wait.
 
-**Saved-plan access:** Terraform binary plans include secret variable values.
-This workflow publishes `deployment.tfplan` and a non-secret checksum/context
-manifest as the run's private `terraform-plan` artifact to cross the approval/job
-boundary. Do not share/download it casually. Restrict pipeline run/artifact viewing
-permissions to trusted operators and set short run/artifact retention. Agent copies
-and backend caches are removed after each job; the published artifact remains until
-the run is deleted or retention removes it. Rejecting approval does not delete it.
-No plaintext plan JSON or Terraform state is published.
+The previous resource group address `azurerm_resource_group.app` is retained in a
+`removed` block with `destroy = false`. The new managed group uses a different
+address, `azurerm_resource_group.environment`. This avoids Terraform deleting the
+old group when switching configuration. Existing Dev web app/plan resources may
+still require **replacement** to enter the new group and naming scheme. Back up
+any app data and review the destructive actions before approving. This change
+does not perform an in-place Azure move of application resources.
 
-Keep the same source commit, Terraform version, identity, subscription and backend
-coordinates for both stages. Apply rejects altered artifacts or changed context.
-Terraform checks saved-plan state freshness and acquires the backend lock; if the
-state has changed during approval, start a new run and review a new plan instead of
-forcing an old plan through. Avoid overlapping runs against the same environment.
-Do not rerun only Plan after approval: reject/cancel and start a complete new run.
+Artifacts are named `terraform-plan-dev`, `terraform-plan-test` and
+`terraform-plan-prod`. Each contains a secret-bearing binary plan plus a
+non-secret checksum/context manifest. Restrict run/artifact access and retention.
+Local copies are cleaned after each job; published artifacts remain for the run's
+retention period. Apply verifies the run, commit, identity, subscription, backend,
+environment, resource group, app prefix and plan checksum. State is never
+published. If state changes during approval, start a new run instead of forcing
+a stale plan through.
 
-The committed `infra/azure/.terraform.lock.hcl` fixes provider versions and checksums.
-The pipeline initializes with `-lockfile=readonly`. For deliberate provider upgrades,
-run `terraform init -upgrade` locally, validate, and commit the updated lock file.
+## Validation and limitations
 
-## Local init with this backend
-
-After `az login` and selecting the subscription, run from `infra/azure`:
-
-```powershell
-terraform init `
-  -backend-config="resource_group_name=rg-accounting-tfstate" `
-  -backend-config="storage_account_name=YOUR-STORAGE-ACCOUNT" `
-  -backend-config="container_name=tfstate" `
-  -backend-config="key=accounting-dev.tfstate"
-```
-
-Your signed-in identity also needs blob data access. For an existing local state,
-add `-migrate-state` and review Terraform's migration prompt. Do not use
-`-reconfigure` as a substitute for state migration.
-
-## Validation
-
-YAML stage dependencies, the deployment job's environment binding, explicit
-current-run artifact download and shell syntax were checked locally. Simulated Terraform/Azure commands exercised
-the separate Plan and Apply paths, applying the saved bytes without a second plan,
-and rejection of missing/altered plans or changed backend/run/source context.
-The environment-gated workflow has not yet been run against Azure DevOps. Terraform provider
-validation and the Azure plan run on the pipeline agent.
+YAML/template expansion, environment gate bindings, stage order, state/artifact
+isolation, shell/Python syntax and simulated saved-plan execution are checked
+locally. The new multi-environment workflow and storage move still require
+execution/verification in your Azure account. No cloud resources were changed
+while writing this configuration.
 
 ## References
 
+- https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/frequently-asked-questions
+- https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/move-resource-group-and-subscription
 - https://learn.microsoft.com/en-us/azure/devops/pipelines/process/environments
-- https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals
-- https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/download-pipeline-artifact-v2
-- https://developer.hashicorp.com/terraform/cli/commands/apply
-- https://developer.hashicorp.com/terraform/language/manage-sensitive-data
+- https://developer.hashicorp.com/terraform/language/backend/azurerm

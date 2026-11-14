@@ -2,7 +2,7 @@ locals {
   web_app_name = "${var.name_prefix}-${random_string.suffix.result}"
   tags = {
     application = "quickbooks-accounting"
-    environment = "development"
+    environment = var.deployment_environment
     managed_by  = "terraform"
   }
 }
@@ -18,9 +18,11 @@ resource "random_password" "flask_secret" {
   special = false
 }
 
-# The application group is owned outside this Terraform configuration.
-data "azurerm_resource_group" "app" {
-  name = var.resource_group_name
+# One managed application group per environment. State storage is external.
+resource "azurerm_resource_group" "environment" {
+  name     = var.resource_group_name
+  location = var.location
+  tags     = local.tags
 }
 
 # Previous versions created a group. Forget it without deleting the group or
@@ -35,8 +37,8 @@ removed {
 
 resource "azurerm_service_plan" "app" {
   name                = "asp-${local.web_app_name}"
-  resource_group_name = data.azurerm_resource_group.app.name
-  location            = data.azurerm_resource_group.app.location
+  resource_group_name = azurerm_resource_group.environment.name
+  location            = azurerm_resource_group.environment.location
   os_type             = "Linux"
   sku_name            = var.sku_name
   worker_count        = 1
@@ -45,8 +47,8 @@ resource "azurerm_service_plan" "app" {
 
 resource "azurerm_linux_web_app" "app" {
   name                = local.web_app_name
-  resource_group_name = data.azurerm_resource_group.app.name
-  location            = data.azurerm_resource_group.app.location
+  resource_group_name = azurerm_resource_group.environment.name
+  location            = azurerm_resource_group.environment.location
   service_plan_id     = azurerm_service_plan.app.id
   https_only          = true
 

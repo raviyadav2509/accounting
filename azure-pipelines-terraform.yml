@@ -1,4 +1,5 @@
-# One run: save a plan, pass Terraform-Dev-Env checks, then apply that exact plan.
+# Each environment plans and applies its own saved plan and state.
+# Apply stages are gated by checks on the corresponding Azure DevOps Environment.
 trigger: none
 pr: none
 
@@ -13,6 +14,9 @@ pool:
 
 variables:
   - group: accounting-terraform
+  # Move the existing storage account here before running this pipeline.
+  - name: stateResourceGroup
+    value: rg-tfstate-sa
   - name: terraformVersion
     value: '1.9.8'
   - name: terraformDirectory
@@ -21,94 +25,34 @@ variables:
     value: '$(Pipeline.Workspace)/terraform-plan'
 
 stages:
-  - stage: Plan
-    displayName: Terraform plan
-    jobs:
-      - job: GeneratePlan
-        timeoutInMinutes: 60
-        steps:
-          - template: infra/azure/pipeline-steps/setup.yml
+  - template: infra/azure/pipeline-steps/environment-stages.yml
+    parameters:
+      stageSuffix: Dev
+      environmentName: dev
+      azureEnvironment: Terraform-Dev-Env
+      variableGroup: accounting-terraform-dev
+      # Preserve the exact existing Dev blob; do not reset or copy its state.
+      stateKey: $(stateKey)
+      azureServiceConnection: ${{ parameters.azureServiceConnection }}
 
-          - task: AzureCLI@2
-            displayName: Validate and save Terraform plan
-            inputs:
-              azureSubscription: ${{ parameters.azureServiceConnection }}
-              scriptType: bash
-              scriptLocation: scriptPath
-              scriptPath: '$(terraformDirectory)/scripts/run-terraform.sh'
-              workingDirectory: $(terraformDirectory)
-              addSpnToEnvironment: true
-              visibleAzLogin: false
-            env:
-              TF_IN_AUTOMATION: 'true'
-              TF_INPUT: 'false'
-              TF_ACTION: plan
-              TF_PLAN_DIRECTORY: $(terraformPlanDirectory)
-              TF_RUN_ID: $(Build.BuildId)
-              TF_SOURCE_VERSION: $(Build.SourceVersion)
-              TERRAFORM_VERSION: $(terraformVersion)
-              TF_STATE_RESOURCE_GROUP: $(stateResourceGroup)
-              TF_STATE_STORAGE_ACCOUNT: $(stateStorageAccount)
-              TF_STATE_CONTAINER: $(stateContainer)
-              TF_STATE_KEY: $(stateKey)
-              TF_VAR_qbo_client_id: $(qboClientId)
-              TF_VAR_qbo_client_secret: $(qboClientSecret)
-              TF_VAR_openai_api_key: $(openaiApiKey)
+  - template: infra/azure/pipeline-steps/environment-stages.yml
+    parameters:
+      stageSuffix: Test
+      environmentName: test
+      azureEnvironment: Terraform-Test-Env
+      variableGroup: accounting-terraform-test
+      stateKey: accounting-test.tfstate
+      dependsOn:
+        - ApplyDev
+      azureServiceConnection: ${{ parameters.azureServiceConnection }}
 
-          # Saved plans include secrets. Restrict run/artifact access and retention.
-          - task: PublishPipelineArtifact@1
-            displayName: Retain saved plan for this run
-            inputs:
-              targetPath: $(terraformPlanDirectory)
-              artifact: terraform-plan
-
-          - template: infra/azure/pipeline-steps/cleanup.yml
-
-  - stage: Apply
-    displayName: Apply approved Terraform plan
-    dependsOn: Plan
-    condition: succeeded()
-    jobs:
-      - deployment: ApplySavedPlan
-        displayName: Deploy Terraform to development
-        timeoutInMinutes: 60
-        environment: Terraform-Dev-Env
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                # Download only the explicitly selected artifact from this run.
-                - download: none
-                - template: infra/azure/pipeline-steps/setup.yml
-
-                - task: DownloadPipelineArtifact@2
-                  displayName: Download this run's saved plan
-                  inputs:
-                    buildType: current
-                    artifactName: terraform-plan
-                    targetPath: $(terraformPlanDirectory)
-
-                - task: AzureCLI@2
-                  displayName: Apply saved plan without replanning
-                  inputs:
-                    azureSubscription: ${{ parameters.azureServiceConnection }}
-                    scriptType: bash
-                    scriptLocation: scriptPath
-                    scriptPath: '$(terraformDirectory)/scripts/run-terraform.sh'
-                    workingDirectory: $(terraformDirectory)
-                    addSpnToEnvironment: true
-                    visibleAzLogin: false
-                  env:
-                    TF_IN_AUTOMATION: 'true'
-                    TF_INPUT: 'false'
-                    TF_ACTION: apply
-                    TF_PLAN_DIRECTORY: $(terraformPlanDirectory)
-                    TF_RUN_ID: $(Build.BuildId)
-                    TF_SOURCE_VERSION: $(Build.SourceVersion)
-                    TERRAFORM_VERSION: $(terraformVersion)
-                    TF_STATE_RESOURCE_GROUP: $(stateResourceGroup)
-                    TF_STATE_STORAGE_ACCOUNT: $(stateStorageAccount)
-                    TF_STATE_CONTAINER: $(stateContainer)
-                    TF_STATE_KEY: $(stateKey)
-
-                - template: infra/azure/pipeline-steps/cleanup.yml
+  - template: infra/azure/pipeline-steps/environment-stages.yml
+    parameters:
+      stageSuffix: Prod
+      environmentName: prod
+      azureEnvironment: Terraform-Prod-Env
+      variableGroup: accounting-terraform-prod
+      stateKey: accounting-prod.tfstate
+      dependsOn:
+        - ApplyTest
+      azureServiceConnection: ${{ parameters.azureServiceConnection }}

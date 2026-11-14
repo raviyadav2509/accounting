@@ -11,6 +11,8 @@ CONTEXT_KEYS = (
     "ARM_SUBSCRIPTION_ID", "ARM_TENANT_ID", "ARM_CLIENT_ID",
     "TF_STATE_RESOURCE_GROUP", "TF_STATE_STORAGE_ACCOUNT",
     "TF_STATE_CONTAINER", "TF_STATE_KEY",
+    "TF_DEPLOYMENT_ENVIRONMENT", "TF_VAR_deployment_environment",
+    "TF_VAR_resource_group_name", "TF_VAR_name_prefix",
 )
 
 

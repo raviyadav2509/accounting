@@ -1,5 +1,5 @@
 output "resource_group_name" {
-  value = data.azurerm_resource_group.app.name
+  value = azurerm_resource_group.environment.name
 }
 
 output "web_app_name" {
