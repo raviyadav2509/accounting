@@ -1,15 +1,8 @@
-# Create a separate Azure Pipeline using this YAML. Existing app CI is unchanged.
+# One run: generate a saved plan, wait for approval, then apply that exact plan.
 trigger: none
 pr: none
 
 parameters:
-  - name: action
-    displayName: Terraform action
-    type: string
-    default: plan
-    values:
-      - plan
-      - apply
   - name: azureServiceConnection
     displayName: Azure workload identity service connection
     type: string
@@ -24,60 +17,116 @@ variables:
     value: '1.9.8'
   - name: terraformDirectory
     value: '$(Build.SourcesDirectory)/infra/azure'
+  - name: terraformPlanDirectory
+    value: '$(Pipeline.Workspace)/terraform-plan'
 
-jobs:
-  - job: Terraform
-    displayName: Terraform ${{ parameters.action }}
-    timeoutInMinutes: 60
-    steps:
-      - checkout: self
-        clean: true
-        persistCredentials: false
+stages:
+  - stage: Plan
+    displayName: Terraform plan
+    jobs:
+      - job: GeneratePlan
+        timeoutInMinutes: 60
+        steps:
+          - template: infra/azure/pipeline-steps/setup.yml
 
-      - bash: |
-          set -euo pipefail
-          install_dir="$(Agent.TempDirectory)/terraform-bin"
-          mkdir -p "$install_dir"
-          cd "$install_dir"
-          archive="terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
-          base_url="https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}"
-          curl --fail --silent --show-error --location --retry 3 "$base_url/$archive" -o "$archive"
-          curl --fail --silent --show-error --location --retry 3 "$base_url/terraform_${TERRAFORM_VERSION}_SHA256SUMS" -o SHA256SUMS
-          awk -v file="$archive" '$2 == file { print }' SHA256SUMS > selected.sha256
-          test -s selected.sha256
-          sha256sum --check selected.sha256
-          unzip -o "$archive" terraform
-          echo "##vso[task.prependpath]$install_dir"
-          ./terraform version
-        displayName: Install checksum-verified Terraform
-        env:
-          TERRAFORM_VERSION: $(terraformVersion)
+          - task: AzureCLI@2
+            displayName: Validate and save Terraform plan
+            inputs:
+              azureSubscription: ${{ parameters.azureServiceConnection }}
+              scriptType: bash
+              scriptLocation: scriptPath
+              scriptPath: '$(terraformDirectory)/scripts/run-terraform.sh'
+              workingDirectory: $(terraformDirectory)
+              addSpnToEnvironment: true
+              visibleAzLogin: false
+            env:
+              TF_IN_AUTOMATION: 'true'
+              TF_INPUT: 'false'
+              TF_ACTION: plan
+              TF_PLAN_DIRECTORY: $(terraformPlanDirectory)
+              TF_RUN_ID: $(Build.BuildId)
+              TF_SOURCE_VERSION: $(Build.SourceVersion)
+              TERRAFORM_VERSION: $(terraformVersion)
+              TF_STATE_RESOURCE_GROUP: $(stateResourceGroup)
+              TF_STATE_STORAGE_ACCOUNT: $(stateStorageAccount)
+              TF_STATE_CONTAINER: $(stateContainer)
+              TF_STATE_KEY: $(stateKey)
+              TF_VAR_qbo_client_id: $(qboClientId)
+              TF_VAR_qbo_client_secret: $(qboClientSecret)
+              TF_VAR_openai_api_key: $(openaiApiKey)
 
-      - task: AzureCLI@2
-        displayName: Validate, plan and optionally apply infrastructure
-        inputs:
-          azureSubscription: ${{ parameters.azureServiceConnection }}
-          scriptType: bash
-          scriptLocation: scriptPath
-          scriptPath: '$(terraformDirectory)/scripts/run-terraform.sh'
-          workingDirectory: $(terraformDirectory)
-          addSpnToEnvironment: true
-          visibleAzLogin: false
-        env:
-          TF_IN_AUTOMATION: 'true'
-          TF_INPUT: 'false'
-          TF_ACTION: ${{ parameters.action }}
-          TF_PLAN_PATH: '$(Agent.TempDirectory)/accounting-$(Build.BuildId).tfplan'
-          TF_STATE_RESOURCE_GROUP: $(stateResourceGroup)
-          TF_STATE_STORAGE_ACCOUNT: $(stateStorageAccount)
-          TF_STATE_CONTAINER: $(stateContainer)
-          TF_STATE_KEY: $(stateKey)
-          TF_VAR_qbo_client_id: $(qboClientId)
-          TF_VAR_qbo_client_secret: $(qboClientSecret)
-          TF_VAR_openai_api_key: $(openaiApiKey)
+          # Saved plans include secrets. Restrict run/artifact access and retention.
+          - task: PublishPipelineArtifact@1
+            displayName: Retain saved plan for this run
+            inputs:
+              targetPath: $(terraformPlanDirectory)
+              artifact: terraform-plan
 
-      - bash: |
-          rm -f -- "$(Agent.TempDirectory)/accounting-$(Build.BuildId).tfplan"
-          rm -rf -- "$(terraformDirectory)/.terraform"
-        displayName: Remove temporary plan and backend cache
-        condition: always()
+          - template: infra/azure/pipeline-steps/cleanup.yml
+
+  - stage: Approval
+    displayName: Review and approve plan
+    dependsOn: Plan
+    condition: succeeded()
+    jobs:
+      - job: WaitForApproval
+        displayName: Wait for manual approval
+        pool: server
+        timeoutInMinutes: 1450
+        steps:
+          - task: ManualValidation@1
+            displayName: Approve Terraform apply
+            timeoutInMinutes: 1440
+            inputs:
+              notifyUsers: ''
+              allowApproversToApproveTheirOwnRuns: true
+              instructions: |
+                Review this run's Plan stage logs, especially replacements/deletions
+                when switching to rg-quickbooks-accounting.
+                Resume to apply the saved plan from this run, or Reject to stop.
+                Do not approve destructive changes until application data is backed up.
+              onTimeout: reject
+
+  - stage: Apply
+    displayName: Apply approved Terraform plan
+    dependsOn:
+      - Plan
+      - Approval
+    condition: succeeded()
+    jobs:
+      - job: ApplySavedPlan
+        timeoutInMinutes: 60
+        steps:
+          - template: infra/azure/pipeline-steps/setup.yml
+
+          - task: DownloadPipelineArtifact@2
+            displayName: Download this run's saved plan
+            inputs:
+              buildType: current
+              artifactName: terraform-plan
+              targetPath: $(terraformPlanDirectory)
+
+          - task: AzureCLI@2
+            displayName: Apply saved plan without replanning
+            inputs:
+              azureSubscription: ${{ parameters.azureServiceConnection }}
+              scriptType: bash
+              scriptLocation: scriptPath
+              scriptPath: '$(terraformDirectory)/scripts/run-terraform.sh'
+              workingDirectory: $(terraformDirectory)
+              addSpnToEnvironment: true
+              visibleAzLogin: false
+            env:
+              TF_IN_AUTOMATION: 'true'
+              TF_INPUT: 'false'
+              TF_ACTION: apply
+              TF_PLAN_DIRECTORY: $(terraformPlanDirectory)
+              TF_RUN_ID: $(Build.BuildId)
+              TF_SOURCE_VERSION: $(Build.SourceVersion)
+              TERRAFORM_VERSION: $(terraformVersion)
+              TF_STATE_RESOURCE_GROUP: $(stateResourceGroup)
+              TF_STATE_STORAGE_ACCOUNT: $(stateStorageAccount)
+              TF_STATE_CONTAINER: $(stateContainer)
+              TF_STATE_KEY: $(stateKey)
+
+          - template: infra/azure/pipeline-steps/cleanup.yml

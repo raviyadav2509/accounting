@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# AzureCLI@2 supplies these only for a workload identity service connection.
-required=(servicePrincipalId tenantId idToken TF_ACTION TF_PLAN_PATH
-  TF_STATE_RESOURCE_GROUP TF_STATE_STORAGE_ACCOUNT TF_STATE_CONTAINER TF_STATE_KEY
-  TF_VAR_qbo_client_id TF_VAR_qbo_client_secret TF_VAR_openai_api_key)
+# Each stage gets fresh AzureCLI@2 workload identity credentials.
+required=(servicePrincipalId tenantId idToken TF_ACTION TF_PLAN_DIRECTORY
+  TF_RUN_ID TF_SOURCE_VERSION TERRAFORM_VERSION
+  TF_STATE_RESOURCE_GROUP TF_STATE_STORAGE_ACCOUNT TF_STATE_CONTAINER TF_STATE_KEY)
+case "${TF_ACTION:-}" in
+  plan) required+=(TF_VAR_qbo_client_id TF_VAR_qbo_client_secret TF_VAR_openai_api_key) ;;
+  apply) ;;
+  *) echo "TF_ACTION must be plan or apply" >&2; exit 1 ;;
+esac
 for name in "${required[@]}"; do
   value="${!name:-}"
   if [[ -z "$value" || "$value" == '$('* ]]; then
@@ -12,10 +17,6 @@ for name in "${required[@]}"; do
     exit 1
   fi
 done
-case "$TF_ACTION" in
-  plan|apply) ;;
-  *) echo "TF_ACTION must be plan or apply" >&2; exit 1 ;;
-esac
 
 export ARM_CLIENT_ID="$servicePrincipalId"
 export ARM_TENANT_ID="$tenantId"
@@ -26,7 +27,13 @@ export ARM_USE_CLI=false
 ARM_SUBSCRIPTION_ID="$(az account show --query id --output tsv)"
 export ARM_SUBSCRIPTION_ID
 export TF_VAR_subscription_id="$ARM_SUBSCRIPTION_ID"
-trap 'rm -f -- "$TF_PLAN_PATH"' EXIT
+plan_path="$TF_PLAN_DIRECTORY/deployment.tfplan"
+context_script="$(dirname "${BASH_SOURCE[0]}")/plan-context.py"
+
+# Fail before accessing state if the downloaded plan belongs to another context.
+if [[ "$TF_ACTION" == apply ]]; then
+  python3 "$context_script" verify "$TF_PLAN_DIRECTORY"
+fi
 
 terraform fmt -check -recursive
 terraform init -input=false -lockfile=readonly \
@@ -35,12 +42,15 @@ terraform init -input=false -lockfile=readonly \
   -backend-config="container_name=$TF_STATE_CONTAINER" \
   -backend-config="key=$TF_STATE_KEY"
 terraform validate -no-color
-terraform plan -input=false -no-color -lock-timeout=5m -out="$TF_PLAN_PATH"
-if [[ "$TF_ACTION" == apply ]]; then
-  # Apply exactly the plan generated in this job; never publish secret-bearing plans.
-  terraform apply -input=false -no-color -lock-timeout=5m "$TF_PLAN_PATH"
+
+if [[ "$TF_ACTION" == plan ]]; then
+  mkdir -p "$TF_PLAN_DIRECTORY"
+  terraform plan -input=false -no-color -lock-timeout=5m -out="$plan_path"
+  python3 "$context_script" save "$TF_PLAN_DIRECTORY"
+  echo "Plan saved. This run will wait for manual approval before Apply."
+else
+  # Do not run terraform plan here. Use exactly the reviewed artifact.
+  terraform apply -input=false -no-color -lock-timeout=5m "$plan_path"
   terraform output -raw application_url
   printf '\n'
-else
-  echo "Plan completed. Run this pipeline with action=apply to generate and apply a new plan."
 fi

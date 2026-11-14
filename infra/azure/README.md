@@ -17,12 +17,13 @@ The app reads `BAS_DATABASE_FILE`, so the web app uses `/home/bas-data/bas_histo
 
 ## Azure Pipeline
 
-Use [PIPELINE.md](PIPELINE.md) to configure `/azure-pipelines-terraform.yml` for manual Terraform plan/apply runs with an Azure workload identity service connection. Create the remote state backend first; this pipeline provisions infrastructure only.
+Use [PIPELINE.md](PIPELINE.md) to configure `/azure-pipelines-terraform.yml` for one Terraform run with Plan, manual Approval and Apply stages with an Azure workload identity service connection. Create the remote state backend first; this pipeline provisions infrastructure only.
 
 ## Switching an earlier deployment to the existing group
 
-Run the pipeline with **action = plan first**, using the same state storage and
-state key as the original deployment. The default `resource_group_name` is now
+Start one pipeline run using the same state storage and state key as the original
+deployment. Review the **Plan** stage and approve or reject its pending manual
+validation before **Apply** can proceed. The default `resource_group_name` is now
 `rg-quickbooks-accounting`; no additional pipeline variable is required.
 
 The old `azurerm_resource_group.app` address has a `removed` block with

@@ -3,7 +3,7 @@
 Use the repository-root `azure-pipelines-terraform.yml` as a **separate pipeline**.
 The existing `azure-pipelines.yml` continues testing the application. This pipeline
 provisions infrastructure only; deploy the Python app using the README afterwards.
-It runs manually, defaults to `plan`, and uses the F1/sandbox Terraform defaults.
+One manual run executes **Plan → Approval → Apply**, using the F1/sandbox Terraform defaults.
 
 ## 1. Create the Azure service connection
 
@@ -89,7 +89,7 @@ environment mappings to the YAML; Azure secret variables are not exported implic
 
 When upgrading from the earlier configuration that created a group, read
 README's **Switching an earlier deployment to the existing group** section first.
-Run `plan` and review any app/hosting-plan replacements before `apply`. The backend
+Review any app/hosting-plan replacements in the Plan stage before approving Apply. The backend
 variables above must continue pointing to the original state storage.
 
 ## 4. Create and run the pipeline
@@ -98,19 +98,41 @@ variables above must continue pointing to the original state storage.
 2. Choose **Existing Azure Pipelines YAML file**, branch `feature/annual-tax-return`,
    path `/azure-pipelines-terraform.yml`. If using Azure Repos, first sync the commit
    containing this YAML and `infra/azure` from GitHub.
-3. Run with `action: plan`. The job installs checksum-verified Terraform 1.9.8,
-   initializes remote state, checks formatting, validates and prints the plan.
-4. Review the plan. Run again with `action: apply` to generate a **new plan** and
-   apply that saved plan in the same job. It does not apply the earlier run's plan.
-5. Read the application URL in the output, then follow README section 3 to deploy
-   the app, and section 4 to register the QuickBooks callback.
+3. Start one run. There is no longer an `action` selector. The **Plan** stage
+   installs Terraform, initializes remote state, validates and saves a binary plan.
+4. When **Approval** pauses, open the Plan stage logs and review the proposed
+   additions, changes, replacements and deletions. Open **Review** on the pending
+   manual validation and select **Resume** to approve or **Reject** to stop.
+5. After approval, **Apply** downloads the plan artifact from this same run, verifies
+   its checksum and run/commit/Azure/backend context, initializes with fresh workload
+   identity credentials, and applies that exact file. It never generates a new plan.
+6. Read the application URL in the Apply log, then follow README sections 3 and 4
+   to deploy the app and configure QuickBooks.
 
-Only authorized operators should run `apply`. This YAML has no environment approval
-gate. Configure service connection approvals/checks in Azure DevOps if your team
-requires one. Terraform uses blob leases to lock state and waits up to five minutes
-for another run's lock. Avoid overlapping apply runs against the same environment.
-Do not force-unlock a live run. Plan files stay on the agent, are deleted on exit,
-and are never published as pipeline artifacts.
+The approval runs in an agentless server job, so no hosted agent stays occupied
+while waiting. Approval times out after 24 hours and rejects rather than resuming.
+Users with **Queue builds** permission can approve by default; self-approval is
+explicitly enabled for this personal project. To limit approval to a particular
+team, set the `approvers` input on `ManualValidation@1` to that team's users/group.
+No notification email is configured; review the pending approval in Azure DevOps.
+For approvals enforced independently of repository YAML, configure an Azure DevOps
+Environment/service connection approval check separately.
+
+**Saved-plan access:** Terraform binary plans include secret variable values.
+This workflow publishes `deployment.tfplan` and a non-secret checksum/context
+manifest as the run's private `terraform-plan` artifact to cross the approval/job
+boundary. Do not share/download it casually. Restrict pipeline run/artifact viewing
+permissions to trusted operators and set short run/artifact retention. Agent copies
+and backend caches are removed after each job; the published artifact remains until
+the run is deleted or retention removes it. Rejecting approval does not delete it.
+No plaintext plan JSON or Terraform state is published.
+
+Keep the same source commit, Terraform version, identity, subscription and backend
+coordinates for both stages. Apply rejects altered artifacts or changed context.
+Terraform checks saved-plan state freshness and acquires the backend lock; if the
+state has changed during approval, start a new run and review a new plan instead of
+forcing an old plan through. Avoid overlapping runs against the same environment.
+Do not rerun only Plan after approval: reject/cancel and start a complete new run.
 
 The committed `infra/azure/.terraform.lock.hcl` fixes provider versions and checksums.
 The pipeline initializes with `-lockfile=readonly`. For deliberate provider upgrades,
@@ -134,17 +156,16 @@ add `-migrate-state` and review Terraform's migration prompt. Do not use
 
 ## Validation
 
-The YAML parses successfully, all Bash steps pass syntax checks, and simulated
-Azure/Terraform commands verified plan-only behavior, saved-plan apply, cleanup
-and rejection of missing secrets. Terraform 1.9.8 formatting and backend-disabled
-provider initialization were checked locally. No Azure resources were provisioned
-and no authenticated pipeline run has been performed. Provider-schema validation
-was attempted but this execution environment blocks the Unix sockets needed by
-Terraform plugins (`socket: operation not permitted`); it must complete on the
-pipeline agent. HCL syntax parsing passed for all Terraform files.
+YAML stage dependencies, the agentless manual approval timeout/rejection settings
+and shell syntax were checked locally. Simulated Terraform/Azure commands exercised
+the separate Plan and Apply paths, applying the saved bytes without a second plan,
+and rejection of missing/altered plans or changed backend/run/source context.
+This staged workflow has not yet been run against Azure DevOps. Terraform provider
+validation and the Azure plan run on the pipeline agent.
 
 ## References
 
-- https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/azure-cli-v2
-- https://learn.microsoft.com/en-us/azure/devops/pipelines/library/connect-to-azure
-- https://developer.hashicorp.com/terraform/language/backend/azurerm
+- https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/manual-validation-v1
+- https://learn.microsoft.com/en-us/azure/devops/pipelines/tasks/reference/download-pipeline-artifact-v2
+- https://developer.hashicorp.com/terraform/cli/commands/apply
+- https://developer.hashicorp.com/terraform/language/manage-sensitive-data
