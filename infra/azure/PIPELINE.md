@@ -1,23 +1,21 @@
-# Dev, Test and Prod Terraform pipeline
+# Dev Terraform pipeline
 
 One manual run uses the same commit throughout:
 
-**PlanDev → ApplyDev → PlanTest → ApplyTest → PlanProd → ApplyProd**
+**PlanDev → ApplyDev**
 
-Each Apply deployment is controlled by its Azure DevOps Environment's approvals
-and checks. Apply consumes the exact saved plan from the corresponding Plan stage;
+Apply is controlled by approvals and checks on **`Terraform-Dev-Env`**.
+It consumes the exact saved plan from PlanDev;
 it does not run Terraform plan again.
 
 | Target | New managed resource group | Azure DevOps Environment | State blob |
 | --- | --- | --- | --- |
 | Dev | `rg-quickbooks-dev` | `Terraform-Dev-Env` | Existing `stateKey` value, normally `accounting-dev.tfstate` |
-| Test | `rg-quickbooks-test` | `Terraform-Test-Env` | `accounting-test.tfstate` |
-| Prod | `rg-quickbooks-prod` | `Terraform-Prod-Env` | `accounting-prod.tfstate` |
 
-All blobs use the existing storage account and `tfstate` container, in the
-separate **`rg-tfstate-sa`** resource group. Each state manages its own application
-group, plan, web app and generated values. App names have distinct
-`quickbooks-dev-`, `quickbooks-test-` and `quickbooks-prod-` prefixes.
+The Dev blob uses the existing storage account and `tfstate` container in the
+separate **`rg-tfstate-sa`** resource group. Its state manages the Dev application
+group, plan, web app and generated values. App names use the `quickbooks-dev-`
+prefix. There are no Test/Prod stages or dependencies.
 
 ## 1. Move existing state storage first
 
@@ -60,7 +58,7 @@ requires a separate deliberate state migration.
 ## 2. Service connection and backend variables
 
 Use the existing workload identity service connection `azure-accounting-wif`.
-Because Terraform now creates three resource groups, the identity needs
+Because Terraform creates the Dev resource group, the identity needs
 **Contributor at subscription scope**, plus the blob role on moved state storage.
 Authorize this pipeline to use the connection.
 
@@ -73,20 +71,13 @@ Keep the existing `accounting-terraform` Library variable group for shared setti
 | `stateContainer` | `tfstate` |
 | `stateKey` | Preserve the exact existing Dev blob name |
 
-Do not set `stateKey` to a Test/Prod filename. Test/Prod keys are fixed separately
-in YAML. Do not copy Dev state into Test or Prod. Terraform creates those state
-blobs during their first apply. If an old Dev deployment exists, losing/changing
-its key would make Terraform lose track of those existing resources.
+Preserve `stateKey` exactly. If an old Dev deployment exists, losing/changing its
+key would make Terraform lose track of those existing resources.
 
-## 3. Environment-specific secrets
+## 3. Dev secrets
 
-Create and authorize these three Library variable groups:
-
-- `accounting-terraform-dev`
-- `accounting-terraform-test`
-- `accounting-terraform-prod`
-
-Each must contain:
+Create or keep the **`accounting-terraform-dev`** Library variable group and
+authorize this pipeline to use it. It must contain:
 
 | Variable | Secret | Value |
 | --- | --- | --- |
@@ -95,36 +86,29 @@ Each must contain:
 | `openaiApiKey` | Yes | This environment's OpenAI key |
 | `qboEnvironment` | No | `sandbox` or `production` |
 
-You can initially copy the current test credentials into the Dev/Test groups.
-Only use `production` with matching Intuit production credentials. The Prod group
-may stay on `sandbox` while validating this application; its name does not force
-live QuickBooks access. Avoid adding shared backend keys to these secret groups.
+Use the current Intuit sandbox credentials and set `qboEnvironment` to `sandbox`
+for initial testing. Avoid adding shared backend keys to this secrets group.
 
-All hosting tiers remain **F1** unless deliberately changed in Terraform.
-An environment named Prod is not automatically production-ready hosting. F1
-quotas/capacity may limit deploying all three free plans. No paid fallback is
-automatic. Application deployment and Intuit callback registration remain separate
-per web app; this pipeline provisions infrastructure only.
+Dev hosting remains **F1** unless deliberately changed in Terraform. There is no
+automatic paid fallback. Application deployment and Intuit callback registration
+remain separate; this pipeline provisions infrastructure only.
 
-## 4. Configure all three Environment gates
+## 4. Configure the Dev Environment gate
 
-For each environment listed in the table:
-
-1. Open **Pipelines → Environments → [environment] → Approvals and checks**.
+1. Open **Pipelines → Environments → Terraform-Dev-Env → Approvals and checks**.
 2. Add an **Approval**, choose approvers and timeout, and allow self-approval if
    the requester must approve their own run.
 3. Authorize this pipeline under the environment's pipeline permissions.
 4. Review that environment's Plan logs before approving Apply.
 
-The environments alone do not cause a pause. Without checks, their Apply stages
-start automatically. The YAML has no ManualValidation task or approval stage.
+The environment alone does not cause a pause. Without checks, ApplyDev starts
+automatically. The YAML has no ManualValidation task or approval stage.
 
 ## 5. Run and review
 
 Use `/azure-pipelines-terraform.yml` from `feature/annual-tax-return` in GitHub.
-Start one run. Review PlanDev and approve ApplyDev on `Terraform-Dev-Env`;
-then review/approve Test and Prod on their own Environments. A rejected/failed
-deployment stops downstream environments. Environment checks run before the
+Start one run. Review PlanDev and approve ApplyDev on `Terraform-Dev-Env`.
+A rejected approval prevents ApplyDev from deploying. Environment checks run before the
 deployment job starts; no agent is occupied during the approval wait.
 
 The previous resource group address `azurerm_resource_group.app` is retained in a
@@ -135,8 +119,7 @@ still require **replacement** to enter the new group and naming scheme. Back up
 any app data and review the destructive actions before approving. This change
 does not perform an in-place Azure move of application resources.
 
-Artifacts are named `terraform-plan-dev`, `terraform-plan-test` and
-`terraform-plan-prod`. Each contains a secret-bearing binary plan plus a
+The `terraform-plan-dev` artifact contains a secret-bearing binary plan plus a
 non-secret checksum/context manifest. Restrict run/artifact access and retention.
 Local copies are cleaned after each job; published artifacts remain for the run's
 retention period. Apply verifies the run, commit, identity, subscription, backend,
@@ -147,8 +130,8 @@ a stale plan through.
 ## Validation and limitations
 
 YAML/template expansion, environment gate bindings, stage order, state/artifact
-isolation, shell/Python syntax and simulated saved-plan execution are checked
-locally. The new multi-environment workflow and storage move still require
+consistency, shell/Python syntax and simulated saved-plan execution are checked
+locally. The Dev-only workflow and storage move still require
 execution/verification in your Azure account. No cloud resources were changed
 while writing this configuration.
 

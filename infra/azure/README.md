@@ -1,21 +1,19 @@
 # Azure hosting for QuickBooks Accounting
 
-Terraform creates a separate resource group, Linux App Service plan and Python
-3.12 web app for **Dev, Test and Prod**. Each environment uses independent state
-in the existing `tfstate` container. State storage is outside application
+Terraform creates a resource group, Linux App Service plan and Python
+3.12 web app for **Dev only**, using the existing Dev state blob
+in the `tfstate` container. State storage is outside application
 Terraform and is expected in **`rg-tfstate-sa`**.
 
 | Environment | Resource group | App name prefix |
 | --- | --- | --- |
 | Dev | `rg-quickbooks-dev` | `quickbooks-dev-` |
-| Test | `rg-quickbooks-test` | `quickbooks-test-` |
-| Prod | `rg-quickbooks-prod` | `quickbooks-prod-` |
 
 ## Pipeline setup
 
 Follow [PIPELINE.md](PIPELINE.md) for the storage-account move, variable groups and
-Environment approvals. One run progresses through Plan/Apply for Dev, Test and
-Prod, with each Apply using its own exact saved plan and Environment gate.
+Environment approval. One run executes **PlanDev → ApplyDev**. Apply uses the
+exact saved plan and is controlled by checks on **`Terraform-Dev-Env`**.
 
 Azure resource groups cannot be renamed. Move the existing state storage account
 from `rg-quickbooks-accounting` into a newly created `rg-tfstate-sa` group first.
@@ -49,11 +47,9 @@ terraform apply deployment.tfplan
 ```
 
 For an initialized local checkout after moving the same storage account, add
-`-reconfigure` to init. For local Test/Prod runs, set matching
-`deployment_environment`, `resource_group_name` and `name_prefix` and use
-`accounting-test.tfstate` or `accounting-prod.tfstate` respectively. Never reuse
-Dev's backend key for another environment. No real credentials, plans or state
-belong in Git; sensitive settings are still stored in state and saved plans.
+`-reconfigure` to init. Keep `deployment_environment = "dev"` and the original
+Dev backend key. No real credentials, plans or state belong in Git; sensitive
+settings are still stored in state and saved plans.
 
 ## Deploy application code after infrastructure
 
@@ -75,10 +71,9 @@ OAuth. Check account mappings and BAS period defaults against the intended compa
 
 ## Hosting and data
 
-All three environments default to **F1** for testing. B1 is a deliberate paid
-choice. F1 has no Always On and regional/subscription quotas may block additional
-plans. A Prod environment label does not make this SQLite development deployment
-production ready. OpenAI usage and backend blob storage are billed separately.
+Dev defaults to **F1** for testing. B1 is a deliberate paid choice.
+F1 has no Always On and regional/subscription quotas may block deployment.
+This SQLite development deployment is not production ready. OpenAI usage and backend blob storage are billed separately.
 
 SQLite is stored at `/home/bas-data/bas_history.db` outside code deployments.
 Use one app instance/process/thread and do not enable SQLite WAL on this shared

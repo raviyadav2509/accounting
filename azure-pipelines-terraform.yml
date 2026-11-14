@@ -1,5 +1,4 @@
-# Each environment plans and applies its own saved plan and state.
-# Apply stages are gated by checks on the corresponding Azure DevOps Environment.
+# Dev only: save a plan, pass Terraform-Dev-Env checks, apply the same plan.
 trigger: none
 pr: none
 
@@ -33,26 +32,4 @@ stages:
       variableGroup: accounting-terraform-dev
       # Preserve the exact existing Dev blob; do not reset or copy its state.
       stateKey: $(stateKey)
-      azureServiceConnection: ${{ parameters.azureServiceConnection }}
-
-  - template: infra/azure/pipeline-steps/environment-stages.yml
-    parameters:
-      stageSuffix: Test
-      environmentName: test
-      azureEnvironment: Terraform-Test-Env
-      variableGroup: accounting-terraform-test
-      stateKey: accounting-test.tfstate
-      dependsOn:
-        - ApplyDev
-      azureServiceConnection: ${{ parameters.azureServiceConnection }}
-
-  - template: infra/azure/pipeline-steps/environment-stages.yml
-    parameters:
-      stageSuffix: Prod
-      environmentName: prod
-      azureEnvironment: Terraform-Prod-Env
-      variableGroup: accounting-terraform-prod
-      stateKey: accounting-prod.tfstate
-      dependsOn:
-        - ApplyTest
       azureServiceConnection: ${{ parameters.azureServiceConnection }}

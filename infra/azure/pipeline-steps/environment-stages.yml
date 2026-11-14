@@ -3,7 +3,7 @@ parameters:
     type: string
   - name: environmentName
     type: string
-    values: [dev, test, prod]
+    values: [dev]
   - name: azureEnvironment
     type: string
   - name: variableGroup
