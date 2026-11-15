@@ -82,8 +82,9 @@ OAuth. Check account mappings and BAS period defaults against the intended compa
 
 ## Hosting and data
 
-Dev defaults to **F1** for testing. B1 is a deliberate paid choice.
-F1 has no Always On and regional/subscription quotas may block deployment.
+Dev defaults to **B1**, a paid plan with Always On enabled. **F1** remains
+available as an explicit free-tier choice, but has no Always On and is subject
+to Free-tier quotas. Check regional pricing before applying the plan.
 This SQLite development deployment is not production ready. OpenAI usage and backend blob storage are billed separately.
 
 SQLite is stored at `/home/bas-data/bas_history.db` outside code deployments.
@@ -199,8 +200,7 @@ It must also contain:
 Use the current Intuit sandbox credentials and set `qboEnvironment` to `sandbox`
 for initial testing. Preserve the existing shared backend values in this group.
 
-Dev hosting remains **F1** unless deliberately changed in Terraform. There is no
-automatic paid fallback. Application deployment and Intuit callback registration
+Dev hosting defaults to the paid **B1** tier. Application deployment and Intuit callback registration
 remain separate; this pipeline provisions infrastructure only. The application
 pipeline deploys on successful `main` runs as described above.
 

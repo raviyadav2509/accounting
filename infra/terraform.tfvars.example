@@ -3,7 +3,7 @@ deployment_environment = "dev"
 resource_group_name    = "rg-quickbooks-dev"
 name_prefix            = "quickbooks-dev"
 location               = "australiaeast"
-sku_name               = "F1"
+sku_name               = "B1"
 qbo_environment        = "sandbox"
 
 # Supply real QBO/OpenAI credentials through TF_VAR_* environment variables.

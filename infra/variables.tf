@@ -45,7 +45,7 @@ variable "name_prefix" {
 variable "sku_name" {
   description = "F1 is free development hosting. B1 is paid and enables Always On."
   type        = string
-  default     = "F1"
+  default     = "B1"
 
   validation {
     condition     = contains(["F1", "B1"], var.sku_name)

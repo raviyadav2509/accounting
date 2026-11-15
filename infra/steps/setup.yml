@@ -53,8 +53,13 @@ steps:
       }
 
       Expand-Archive -LiteralPath $archivePath -DestinationPath $installDirectory -Force
+      $terraformPath = Join-Path $installDirectory 'terraform'
+      & chmod +x $terraformPath
+      if ($LASTEXITCODE -ne 0) {
+        throw "Failed to make Terraform executable (exit code $LASTEXITCODE)."
+      }
       Write-Host "##vso[task.prependpath]$installDirectory"
-      & (Join-Path $installDirectory 'terraform') version
+      & $terraformPath version
       if ($LASTEXITCODE -ne 0) {
         throw "Terraform version check failed (exit code $LASTEXITCODE)."
       }
