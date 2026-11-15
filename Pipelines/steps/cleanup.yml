@@ -1,5 +1,0 @@
-steps:
-  - bash: |
-      rm -rf -- "$(terraformPlanDirectory)" "$(terraformDirectory)/.terraform"
-    displayName: Remove agent plan files and backend cache
-    condition: always()

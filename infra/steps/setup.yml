@@ -1,0 +1,68 @@
+steps:
+  - checkout: self
+    clean: true
+    persistCredentials: false
+
+  - pwsh: |
+      $ErrorActionPreference = 'Stop'
+      $installDirectory = Join-Path $env:AGENT_TEMPDIRECTORY 'terraform-bin'
+      New-Item -ItemType Directory -Path $installDirectory -Force | Out-Null
+
+      $archiveName = "terraform_${env:TERRAFORM_VERSION}_linux_amd64.zip"
+      $baseUrl = "https://releases.hashicorp.com/terraform/$($env:TERRAFORM_VERSION)"
+      $archivePath = Join-Path $installDirectory $archiveName
+      $checksumsPath = Join-Path $installDirectory 'SHA256SUMS'
+      $downloads = @(
+        @{ Uri = "$baseUrl/$archiveName"; Path = $archivePath },
+        @{ Uri = "$baseUrl/terraform_$($env:TERRAFORM_VERSION)_SHA256SUMS"; Path = $checksumsPath }
+      )
+
+      foreach ($download in $downloads) {
+        $downloaded = $false
+        for ($attempt = 1; $attempt -le 3; $attempt++) {
+          try {
+            Invoke-WebRequest -Uri $download.Uri -OutFile $download.Path
+            $downloaded = $true
+            break
+          }
+          catch {
+            if ($attempt -eq 3) {
+              throw "Download failed after $attempt attempts: $($download.Uri). $($_.Exception.Message)"
+            }
+            Start-Sleep -Seconds $attempt
+          }
+        }
+        if (-not $downloaded) {
+          throw "Download failed: $($download.Uri)"
+        }
+      }
+
+      $escapedArchive = [regex]::Escape($archiveName)
+      $checksumLine = Get-Content -LiteralPath $checksumsPath |
+        Where-Object { $_ -match "^\s*([a-fA-F0-9]{64})\s+\*?$escapedArchive\s*$" } |
+        Select-Object -First 1
+      if (-not $checksumLine) {
+        throw "Terraform checksum file has no entry for $archiveName."
+      }
+      $expectedHash = [regex]::Match(
+        $checksumLine, '^\s*([a-fA-F0-9]{64})'
+      ).Groups[1].Value.ToLowerInvariant()
+      $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+      if ($actualHash -ne $expectedHash) {
+        throw "Terraform checksum mismatch for $archiveName."
+      }
+
+      Expand-Archive -LiteralPath $archivePath -DestinationPath $installDirectory -Force
+      $terraformPath = Join-Path $installDirectory 'terraform'
+      & chmod +x $terraformPath
+      if ($LASTEXITCODE -ne 0) {
+        throw "Failed to make Terraform executable (exit code $LASTEXITCODE)."
+      }
+      Write-Host "##vso[task.prependpath]$installDirectory"
+      & $terraformPath version
+      if ($LASTEXITCODE -ne 0) {
+        throw "Terraform version check failed (exit code $LASTEXITCODE)."
+      }
+    displayName: Install checksum-verified Terraform
+    env:
+      TERRAFORM_VERSION: $(terraformVersion)

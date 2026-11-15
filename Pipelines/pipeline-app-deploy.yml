@@ -69,13 +69,30 @@ steps:
       pathToSources: '$(System.DefaultWorkingDirectory)'
       failIfCoverageEmpty: true
 
-  - script: |
-      mkdir -p "$(Build.ArtifactStagingDirectory)"
-      git archive --format=zip --output="$(Build.ArtifactStagingDirectory)/accounting.zip" HEAD app.py config.py requirements.txt routes services templates static
-    displayName: Package tested application (exclude databases and secrets)
+  - pwsh: |
+      $ErrorActionPreference = 'Stop'
+      $packageBuilder = Join-Path '$(Build.SourcesDirectory)' 'Pipelines/utility/package_app.py'
+      $packagePath = Join-Path '$(Build.ArtifactStagingDirectory)' 'accounting.zip'
+      New-Item -ItemType Directory -Path '$(Build.ArtifactStagingDirectory)' -Force | Out-Null
+      & python $packageBuilder --source '$(Build.SourcesDirectory)' --output $packagePath
+      if ($LASTEXITCODE -ne 0) {
+        throw "Application packaging failed (exit code $LASTEXITCODE)."
+      }
+    displayName: Package tested application for Azure
 
   - task: PublishPipelineArtifact@1
     displayName: Publish application package
     inputs:
       targetPath: '$(Build.ArtifactStagingDirectory)/accounting.zip'
       artifact: accounting
+
+  - task: AzureCLI@2
+    displayName: Deploy tested package to Dev Web App
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.Reason'], 'PullRequest'))
+    inputs:
+      azureSubscription: azure-accounting-wif
+      scriptType: pscore
+      scriptLocation: scriptPath
+      scriptPath: '$(Build.SourcesDirectory)/Pipelines/scripts/deploy-app.ps1'
+    env:
+      APP_PACKAGE: '$(Build.ArtifactStagingDirectory)/accounting.zip'
