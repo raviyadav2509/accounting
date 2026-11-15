@@ -54,9 +54,17 @@ settings are still stored in state and saved plans.
 
 ## Deploy application code after infrastructure
 
-Terraform provisions infrastructure only. Use a checkout initialized with the
-target environment's backend and variables. The packager excludes credentials,
-databases and Git metadata, adds Gunicorn if absent, and includes `azure_wsgi.py`.
+Terraform provisions infrastructure only. The application pipeline
+`Pipelines/azure-pipelines.yml` deploys the tested ZIP after CI succeeds on
+`main`. Authorize its `azure-accounting-wif` service connection with deployment
+permissions on `rg-quickbooks-dev`. The pipeline locates the single app with the
+Terraform Dev tags and `quickbooks-dev-` prefix; it fails rather than guessing if
+none or multiple match. Feature and pull-request runs only test and package.
+There is no separate application-deployment approval gate.
+
+For manual deployment, use a checkout initialized with the target environment's
+backend and variables. The packager excludes credentials, databases and Git
+metadata, adds Gunicorn if absent, and includes `azure_wsgi.py`.
 
 ```powershell
 py package_app.py --source "../.." --output app-deploy.zip

@@ -70,12 +70,28 @@ steps:
       failIfCoverageEmpty: true
 
   - script: |
+      set -euo pipefail
+      package_source="$(mktemp -d "$(Agent.TempDirectory)/accounting-package-source.XXXXXX")"
       mkdir -p "$(Build.ArtifactStagingDirectory)"
-      git archive --format=zip --output="$(Build.ArtifactStagingDirectory)/accounting.zip" HEAD app.py config.py requirements.txt routes services templates static
-    displayName: Package tested application (exclude databases and secrets)
+      git archive --format=tar HEAD app.py config.py requirements.txt routes services templates static infra/azure/package_app.py infra/azure/azure_wsgi.py \
+        | tar -xf - -C "$package_source"
+      python "$package_source/infra/azure/package_app.py" \
+        --source "$package_source" --output "$(Build.ArtifactStagingDirectory)/accounting.zip"
+    displayName: Package tested application for Azure
 
   - task: PublishPipelineArtifact@1
     displayName: Publish application package
     inputs:
       targetPath: '$(Build.ArtifactStagingDirectory)/accounting.zip'
       artifact: accounting
+
+  - task: AzureCLI@2
+    displayName: Deploy tested package to Dev Web App
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.Reason'], 'PullRequest'))
+    inputs:
+      azureSubscription: azure-accounting-wif
+      scriptType: bash
+      scriptLocation: scriptPath
+      scriptPath: '$(Build.SourcesDirectory)/infra/azure/scripts/deploy-app.sh'
+    env:
+      APP_PACKAGE: '$(Build.ArtifactStagingDirectory)/accounting.zip'

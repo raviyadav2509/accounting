@@ -98,7 +98,8 @@ for initial testing. Preserve the existing shared backend values in this group.
 
 Dev hosting remains **F1** unless deliberately changed in Terraform. There is no
 automatic paid fallback. Application deployment and Intuit callback registration
-remain separate; this pipeline provisions infrastructure only.
+remain separate; this pipeline provisions infrastructure only. The application
+pipeline deploys on successful `main` runs as described in [README.md](README.md).
 
 ## 4. Configure the Dev Environment gate
 
