@@ -1,17 +1,120 @@
-# Dev Terraform pipeline
+# Azure hosting for QuickBooks Accounting
+
+Terraform creates a resource group, Linux App Service plan and Python
+3.12 web app for **Dev only**, using the existing Dev state blob
+in the `tfstate` container. State storage is outside application
+Terraform and is expected in **`rg-tfstate-sa`**.
+
+| Environment | Resource group | App name prefix |
+| --- | --- | --- |
+| Dev | `rg-quickbooks-dev` | `quickbooks-dev-` |
+
+## Pipeline setup
+
+See [Terraform pipeline setup and operations](#terraform-pipeline-setup-and-operations)
+for the storage-account move, variable groups and Environment approval. One run executes **PlanDev → ApplyDev**. Apply uses the
+exact saved plan, is controlled by checks on **`Terraform-Dev-Env`**, and only runs
+from `main`; other branches stop after PlanDev.
+
+Azure resource groups cannot be renamed. Move the existing state storage account
+from `rg-quickbooks-accounting` into a newly created `rg-tfstate-sa` group first.
+Keep its name, container and existing Dev blob name unchanged. Recheck blob data
+permissions at the new scope. Do not create an empty replacement state account.
+
+The previous managed resource group (`azurerm_resource_group.app`) is destroyed
+when the plan is applied. Existing Dev app/plan resources are replaced in the new
+group. Review PlanDev before approval and preserve any SQLite data first. Deletion
+fails if the old group still contains resources Terraform does not manage.
+
+## Local Terraform
+
+Use Terraform 1.7 or newer (below 2.0), Azure CLI and Python 3.12. From
+`infra`, authenticate with `az login`, select the correct subscription,
+copy `terraform.tfvars.example` to ignored `terraform.tfvars`, and edit the ID.
+Supply QBO/OpenAI credentials through session `TF_VAR_*` environment variables.
+
+Initialize the backend using the existing Dev blob name:
+
+```powershell
+terraform init `
+  -backend-config="resource_group_name=rg-tfstate-sa" `
+  -backend-config="storage_account_name=YOUR-EXISTING-STORAGE-ACCOUNT" `
+  -backend-config="container_name=tfstate" `
+  -backend-config="key=YOUR-EXISTING-DEV-STATE-KEY"
+terraform fmt -check
+terraform validate
+terraform plan -out=deployment.tfplan
+terraform apply deployment.tfplan
+```
+
+For an initialized local checkout after moving the same storage account, add
+`-reconfigure` to init. Keep `deployment_environment = "dev"` and the original
+Dev backend key. No real credentials, plans or state belong in Git; sensitive
+settings are still stored in state and saved plans.
+
+## Deploy application code after infrastructure
+
+Terraform provisions infrastructure only. The application pipeline
+`Pipelines/azure-pipelines.yml` deploys the tested ZIP after CI succeeds on
+`main`. Authorize its `azure-accounting-wif` service connection with deployment
+permissions on `rg-quickbooks-dev`. The pipeline locates the single app with the
+Terraform Dev tags and `quickbooks-dev-` prefix; it fails rather than guessing if
+none or multiple match. Feature and pull-request runs only test and package.
+There is no separate application-deployment approval gate.
+
+For manual deployment, use a checkout initialized with the target environment's
+backend and variables. The packager at `Pipelines/utility/package_app.py` excludes
+credentials, databases and Git metadata, adds Gunicorn if absent, and includes
+the App Service entry point `Pipelines/utility/azure_wsgi.py` at the deployment
+ZIP root.
+
+```powershell
+py ..\Pipelines\utility\package_app.py --source .. --output app-deploy.zip
+$resourceGroup = terraform output -raw resource_group_name
+$webApp = terraform output -raw web_app_name
+az webapp deploy --resource-group $resourceGroup --name $webApp --src-path app-deploy.zip --type zip
+terraform output -raw application_url
+terraform output -raw quickbooks_redirect_uri
+```
+
+Register that environment's exact HTTPS `/callback` URL in Intuit before testing
+OAuth. Check account mappings and BAS period defaults against the intended company.
+
+## Hosting and data
+
+Dev defaults to **F1** for testing. B1 is a deliberate paid choice.
+F1 has no Always On and regional/subscription quotas may block deployment.
+This SQLite development deployment is not production ready. OpenAI usage and backend blob storage are billed separately.
+
+SQLite is stored at `/home/bas-data/bas_history.db` outside code deployments.
+Use one app instance/process/thread and do not enable SQLite WAL on this shared
+filesystem. This is not a backup; replacing or deleting the web app loses its
+associated data. Migrate to a managed relational database before production use.
+Existing application authentication and security limitations still apply.
+
+`terraform destroy` against one environment's state deletes its managed group,
+web app and plan. Keep unrelated resources out of those managed application groups.
+It does not manage/delete the external `rg-tfstate-sa` account. Back up application data before destructive changes.
+
+Provider-schema validation and live plans run on the Azure pipeline agents.
+See the [validation status](#validation-and-limitations) below.
+
+## Terraform pipeline setup and operations
+
+The Terraform and application deployment steps use PowerShell Core (`pwsh`).
+The plan-context and plan-summary helpers remain Python scripts.
 
 One manual run uses the same commit throughout:
 
 **PlanDev → ApplyDev**
 
-Apply is controlled by approvals and checks on **`Terraform-Dev-Env`**.
-It consumes the exact saved plan from PlanDev;
-it does not run Terraform plan again.
+Apply is controlled by approvals and checks on **`Terraform-Dev-Env`**. It
+consumes the exact saved plan from PlanDev; it does not run Terraform plan again.
 
-ApplyDev runs only when the pipeline is run from `main`. Runs from any other branch
-stop after PlanDev, so feature branches can be planned and reviewed but never
-deployed. `run-terraform.sh` also refuses to apply outside `main`. Because a
-branch could edit both, add a **Branch control** check (allowed branches
+ApplyDev runs only when the pipeline is run from `main`. Runs from any other
+branch stop after PlanDev, so feature branches can be planned and reviewed but
+never deployed. `run-terraform.ps1` also refuses to apply outside `main`. Because
+a branch could edit both, add a **Branch control** check (allowed branches
 `refs/heads/main`) on `Terraform-Dev-Env` to enforce this in Azure DevOps itself.
 
 | Target | New managed resource group | Azure DevOps Environment | State blob |
@@ -23,7 +126,7 @@ separate **`rg-tfstate-sa`** resource group. Its state manages the Dev applicati
 group, plan, web app and generated values. App names use the `quickbooks-dev-`
 prefix. There are no Test/Prod stages or dependencies.
 
-## 1. Move existing state storage first
+### 1. Move existing state storage first
 
 Azure resource groups cannot be renamed. To change `rg-quickbooks-accounting`
 to `rg-tfstate-sa` for storage, **move the existing storage account**, rather than
@@ -61,7 +164,7 @@ use `terraform init -reconfigure` with the updated group **only when the same
 account/container/key has been retained**. Changing storage accounts or Dev keys
 requires a separate deliberate state migration.
 
-## 2. Service connection and backend variables
+### 2. Service connection and backend variables
 
 Use the existing workload identity service connection `azure-accounting-wif`.
 Because Terraform creates the Dev resource group, the identity needs
@@ -80,7 +183,7 @@ Keep the existing `accounting-terraform` Library variable group for shared setti
 Preserve `stateKey` exactly. If an old Dev deployment exists, losing/changing its
 key would make Terraform lose track of those existing resources.
 
-## 3. Dev secrets
+### 3. Dev secrets
 
 Keep Dev secrets in the existing **`accounting-terraform`** Library variable group
 alongside the shared backend settings, and authorize this pipeline to use it.
@@ -99,9 +202,9 @@ for initial testing. Preserve the existing shared backend values in this group.
 Dev hosting remains **F1** unless deliberately changed in Terraform. There is no
 automatic paid fallback. Application deployment and Intuit callback registration
 remain separate; this pipeline provisions infrastructure only. The application
-pipeline deploys on successful `main` runs as described in [README.md](README.md).
+pipeline deploys on successful `main` runs as described above.
 
-## 4. Configure the Dev Environment gate
+### 4. Configure the Dev Environment gate
 
 1. Open **Pipelines → Environments → Terraform-Dev-Env → Approvals and checks**.
 2. Add an **Approval**, choose approvers and timeout, and allow self-approval if
@@ -112,10 +215,12 @@ pipeline deploys on successful `main` runs as described in [README.md](README.md
 The environment alone does not cause a pause. Without checks, ApplyDev starts
 automatically. The YAML has no ManualValidation task or approval stage.
 
-## 5. Run and review
+### 5. Run and review
 
-Use `/Pipelines/azure-pipelines-terraform.yml` from `feature/annual-tax-return` in GitHub.
-Start one run. Review PlanDev and approve ApplyDev on `Terraform-Dev-Env`.
+Configure the existing Azure DevOps pipeline to use
+`/infra/azure-pipelines-terraform.yml`; moving the file does not update the
+pipeline definition automatically. Start a run from `main`. Review PlanDev and
+approve ApplyDev on `Terraform-Dev-Env`. Other branches run Plan only.
 
 PlanDev ends with a readable **Terraform plan summary** in the step log: a one-line
 total (for example `Plan: 1 to destroy, 2 to replace, 1 to create.`), an overview
@@ -148,13 +253,28 @@ a stale plan through.
 
 ## Validation and limitations
 
-YAML/template expansion, environment gate bindings, stage order, state/artifact
-consistency, shell/Python syntax and simulated saved-plan execution are checked
-locally. The Dev-only workflow and storage move still require
-execution/verification in your Azure account. No cloud resources were changed
-while writing this configuration.
+Validation notes recorded on 14 November 2026 (Sydney date):
 
-## References
+- Parsed all four Terraform files and the example variable file using `python-hcl2`.
+- Parsed both Python scripts using Python's AST parser.
+- Ran the deployment packager against a representative application directory layout.
+- Verified the ZIP has root-level application files and the Azure WSGI entry point.
+- Verified `.env`, token JSON, SQLite database files and Python bytecode are excluded.
+- Verified Gunicorn is added when missing, and an existing Gunicorn requirement is preserved.
+- Executed the WSGI wrapper with a stub application to check data-directory creation and secure cookie settings.
+- Checked configuration names and the callback route against the GitHub repository.
+- Checked App Service attributes against AzureRM provider documentation and Python hosting behavior against Microsoft documentation.
+
+Not performed:
+
+- `terraform fmt -check`, `terraform init`, provider-schema `terraform validate`, or an Azure plan/apply. Terraform was unavailable and downloading its binary timed out. HCL parsing is syntax verification, not provider validation.
+- Live application deployment, QuickBooks OAuth, OpenAI calls, Azure quota/capacity checks or a persistence test on Azure.
+- Verification of the inaccessible Azure DevOps copy of the application.
+
+Run the commands in [Local Terraform](#local-terraform) in your Azure environment
+before deployment. No Azure resources were created during that validation.
+
+### References
 
 - https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/frequently-asked-questions
 - https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/move-resource-group-and-subscription

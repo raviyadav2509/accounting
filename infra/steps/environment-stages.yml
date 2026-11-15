@@ -32,9 +32,9 @@ stages:
             displayName: Validate and save ${{ parameters.environmentName }} plan
             inputs:
               azureSubscription: ${{ parameters.azureServiceConnection }}
-              scriptType: bash
+              scriptType: pscore
               scriptLocation: scriptPath
-              scriptPath: '$(terraformDirectory)/scripts/run-terraform.sh'
+              scriptPath: '$(terraformDirectory)/scripts/run-terraform.ps1'
               workingDirectory: $(terraformDirectory)
               addSpnToEnvironment: true
               visibleAzLogin: false
@@ -95,9 +95,9 @@ stages:
                   displayName: Apply saved plan without replanning
                   inputs:
                     azureSubscription: ${{ parameters.azureServiceConnection }}
-                    scriptType: bash
+                    scriptType: pscore
                     scriptLocation: scriptPath
-                    scriptPath: '$(terraformDirectory)/scripts/run-terraform.sh'
+                    scriptPath: '$(terraformDirectory)/scripts/run-terraform.ps1'
                     workingDirectory: $(terraformDirectory)
                     addSpnToEnvironment: true
                     visibleAzLogin: false

@@ -282,7 +282,12 @@ def render_markdown(resources, outputs, environment):
 
 def main():
     environment, summary_path = sys.argv[1], sys.argv[2]
-    resources, outputs = summarise(json.load(sys.stdin))
+    if len(sys.argv) > 3:
+        with open(sys.argv[3], encoding="utf-8-sig") as plan_file:
+            plan = json.load(plan_file)
+    else:
+        plan = json.load(sys.stdin)
+    resources, outputs = summarise(plan)
     with open(summary_path, "w", encoding="utf-8") as handle:
         handle.write(render_markdown(resources, outputs, environment))
     print("\n".join(render_log(resources, outputs, environment)))

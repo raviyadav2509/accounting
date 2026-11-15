@@ -3,7 +3,7 @@ import io
 import json
 from pathlib import Path
 
-SCRIPT = Path(__file__).resolve().parents[1] / "infra" / "azure" / "scripts" / "plan-summary.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "infra" / "scripts" / "plan-summary.py"
 spec = importlib.util.spec_from_file_location("plan_summary", SCRIPT)
 plan_summary = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(plan_summary)
@@ -141,3 +141,19 @@ def test_no_changes_without_warning(tmp_path, capsys, monkeypatch):
     assert "**No infrastructure changes.**" in summary
     assert "##vso" not in log
     assert "##[warning]" not in log
+
+
+def test_summary_reads_plan_json_from_file(tmp_path, capsys, monkeypatch):
+    plan_path = tmp_path / "plan.json"
+    plan_path.write_text(json.dumps(PLAN), encoding="utf-8")
+    summary_path = tmp_path / "summary.md"
+    monkeypatch.setattr(
+        "sys.argv",
+        ["plan-summary.py", "dev", str(summary_path), str(plan_path)],
+    )
+    monkeypatch.setattr("sys.stdin", io.StringIO("invalid stdin"))
+
+    plan_summary.main()
+
+    assert "Plan: 1 to destroy, 1 to replace" in capsys.readouterr().out
+    assert summary_path.exists()

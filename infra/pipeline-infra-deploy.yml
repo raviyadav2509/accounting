@@ -19,7 +19,7 @@ variables:
   - name: terraformVersion
     value: '1.9.8'
   - name: terraformDirectory
-    value: '$(Build.SourcesDirectory)/infra/azure'
+    value: '$(Build.SourcesDirectory)/infra'
   - name: terraformPlanDirectory
     value: '$(Pipeline.Workspace)/terraform-plan'
 
