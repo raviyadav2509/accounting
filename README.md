@@ -113,9 +113,10 @@ Unauthenticated users are redirected to the login page.
 
 ## Self-contained demo mode
 
-On `feature/annual-tax-return`, sign in with a verified account and choose
-**Clients → Try demo company**. Pick the standard company or expense-review
-exercise. Each created company belongs only to your account; its `data_source`
+Sign in with a verified account and choose **Playground → Create demo company**.
+Existing demo companies and their progress remain available in Playground, separate
+from real client lists and firm-wide BAS and tax summaries. Pick the standard
+company or expense-review exercise. Each created company belongs only to your account; its `data_source`
 is permanently `DEMO`. Existing clients remain `QUICKBOOKS` after migration.
 
 The demo page provides a sample BAS link and annual-return workflow. Underlying
@@ -147,12 +148,27 @@ no ATO request is sent. A permanent client banner identifies demo mode.
 requires a session CSRF token and verified client ownership, and is atomic.
 It permanently deletes only that demo client's BAS records, reviews, approvals,
 simulated receipts, tax returns and adjustments, then restores sample data.
-Account/business details and all other clients are retained. Up to five demo
-clients per user are allowed. Source fixtures are not editable in the UI.
+Account/business details and all other clients are retained. Demo creation is
+limited to five active companies per user; restoring archived companies can
+exceed this limit. Source fixtures are not editable in the UI.
 
 This feature does not deploy a hosted sandbox or resolve the production-security
 gaps below. New demo forms have CSRF protection; existing forms still need the
 application-wide CSRF work described in the production checklist.
+
+## Client archive
+
+Select **Delete** beside a client in Clients or a demo company in Playground,
+then type `DELETE` to confirm. The client and its local data are hidden and can
+be restored from **Archive**. By default they are retained for 30 days; set the
+positive integer environment variable `CLIENT_ARCHIVE_RETENTION_DAYS` to
+override this for future deletions. Existing archive deadlines do not change.
+For Terraform-managed Azure deployments, set the infrastructure pipeline's
+`clientArchiveRetentionDays` parameter rather than editing App Service directly.
+After expiry, the client and related local data are permanently deleted on the
+next non-static application request, which may be later if the app is idle.
+Archived QuickBooks credentials are retained until restoration or expiry.
+This does not delete data from QuickBooks, the ATO, or database backups.
 
 ## Automated tests and CI
 
@@ -222,6 +238,11 @@ EMAIL_VERIFICATION_DEBUG_LINKS=true
 ```
 
 The verification page will then expose a clearly labelled local-only verification link. Do not enable debug verification links in production.
+The registration page also offers an optional local-testing checkbox:
+when selected, a newly registered account is marked verified and signed in
+without email delivery. Existing accounts are not automatically verified.
+This bypasses proof of email ownership, so enable it only in a restricted
+development environment.
 
 ## Password reset
 
@@ -250,7 +271,7 @@ For local testing without working SMTP, enable:
 PASSWORD_RESET_DEBUG_LINKS=true
 ```
 
-This exposes a clearly labelled local password-reset link after a request for an existing active account. Never enable it in production.
+This exposes the generated password-reset URL after a request for an existing active account. `EMAIL_VERIFICATION_DEBUG_LINKS` is only used as a fallback if `PASSWORD_RESET_DEBUG_LINKS` is unset; an explicit value overrides it. Requests are rate-limited for 60 seconds; during that time the link can only be redisplayed in the browser session that generated it. Never enable debug links in production.
 
 ## Mock ATO lodgement for local testing
 

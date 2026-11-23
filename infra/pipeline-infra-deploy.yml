@@ -7,6 +7,10 @@ parameters:
     displayName: Azure workload identity service connection
     type: string
     default: azure-accounting-wif
+  - name: clientArchiveRetentionDays
+    displayName: Client archive retention in days
+    type: number
+    default: 30
 
 pool:
   vmImage: ubuntu-latest
@@ -33,3 +37,4 @@ stages:
       # Preserve the exact existing Dev blob; do not reset or copy its state.
       stateKey: $(stateKey)
       azureServiceConnection: ${{ parameters.azureServiceConnection }}
+      clientArchiveRetentionDays: ${{ parameters.clientArchiveRetentionDays }}

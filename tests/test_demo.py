@@ -69,6 +69,42 @@ def test_create_demo_through_ui(signed_in, user):
     assert sum(c["data_source"] == "DEMO" for c in clients) == 1
 
 
+def test_playground_separates_existing_demo_from_real_client_views(signed_in, demo, client, user):
+    p = demo_periods()
+    bas = calculate_bas(demo["id"], p["start"], p["end"])
+    demo_bas = database.save_bas_snapshot(demo["id"], bas, bas_signature(bas))
+    real_bas = {**bas, "start": "2000-07-01", "end": "2000-09-30"}
+    database.save_bas_snapshot(client["id"], real_bas, bas_signature(real_bas))
+    database.create_tax_return(demo["id"], p["financial_year"], "2025-07-01", "2026-06-30", "COMPANY")
+    real_return = database.create_tax_return(client["id"], "2000-01", "2000-07-01", "2001-06-30", "COMPANY")
+
+    playground = signed_in.get("/demo/")
+    assert demo["company_name"].encode() in playground.data
+    assert client["company_name"].encode() not in playground.data
+    assert f'/demo/{demo["id"]}'.encode() in playground.data
+    real_clients = signed_in.get("/clients/")
+    assert client["company_name"].encode() in real_clients.data
+    assert demo["company_name"].encode() not in real_clients.data
+    for path in ["/", "/bas-history", "/tax-returns"]:
+        response = signed_in.get(path)
+        assert response.status_code == 200
+        assert demo["company_name"].encode() not in response.data
+    assert [record["client_id"] for record in database.get_history_for_user(user["id"], limit=1)] == [client["id"]]
+    returns = database.get_tax_returns_for_user(user["id"], limit=1)
+    assert [record["id"] for record in returns] == [real_return["id"]]
+
+    workspace = signed_in.get(f'/demo/{demo["id"]}')
+    assert b"Playground" in workspace.data
+    assert b"Playground company" in workspace.data
+    assert b"Back to Playground" in workspace.data
+    assert b"Playground \xc2\xb7 fictional data" in workspace.data
+    assert database.get_history(demo["id"])
+    detail = signed_in.get(f'/bas-history/{demo_bas["id"]}')
+    assert detail.status_code == 200
+    assert b"Playground \xc2\xb7 fictional data" in detail.data
+    assert b'class="active" href="/demo/"' in detail.data
+
+
 @pytest.mark.parametrize("path", ["/demo/new", "/demo/1"])
 def test_anonymous_demo_requires_login(browser, path):
     assert browser.get(path).location.endswith("/login")
@@ -80,6 +116,53 @@ def test_demo_creation_requires_csrf_and_valid_scenario(signed_in, user):
     response = signed_in.post("/demo/new", data={"scenario": "bogus", "csrf_token": csrf(signed_in)})
     assert b"Choose a valid demo scenario" in response.data
     assert len(database.get_clients_for_user(user["id"])) == before
+
+
+def test_invalid_demo_creation_clears_previous_client_context(signed_in, client):
+    token = csrf(signed_in)
+    with signed_in.session_transaction() as session:
+        session["client_id"] = client["id"]
+    response = signed_in.post("/demo/new", data={"scenario": "bogus", "csrf_token": token})
+    assert b"Choose a valid demo scenario" in response.data
+    assert client["company_name"].encode() not in response.data
+    assert b'class="active" href="/demo/"' in response.data
+    assert b'class="active" href="/clients/"' not in response.data
+    with signed_in.session_transaction() as session:
+        assert "client_id" not in session
+
+
+def test_invalid_real_client_creation_clears_demo_context(demo_browser, demo):
+    response = demo_browser.post("/clients/new", data={"company_name": ""})
+    assert b"Enter the client" in response.data
+    assert demo["company_name"].encode() not in response.data
+    assert b'class="active" href="/clients/"' in response.data
+    assert b'class="active" href="/demo/"' not in response.data
+    with demo_browser.session_transaction() as session:
+        assert "client_id" not in session
+
+
+def test_first_real_client_claims_legacy_records_after_demo(browser, user, demo):
+    database.mark_email_verified(user["id"])
+    with browser.session_transaction() as session:
+        session["user_id"] = user["id"]
+    p = demo_periods()
+    bas = calculate_bas(demo["id"], p["start"], p["end"])
+    database.save_bas_snapshot(None, bas, bas_signature(bas))
+    with database.get_connection() as connection:
+        legacy_id = connection.execute("SELECT id FROM bas_records WHERE client_id IS NULL").fetchone()["id"]
+    response = browser.post("/clients/new", data={"company_name": "Real Company", "entity_type": "COMPANY"})
+    assert response.status_code == 302
+    real = next(c for c in database.get_clients_for_user(user["id"]) if c["data_source"] != "DEMO")
+    assert database.get_record_for_user(user["id"], legacy_id)["client_id"] == real["id"]
+    assert not database.get_history(demo["id"])
+
+
+def test_playground_list_is_owner_scoped(signed_in, demo):
+    outsider = database.create_user("Other", "User", "outsider@example.com", "hash", "Firm", "Director")
+    other_demo = create_demo_client(outsider["id"], "review")
+    response = signed_in.get("/demo/")
+    assert demo["company_name"].encode() in response.data
+    assert other_demo["company_name"].encode() not in response.data
 
 
 def test_bas_demo_review_approval_and_simulation(demo_browser, demo, user):

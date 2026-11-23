@@ -151,6 +151,15 @@
                 required
             >
             <div class="auth-field-help">We will send a verification link to this address before the account can be used.</div>
+            {% if email_verification_debug_links %}
+            <label class="auth-local-testing">
+                <input type="checkbox" name="local_testing" value="1" {% if local_testing %}checked{% endif %}>
+                <span>
+                    <strong>Skip email verification</strong>
+                    <span>Local testing only. Your account will be signed in immediately.</span>
+                </span>
+            </label>
+            {% endif %}
         </div>
 
         <div class="auth-field">
@@ -181,7 +190,7 @@
         </div>
     </div>
 
-    <button class="auth-primary-button" type="submit">Create account and verify email</button>
+    <button class="auth-primary-button" type="submit">Create account</button>
 </form>
 
 <div class="auth-switch">

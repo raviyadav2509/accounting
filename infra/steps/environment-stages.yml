@@ -12,6 +12,8 @@ parameters:
     type: string
   - name: azureServiceConnection
     type: string
+  - name: clientArchiveRetentionDays
+    type: number
   - name: dependsOn
     type: object
     default: []
@@ -52,6 +54,7 @@ stages:
               TF_VAR_name_prefix: 'quickbooks-${{ parameters.environmentName }}'
               TF_VAR_allowed_client_ip_cidr: $(allowedClientIpCidr)
               TF_VAR_db_file_name: $(dbFileName)
+              TF_VAR_client_archive_retention_days: ${{ parameters.clientArchiveRetentionDays }}
               TF_VAR_MOCK_ATO_LODGEMENT: $(mockAtoLodgement)
               TF_VAR_MOCK_EMAIL_VERIFICATION_DEBUG_LINKS: $(mockEmailVerificationDebugLinks)
               TF_VAR_MOCK_PASSWORD_RESET_DEBUG_LINKS: $(mockPasswordResetDebugLinks)

@@ -2,7 +2,7 @@ import secrets
 
 from flask import Blueprint, abort, g, redirect, render_template, request, session, url_for
 
-from database.store import get_client_for_user
+from database.store import get_client_for_user, get_clients_for_user
 from services.demo_service import create_demo_client, reset_demo_client, is_demo, demo_periods, demo_query
 
 demo_bp = Blueprint("demo", __name__, url_prefix="/demo")
@@ -30,6 +30,8 @@ def protect_demo_actions():
 
 @demo_bp.route("/new", methods=["GET", "POST"])
 def new_demo():
+    session.pop("client_id", None)
+    g.client = None
     error = None
     if request.method == "POST":
         try:
@@ -40,6 +42,14 @@ def new_demo():
             session["client_id"] = client["id"]
             return redirect(url_for("demo.demo_client", client_id=client["id"]))
     return render_template("demo_client.html", demo_client=None, error=error)
+
+
+@demo_bp.route("/")
+def playground():
+    session.pop("client_id", None)
+    g.client = None
+    clients = [client for client in get_clients_for_user(g.user["id"]) if is_demo(client)]
+    return render_template("playground.html", clients=clients)
 
 
 @demo_bp.route("/<int:client_id>", methods=["GET", "POST"])

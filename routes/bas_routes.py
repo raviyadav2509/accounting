@@ -263,7 +263,7 @@ def dashboard():
     g.client = None
     firm = get_firm_for_user(g.user["id"])
 
-    clients = list(g.clients)
+    clients = [client for client in g.clients if not is_demo(client)]
     current_fy = current_financial_year()
 
     qbo_connected_count = 0
@@ -657,7 +657,7 @@ def bas_history_detail(record_id):
             back_url=url_for("bas.bas_history"),
         ), 404
 
-    if request.args.get("client_context") == "1":
+    if request.args.get("client_context") == "1" or is_demo(client):
         session["client_id"] = client["id"]
         g.client = client
     else:

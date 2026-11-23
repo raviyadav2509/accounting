@@ -99,6 +99,12 @@ filesystem. This is not a backup; replacing or deleting the web app loses its
 associated data. Migrate to a managed relational database before production use.
 Existing application authentication and security limitations still apply.
 
+Client archives default to 30 days. Override `clientArchiveRetentionDays` when
+starting the infrastructure pipeline, or `client_archive_retention_days` for
+local Terraform. Applying the plan sets `CLIENT_ARCHIVE_RETENTION_DAYS` on the
+app. The setting affects newly archived clients, not existing deadlines; expired
+records are purged on the next non-static app request, not by a scheduled job.
+
 Terraform creates Application Insights and a Log Analytics workspace in the
 application resource group, with 30-day retention and pay-as-you-go ingestion.
 The deployment identity needs permission to create and manage both resources.
