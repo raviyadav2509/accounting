@@ -8,7 +8,7 @@
         <div class="subtitle">Manage the businesses whose BAS you prepare and lodge.</div>
     </div>
     <div class="demo-actions">
-        <a class="secondary-button" href="{{ url_for('demo.new_demo') }}">Try demo company</a>
+        <a class="secondary-button" href="{{ url_for('clients.archive') }}">Archive</a>
         <a class="button" href="{{ url_for('clients.new_client') }}">+ Add client</a>
     </div>
 </div>
@@ -62,6 +62,7 @@
             </div>
 
             <div class="client-list-action">
+                <a class="client-inline-edit" href="{{ url_for('clients.delete_client', client_id=client.id) }}">Delete</a>
                 <a class="client-inline-edit"
                    href="{{ url_for('clients.edit_client', client_id=client.id) }}">
                     Edit

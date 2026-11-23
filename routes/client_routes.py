@@ -1,13 +1,19 @@
-from flask import Blueprint, g, redirect, render_template, request, session, url_for
+import secrets
 
+from flask import Blueprint, abort, g, redirect, render_template, request, session, url_for
+
+from config import CLIENT_ARCHIVE_RETENTION_DAYS
 from database.store import (
+    archive_client,
     claim_legacy_bas_records,
     create_client,
+    get_archived_clients_for_user,
     get_client_for_user,
     get_clients_for_user,
     get_history,
     get_qbo_connection,
     get_tax_returns_for_client,
+    restore_archived_client,
     update_client,
 )
 from services.financial_year_service import financial_year_for_date, financial_year_sort_key
@@ -23,6 +29,61 @@ ENTITY_TYPES = {
     "INDIVIDUAL",
     "SMSF",
 }
+
+
+def _archive_token():
+    if "client_archive_token" not in session:
+        session["client_archive_token"] = secrets.token_urlsafe(32)
+    return session["client_archive_token"]
+
+
+def _check_archive_token():
+    expected = session.get("client_archive_token", "")
+    supplied = request.form.get("csrf_token", "")
+    if not expected or not secrets.compare_digest(expected.encode(), supplied.encode()):
+        abort(400, "Invalid form token. Reload the page and try again.")
+
+
+@clients_bp.route("/archive")
+def archive():
+    session.pop("client_id", None)
+    g.client = None
+    return render_template(
+        "client_archive.html",
+        archived_clients=get_archived_clients_for_user(g.user["id"]),
+        csrf_token=_archive_token(),
+    )
+
+
+@clients_bp.route("/<int:client_id>/delete", methods=["GET", "POST"])
+def delete_client(client_id):
+    client = get_client_for_user(client_id, g.user["id"])
+    if not client:
+        abort(404)
+    session["client_id"] = client_id
+    g.client = client
+    error = None
+    if request.method == "POST":
+        _check_archive_token()
+        if request.form.get("confirm") != "DELETE":
+            error = "Type DELETE to confirm."
+        else:
+            if not archive_client(client_id, g.user["id"], CLIENT_ARCHIVE_RETENTION_DAYS):
+                abort(404)
+            session.pop("client_id", None)
+            return redirect(url_for("clients.archive"))
+    return render_template(
+        "client_delete.html", client=client, error=error,
+        retention_days=CLIENT_ARCHIVE_RETENTION_DAYS, csrf_token=_archive_token(),
+    )
+
+
+@clients_bp.route("/<int:client_id>/restore", methods=["POST"])
+def restore_client(client_id):
+    _check_archive_token()
+    if not restore_archived_client(client_id, g.user["id"]):
+        abort(404)
+    return redirect(url_for("clients.archive"))
 
 
 def _compliance_summary(client_id):
@@ -88,7 +149,7 @@ def _compliance_summary(client_id):
 def index():
     session.pop("client_id", None)
     g.client = None
-    clients = get_clients_for_user(g.user["id"])
+    clients = [client for client in get_clients_for_user(g.user["id"]) if not is_demo(client)]
     active_client_id = None
 
     return render_template(
@@ -100,9 +161,8 @@ def index():
 
 @clients_bp.route("/new", methods=["GET", "POST"])
 def new_client():
-    if request.method == "GET":
-        session.pop("client_id", None)
-        g.client = None
+    session.pop("client_id", None)
+    g.client = None
 
     error = None
     values = {
@@ -129,7 +189,10 @@ def new_client():
         elif values["entity_type"] not in ENTITY_TYPES:
             error = "Select a valid client entity type."
         else:
-            existing_clients = get_clients_for_user(g.user["id"])
+            existing_clients = [
+                client for client in get_clients_for_user(g.user["id"])
+                if not is_demo(client)
+            ]
             client = create_client(
                 g.user["id"],
                 values["company_name"],

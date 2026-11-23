@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Playground | BAS Automation{% endblock %}
+{% block content %}
+<div class="page-heading">
+    <div>
+        <h1>Playground</h1>
+        <div class="subtitle">Practise with fictional companies, separate from your real clients.</div>
+    </div>
+    <div class="demo-actions">
+        <a class="secondary-button" href="{{ url_for('clients.archive') }}">Archive</a>
+        <a class="button" href="{{ url_for('demo.new_demo') }}">+ Create demo company</a>
+    </div>
+</div>
+<div class="demo-banner" role="status">
+    <strong>PLAYGROUND — fictional data only.</strong>
+    Reviews and lodgements are simulated. No QuickBooks connection or real ATO lodgement.
+</div>
+{% if clients %}
+<div class="card client-list-card">
+    <div class="client-list-header">
+        <div>Demo company</div><div>ABN</div><div>Data source</div><div></div>
+    </div>
+    <div class="client-list">
+        {% for client in clients %}
+        <div class="client-list-row">
+            <div class="client-list-identity">
+                <div class="client-list-avatar">{{ client.company_name|client_initials }}</div>
+                <div class="client-list-copy">
+                    <strong><a class="client-name-link" href="{{ url_for('demo.demo_client', client_id=client.id) }}">{{ client.company_name }}</a></strong>
+                    <span>Fictional company</span>
+                </div>
+            </div>
+            <div class="client-list-abn"><span class="mobile-client-label">ABN</span><strong>Not applicable</strong></div>
+            <div class="client-list-status"><span class="mobile-client-label">Data source</span><span class="status-badge warning">Demo — local data</span></div>
+            <div class="client-list-action">
+                <a class="client-inline-edit" href="{{ url_for('clients.delete_client', client_id=client.id) }}">Delete</a>
+                <a class="secondary-button client-details-button" href="{{ url_for('demo.demo_client', client_id=client.id) }}">Open Playground</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% else %}
+<div class="card empty-state clients-empty-state">
+    <strong>No demo companies yet.</strong>
+    <p>Create a fictional company to practise BAS and tax returns.</p>
+    <a class="button" href="{{ url_for('demo.new_demo') }}">Create demo company</a>
+</div>
+{% endif %}
+{% endblock %}

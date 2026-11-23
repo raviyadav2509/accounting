@@ -18,6 +18,97 @@ def test_login_page_renders(browser):
     assert browser.get("/login").status_code == 200
 
 
+@pytest.mark.parametrize("enabled", [True, False])
+def test_local_testing_option_follows_debug_setting(browser, monkeypatch, enabled):
+    from routes import auth_routes
+
+    monkeypatch.setattr(auth_routes, "EMAIL_VERIFICATION_DEBUG_LINKS", enabled)
+    login = browser.get("/login")
+    signup = browser.get("/signup")
+    assert b'name="local_testing"' not in login.data
+    assert (b'name="local_testing"' in signup.data) is enabled
+
+
+@pytest.mark.parametrize("enabled,selected,expected", [
+    (True, True, "dashboard"),
+    (True, False, "verify-email"),
+    (False, True, "rejected"),
+])
+def test_signup_local_testing_requires_enabled_and_selected(
+    browser, monkeypatch, enabled, selected, expected,
+):
+    from routes import auth_routes
+
+    monkeypatch.setattr(auth_routes, "EMAIL_VERIFICATION_DEBUG_LINKS", enabled)
+    monkeypatch.setattr(auth_routes, "email_delivery_configured", lambda: False)
+    if expected == "dashboard":
+        def unexpected_verification(_user):
+            pytest.fail("Local testing must not send a verification email")
+
+        monkeypatch.setattr(auth_routes, "_issue_verification", unexpected_verification)
+    form = {
+        "firm_name": "Test Firm", "director_name": "Test Director",
+        "first_name": "Test", "last_name": "User", "email": "new@example.com",
+        "password": "test-password", "confirm_password": "test-password",
+    }
+    if selected:
+        form["local_testing"] = "1"
+    response = browser.post("/signup", data=form)
+    user = database.get_user_by_email("new@example.com")
+
+    if expected == "rejected":
+        assert response.status_code == 400
+        assert user is None
+    elif expected == "dashboard":
+        assert response.status_code == 302
+        assert response.location.endswith("/")
+        assert user["email_verified_at"]
+        assert user["email_verification_token_hash"] is None
+        with browser.session_transaction() as session:
+            assert session["user_id"] == user["id"]
+        assert browser.get("/").status_code == 200
+    else:
+        assert response.status_code == 302
+        assert response.location.endswith("/verify-email")
+        assert user["email_verified_at"] is None
+        with browser.session_transaction() as session:
+            assert "user_id" not in session
+            assert session["pending_verification_user_id"] == user["id"]
+
+
+def test_signup_validation_retains_local_testing_selection(browser, monkeypatch):
+    from routes import auth_routes
+
+    monkeypatch.setattr(auth_routes, "EMAIL_VERIFICATION_DEBUG_LINKS", True)
+    response = browser.post("/signup", data={"local_testing": "1"})
+    assert response.status_code == 200
+    assert b'name="local_testing" value="1" checked' in response.data
+    assert b"Enter the accounting firm name." in response.data
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_verification_url_is_visible_only_when_debug_enabled(browser, user, monkeypatch, enabled):
+    from routes import auth_routes
+
+    token = "test-verification-token"
+    url = f"http://localhost/verify-email/{token}"
+    database.set_email_verification(
+        user["id"], hash_verification_token(token),
+        (datetime.now() + timedelta(minutes=10)).isoformat(),
+    )
+    monkeypatch.setattr(auth_routes, "EMAIL_VERIFICATION_DEBUG_LINKS", enabled)
+    with browser.session_transaction() as session:
+        session["pending_verification_user_id"] = user["id"]
+        session["debug_verification_url"] = url
+
+    response = browser.get("/verify-email")
+    assert response.status_code == 200
+    assert (f'href="{url}">{url}</a>'.encode() in response.data) is enabled
+    if enabled:
+        assert browser.get(f"/verify-email/{token}").status_code == 302
+        assert database.get_user_by_id(user["id"])["email_verified_at"]
+
+
 def test_unverified_session_cannot_access_clients(browser, user):
     with browser.session_transaction() as session:
         session["user_id"] = user["id"]
@@ -47,6 +138,51 @@ def test_password_reset_is_single_use(browser, user):
     assert check_password_hash(updated["password_hash"], "NewTestPassword123!")
     assert updated["password_reset_token_hash"] is None
     assert browser.get(f"/reset-password/{token}").status_code == 400
+
+
+def test_password_reset_debug_url_survives_repeat_request(browser, user, monkeypatch):
+    from routes import auth_routes
+
+    monkeypatch.setattr(auth_routes, "PASSWORD_RESET_DEBUG_LINKS", True)
+    monkeypatch.setattr(auth_routes, "email_delivery_configured", lambda: False)
+    response = browser.post("/forgot-password", data={"email": user["email"]})
+    with browser.session_transaction() as session:
+        url = session["debug_password_reset_url"]
+    assert f'href="{url}">{url}</a>'.encode() in response.data
+    response = browser.post("/forgot-password", data={"email": user["email"]})
+    assert f'href="{url}">{url}</a>'.encode() in response.data
+    response = browser.post("/forgot-password", data={"email": "unknown@example.com"})
+    assert url.encode() not in response.data
+    with browser.session_transaction() as session:
+        assert "debug_password_reset_url" not in session
+
+
+def test_password_reset_debug_link_not_displayed_when_disabled(browser, user, monkeypatch):
+    from routes import auth_routes
+
+    monkeypatch.setattr(auth_routes, "PASSWORD_RESET_DEBUG_LINKS", False)
+    monkeypatch.setattr(auth_routes, "email_delivery_configured", lambda: False)
+    with browser.session_transaction() as session:
+        session["debug_password_reset_url"] = "http://localhost/reset-password/old-token"
+    response = browser.post("/forgot-password", data={"email": user["email"]})
+    assert b"Generated password reset link" not in response.data
+    assert b"old-token" not in response.data
+
+
+def test_password_reset_does_not_show_stale_link_during_cooldown(browser, user, monkeypatch):
+    from routes import auth_routes
+
+    monkeypatch.setattr(auth_routes, "PASSWORD_RESET_DEBUG_LINKS", True)
+    monkeypatch.setattr(auth_routes, "email_delivery_configured", lambda: False)
+    browser.post("/forgot-password", data={"email": user["email"]})
+    with browser.session_transaction() as session:
+        url = session["debug_password_reset_url"]
+    database.set_password_reset(
+        user["id"], hash_verification_token("new-token"),
+        (datetime.now() + timedelta(minutes=10)).isoformat(),
+    )
+    response = browser.post("/forgot-password", data={"email": user["email"]})
+    assert url.encode() not in response.data
 
 
 @pytest.mark.parametrize("enabled,approved,expected", [

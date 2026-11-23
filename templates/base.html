@@ -34,7 +34,7 @@
                     <span>Dashboard</span>
                 </a>
 
-                <a class="{% if request.blueprint in ['clients', 'qbo'] or g.client %}active{% endif %}" href="{{ url_for('clients.index') }}">
+                <a class="{% if request.blueprint != 'demo' and (request.blueprint in ['clients', 'qbo'] or g.client) and not (g.client and g.client.data_source == 'DEMO') %}active{% endif %}" href="{{ url_for('clients.index') }}">
                     <span class="nav-icon" aria-hidden="true">
                         <svg viewBox="0 0 24 24" fill="none">
                             <path d="M16 20v-1.5A3.5 3.5 0 0 0 12.5 15h-5A3.5 3.5 0 0 0 4 18.5V20M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm6.5-1.5a3 3 0 0 0 0-5.8M17 15c1.8.3 3 1.5 3 3.2V20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -59,6 +59,13 @@
                         </svg>
                     </span>
                     <span>Tax Returns</span>
+                </a>
+
+                <a class="{% if request.blueprint == 'demo' or (g.client and g.client.data_source == 'DEMO') %}active{% endif %}" href="{{ url_for('demo.playground') }}">
+                    <span class="nav-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="M9 3h6M10 3v6l-5 8a3 3 0 0 0 2.5 4h9a3 3 0 0 0 2.5-4l-5-8V3M8 15h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <span>Playground</span>
                 </a>
 
                 <a class="{% if request.endpoint == 'auth.firm_profile' %}active{% endif %}" href="{{ url_for('auth.firm_profile') }}">
@@ -88,7 +95,7 @@
             <div class="client-context-header">
                 <div class="client-context-avatar">{{ g.client.company_name|client_initials }}</div>
                 <div class="client-context-identity">
-                    <span>Selected client</span>
+                    <span>{{ "Playground company" if g.client.data_source == "DEMO" else "Selected client" }}</span>
                     <strong title="{{ g.client.company_name }}">{{ g.client.company_name }}</strong>
                     {% if g.client.abn %}<small>ABN {{ g.client.abn }}</small>{% endif %}
                 </div>
@@ -152,7 +159,7 @@
                     </a>
                 </div>
 
-                <a class="{% if request.endpoint == 'clients.quickbooks_client' or request.blueprint == 'qbo' %}active{% endif %}"
+                <a class="{% if request.endpoint in ['clients.quickbooks_client', 'demo.demo_client'] or request.blueprint == 'qbo' %}active{% endif %}"
                    href="{{ url_for('clients.quickbooks_client', client_id=g.client.id) }}"
                    title="QuickBooks">
                     <span class="client-context-icon" aria-hidden="true">
@@ -163,7 +170,11 @@
             </nav>
 
             <div class="client-context-footer">
+                {% if g.client.data_source == "DEMO" %}
+                <a href="{{ url_for('demo.playground') }}">← Back to Playground</a>
+                {% else %}
                 <a href="{{ url_for('clients.index') }}">← Switch client</a>
+                {% endif %}
             </div>
         </aside>
         {% endif %}
@@ -173,7 +184,10 @@
                 <div class="top-bar-title">
                     {% if g.client %}
                         <span>{{ g.client.company_name }}</span>
-                        <span class="active-client-pill">Client workspace</span>
+                        <span class="active-client-pill">{{ "Playground · fictional data" if g.client.data_source == "DEMO" else "Client workspace" }}</span>
+                    {% elif request.blueprint == 'demo' %}
+                        <span>Playground</span>
+                        <span class="active-client-pill">Fictional data</span>
                     {% else %}
                         <span>Accounting Firm Dashboard</span>
                     {% endif %}

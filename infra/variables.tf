@@ -62,6 +62,17 @@ variable "db_file_name" {
   }
 }
 
+variable "client_archive_retention_days" {
+  description = "Days deleted clients remain in the application archive."
+  type        = number
+  default     = 30
+
+  validation {
+    condition     = var.client_archive_retention_days >= 1 && floor(var.client_archive_retention_days) == var.client_archive_retention_days
+    error_message = "Client archive retention must be a positive whole number of days."
+  }
+}
+
 variable "sku_name" {
   description = "F1 is free development hosting. B1 is paid and enables Always On."
   type        = string

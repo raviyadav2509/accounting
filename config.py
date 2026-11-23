@@ -49,6 +49,9 @@ TOKEN_FILE = "tokens.json"
 REVIEW_FILE = "bas_review_status.json"
 APPROVAL_FILE = "bas_approval.json"
 DATABASE_FILE = os.getenv("BAS_DATABASE_FILE", "bas_history.db")
+CLIENT_ARCHIVE_RETENTION_DAYS = int(os.getenv("CLIENT_ARCHIVE_RETENTION_DAYS", "30"))
+if CLIENT_ARCHIVE_RETENTION_DAYS < 1:
+    raise ValueError("CLIENT_ARCHIVE_RETENTION_DAYS must be a positive number of days")
 
 # Sandbox defaults only. Move these to .env before production.
 WAGE_ACCOUNT_ID = os.getenv("QBO_WAGE_ACCOUNT_ID", "66")

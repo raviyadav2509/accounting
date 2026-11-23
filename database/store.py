@@ -1,6 +1,6 @@
 import json
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from config import DATABASE_FILE
 
@@ -290,6 +290,13 @@ def init_db():
             connection.execute(
                 "ALTER TABLE clients ADD COLUMN data_source TEXT NOT NULL DEFAULT 'QUICKBOOKS'"
             )
+        if "archived_at" not in _column_names(connection, "clients"):
+            connection.execute("ALTER TABLE clients ADD COLUMN archived_at TEXT")
+        if "purge_at" not in _column_names(connection, "clients"):
+            connection.execute("ALTER TABLE clients ADD COLUMN purge_at TEXT")
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_clients_purge_at ON clients(purge_at)"
+        )
         connection.execute(
             """CREATE TABLE IF NOT EXISTS demo_transactions (
                 client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
@@ -905,6 +912,7 @@ def get_clients_for_user(owner_user_id):
             FROM clients c
             LEFT JOIN qbo_connections q ON q.client_id = c.id
             WHERE c.owner_user_id = ?
+              AND c.archived_at IS NULL
             ORDER BY c.company_name COLLATE NOCASE
             """,
             (owner_user_id,),
@@ -927,12 +935,61 @@ def get_client_for_user(client_id, owner_user_id):
             LEFT JOIN qbo_connections q ON q.client_id = c.id
             WHERE c.id = ?
               AND c.owner_user_id = ?
+              AND c.archived_at IS NULL
             LIMIT 1
             """,
             (client_id, owner_user_id),
         ).fetchone()
 
     return dict(row) if row else None
+
+
+def _archive_now():
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def archive_client(client_id, owner_user_id, retention_days):
+    now = datetime.now(timezone.utc)
+    with get_connection() as connection:
+        result = connection.execute(
+            """UPDATE clients SET archived_at = ?, purge_at = ?
+               WHERE id = ? AND owner_user_id = ? AND archived_at IS NULL""",
+            (now.isoformat(timespec="seconds"),
+             (now + timedelta(days=retention_days)).isoformat(timespec="seconds"),
+             client_id, owner_user_id),
+        )
+    return result.rowcount == 1
+
+
+def get_archived_clients_for_user(owner_user_id):
+    with get_connection() as connection:
+        rows = connection.execute(
+            """SELECT * FROM clients WHERE owner_user_id = ?
+               AND archived_at IS NOT NULL AND purge_at > ?
+               ORDER BY purge_at, company_name COLLATE NOCASE""",
+            (owner_user_id, _archive_now()),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def restore_archived_client(client_id, owner_user_id):
+    with get_connection() as connection:
+        result = connection.execute(
+            """UPDATE clients SET archived_at = NULL, purge_at = NULL
+               WHERE id = ? AND owner_user_id = ?
+                 AND archived_at IS NOT NULL AND purge_at > ?""",
+            (client_id, owner_user_id, _archive_now()),
+        )
+    return result.rowcount == 1
+
+
+def purge_expired_clients():
+    now = _archive_now()
+    with get_connection() as connection:
+        if connection.execute(
+            "SELECT 1 FROM clients WHERE purge_at <= ? LIMIT 1", (now,)
+        ).fetchone():
+            connection.execute("DELETE FROM clients WHERE purge_at <= ?", (now,))
 
 
 def get_client_by_id(client_id):
@@ -1312,6 +1369,8 @@ def get_history_for_user(owner_user_id, limit=200):
                 FROM bas_records b
                 JOIN clients c ON c.id = b.client_id
                 WHERE c.owner_user_id = ?
+                  AND c.data_source != 'DEMO'
+                  AND c.archived_at IS NULL
             )
             WHERE period_rank = 1
             ORDER BY end_date DESC, updated_at DESC, id DESC
@@ -1336,6 +1395,7 @@ def get_record_for_user(owner_user_id, record_id):
             JOIN clients c ON c.id = b.client_id
             WHERE b.id = ?
               AND c.owner_user_id = ?
+              AND c.archived_at IS NULL
             LIMIT 1
             """,
             (record_id, owner_user_id),
@@ -1439,6 +1499,8 @@ def get_tax_returns_for_user(owner_user_id, limit=250):
             FROM tax_returns t
             JOIN clients c ON c.id = t.client_id
             WHERE c.owner_user_id = ?
+              AND c.data_source != 'DEMO'
+              AND c.archived_at IS NULL
             ORDER BY t.end_date DESC, t.updated_at DESC, t.id DESC
             LIMIT ?
             """,

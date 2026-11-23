@@ -43,9 +43,9 @@
 
 {% if debug_verification_url %}
 <div class="verification-debug">
-    <strong>Local testing</strong>
-    <p>Email verification debug links are enabled. This link bypasses email delivery and should never be enabled in production.</p>
-    <a href="{{ debug_verification_url }}">Open local verification link</a>
+    <strong>Generated verification link</strong>
+    <p>For development only. This link bypasses email delivery and must not be shared or enabled in production.</p>
+    <a href="{{ debug_verification_url }}">{{ debug_verification_url }}</a>
 </div>
 {% endif %}
 

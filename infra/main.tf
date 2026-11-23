@@ -94,6 +94,7 @@ resource "azurerm_linux_web_app" "app" {
     ENABLE_ORYX_BUILD                               = "true"
     WEBSITES_ENABLE_APP_SERVICE_STORAGE             = "true"
     BAS_DATABASE_FILE                               = "/home/bas-data/${var.db_file_name}"
+    CLIENT_ARCHIVE_RETENTION_DAYS                   = tostring(var.client_archive_retention_days)
     FLASK_SECRET_KEY                                = random_password.flask_secret.result
     QBO_CLIENT_ID                                   = var.qbo_client_id
     QBO_CLIENT_SECRET                               = var.qbo_client_secret

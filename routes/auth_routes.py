@@ -20,6 +20,7 @@ from database.store import (
     get_user_by_password_reset_token_hash,
     get_user_by_verification_token_hash,
     mark_email_verified,
+    purge_expired_clients,
     set_email_verification,
     set_password_reset,
     update_firm_for_user,
@@ -174,6 +175,8 @@ def _issue_password_reset(user):
 
 @auth_bp.before_app_request
 def load_logged_in_user():
+    if request.endpoint != "static":
+        purge_expired_clients()
     user_id = session.get("user_id")
     g.user = get_user_by_id(user_id) if user_id else None
     g.client = None
@@ -266,9 +269,9 @@ def forgot_password():
 
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
-        session.pop(DEBUG_PASSWORD_RESET_URL_KEY, None)
 
         if not _valid_email(email):
+            session.pop(DEBUG_PASSWORD_RESET_URL_KEY, None)
             error = "Enter a valid email address."
         else:
             user = get_user_by_email(email)
@@ -279,12 +282,28 @@ def forgot_password():
                 )
 
                 if not recently_sent:
+                    session.pop(DEBUG_PASSWORD_RESET_URL_KEY, None)
                     _issue_password_reset(user)
+                elif PASSWORD_RESET_DEBUG_LINKS:
+                    existing_url = session.get(DEBUG_PASSWORD_RESET_URL_KEY)
+                    token = existing_url.rsplit("/", 1)[-1] if existing_url else ""
+                    try:
+                        unexpired = datetime.now() < datetime.fromisoformat(
+                            user["password_reset_expires_at"]
+                        )
+                    except (TypeError, ValueError):
+                        unexpired = False
+                    if (
+                        not token
+                        or hash_verification_token(token) != user.get("password_reset_token_hash")
+                        or not unexpired
+                    ):
+                        session.pop(DEBUG_PASSWORD_RESET_URL_KEY, None)
 
                 if PASSWORD_RESET_DEBUG_LINKS:
-                    debug_reset_url = session.get(
-                        DEBUG_PASSWORD_RESET_URL_KEY
-                    )
+                    debug_reset_url = session.get(DEBUG_PASSWORD_RESET_URL_KEY)
+            else:
+                session.pop(DEBUG_PASSWORD_RESET_URL_KEY, None)
 
             notice = (
                 "If an active account exists for that email address, "
@@ -376,6 +395,7 @@ def signup():
         return redirect(url_for("bas.dashboard"))
 
     error = None
+    local_testing = False
     values = {
         "firm_name": "",
         "director_name": "",
@@ -389,6 +409,7 @@ def signup():
     }
 
     if request.method == "POST":
+        local_testing = request.form.get("local_testing") == "1"
         values = {
             "firm_name": request.form.get("firm_name", "").strip(),
             "director_name": request.form.get("director_name", "").strip(),
@@ -403,6 +424,8 @@ def signup():
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
 
+        if local_testing and not EMAIL_VERIFICATION_DEBUG_LINKS:
+            return "Local testing is not enabled.", 400
         if not values["firm_name"]:
             error = "Enter the accounting firm name."
         elif not values["director_name"]:
@@ -436,6 +459,12 @@ def signup():
                 error = "An account with this email already exists."
             else:
                 session.clear()
+                if local_testing and EMAIL_VERIFICATION_DEBUG_LINKS:
+                    mark_email_verified(user["id"])
+                    session["user_id"] = user["id"]
+                    update_last_login(user["id"])
+                    return redirect(url_for("bas.dashboard"))
+
                 session[PENDING_VERIFICATION_KEY] = user["id"]
                 sent, delivery_error = _issue_verification(user)
 
@@ -453,6 +482,8 @@ def signup():
         "signup.html",
         error=error,
         values=values,
+        email_verification_debug_links=EMAIL_VERIFICATION_DEBUG_LINKS,
+        local_testing=local_testing,
     )
 
 

@@ -66,7 +66,7 @@ def create_demo_client(owner_user_id, scenario):
     with get_connection() as connection:
         # Limit accidental repeated creation without changing normal client limits.
         count = connection.execute(
-            "SELECT COUNT(*) FROM clients WHERE owner_user_id=? AND data_source='DEMO'",
+            "SELECT COUNT(*) FROM clients WHERE owner_user_id=? AND data_source='DEMO' AND archived_at IS NULL",
             (owner_user_id,),
         ).fetchone()[0]
         if count >= 5:
@@ -88,7 +88,7 @@ def reset_demo_client(client_id, owner_user_id, scenario):
         raise ValueError("Choose a valid demo scenario.")
     with get_connection() as connection:
         client = connection.execute(
-            "SELECT id FROM clients WHERE id=? AND owner_user_id=? AND data_source='DEMO'",
+            "SELECT id FROM clients WHERE id=? AND owner_user_id=? AND data_source='DEMO' AND archived_at IS NULL",
             (client_id, owner_user_id),
         ).fetchone()
         if not client:

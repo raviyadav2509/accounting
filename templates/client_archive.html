@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Client archive | BAS Automation{% endblock %}
+{% block content %}
+<div class="page-heading"><div>
+    <h1>Client archive</h1>
+    <p class="subtitle">Restore deleted clients before their permanent deletion date.</p>
+</div></div>
+<div class="card">
+    <p>Dates are shown in UTC. Expired clients and their local data are permanently deleted when the application next receives a request.</p>
+    {% if archived_clients %}
+    <div class="responsive-table">
+        <table class="history-table">
+            <thead><tr><th>Client</th><th>Type</th><th>Deleted (UTC)</th><th>Permanent deletion after (UTC)</th><th></th></tr></thead>
+            <tbody>
+            {% for client in archived_clients %}
+            <tr>
+                <td>{{ client.company_name }}</td>
+                <td>{{ "Demo" if client.data_source == "DEMO" else "Client" }}</td>
+                <td>{{ client.archived_at[:19].replace("T", " ") }}</td>
+                <td>{{ client.purge_at[:19].replace("T", " ") }}</td>
+                <td><form method="post" action="{{ url_for('clients.restore_client', client_id=client.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button class="secondary-button" type="submit">Restore</button>
+                </form></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No archived clients.</p>
+    {% endif %}
+</div>
+{% endblock %}
