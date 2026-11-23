@@ -47,11 +47,20 @@ resource "azurerm_linux_web_app" "app" {
   webdeploy_publish_basic_authentication_enabled = false
 
   site_config {
-    always_on               = var.sku_name != "F1"
-    ftps_state              = "Disabled"
-    minimum_tls_version     = "1.2"
-    scm_minimum_tls_version = "1.2"
-    http2_enabled           = true
+    always_on                     = var.sku_name != "F1"
+    ftps_state                    = "Disabled"
+    minimum_tls_version           = "1.2"
+    scm_minimum_tls_version       = "1.2"
+    http2_enabled                 = true
+    ip_restriction_default_action = "Deny"
+
+    ip_restriction {
+      name        = "HP Home Laptop IP"
+      action      = "Allow"
+      priority    = 100
+      ip_address  = var.allowed_client_ip_cidr
+      description = "Access from hom HP laptop"
+    }
 
     # One process and one request thread for this SQLite development deployment.
     app_command_line = "python -m gunicorn --bind 0.0.0.0:8000 --workers 1 --threads 1 --timeout 180 azure_wsgi:app"
@@ -65,7 +74,7 @@ resource "azurerm_linux_web_app" "app" {
     SCM_DO_BUILD_DURING_DEPLOYMENT      = "true"
     ENABLE_ORYX_BUILD                   = "true"
     WEBSITES_ENABLE_APP_SERVICE_STORAGE = "true"
-    BAS_DATABASE_FILE                   = "/home/bas-data/bas_history.db"
+    BAS_DATABASE_FILE                   = "/home/bas-data/${var.db_file_name}"
     FLASK_SECRET_KEY                    = random_password.flask_secret.result
     QBO_CLIENT_ID                       = var.qbo_client_id
     QBO_CLIENT_SECRET                   = var.qbo_client_secret

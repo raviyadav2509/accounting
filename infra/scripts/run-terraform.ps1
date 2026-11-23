@@ -36,7 +36,8 @@ try {
     if ($env:TF_ACTION -eq 'plan') {
         $required += @(
             'TF_VAR_qbo_client_id', 'TF_VAR_qbo_client_secret',
-            'TF_VAR_openai_api_key', 'TF_VAR_qbo_environment'
+            'TF_VAR_openai_api_key', 'TF_VAR_qbo_environment',
+            'TF_VAR_allowed_client_ip_cidr', 'TF_VAR_db_file_name'
         )
     }
     elseif ($env:TF_ACTION -eq 'apply') {

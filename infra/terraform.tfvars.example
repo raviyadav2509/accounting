@@ -5,6 +5,8 @@ name_prefix            = "quickbooks-dev"
 location               = "australiaeast"
 sku_name               = "B1"
 qbo_environment        = "sandbox"
+allowed_client_ip_cidr = "REPLACE-WITH-YOUR-PUBLIC-IP/32"
+db_file_name           = "bas-reset.db"
 
 # Development only: use "false" for each setting outside restricted testing.
 ENABLE_MOCK_ATO_LODGEMENT      = "true"

@@ -30,7 +30,8 @@ fails if the old group still contains resources Terraform does not manage.
 
 Use Terraform 1.7 or newer (below 2.0), Azure CLI and Python 3.12. From
 `infra`, authenticate with `az login`, select the correct subscription,
-copy `terraform.tfvars.example` to ignored `terraform.tfvars`, and edit the ID.
+copy `terraform.tfvars.example` to ignored `terraform.tfvars`, and edit the ID,
+allowed client IP and database filename as needed.
 Supply QBO/OpenAI credentials through session `TF_VAR_*` environment variables.
 
 Initialize the backend using the existing Dev blob name:
@@ -87,7 +88,12 @@ available as an explicit free-tier choice, but has no Always On and is subject
 to Free-tier quotas. Check regional pricing before applying the plan.
 This SQLite development deployment is not production ready. OpenAI usage and backend blob storage are billed separately.
 
-SQLite is stored at `/home/bas-data/bas_history.db` outside code deployments.
+SQLite is stored under `/home/bas-data` outside code deployments. Set the
+`dbFileName` variable in the `accounting-terraform` variable group to
+`bas-reset.db` to keep using the current database. Changing the filename selects
+a different database; it does not delete the previous one. The filename must
+start with a letter or digit and contain only letters, digits, dots, underscores
+or hyphens.
 Use one app instance/process/thread and do not enable SQLite WAL on this shared
 filesystem. This is not a backup; replacing or deleting the web app loses its
 associated data. Migrate to a managed relational database before production use.
@@ -100,6 +106,15 @@ corresponding App Service settings and default to `"true"` for Dev. They accept
 Debug links bypass email ownership checks and must not be enabled on publicly
 accessible apps. Mock lodgements are not real ATO submissions. The example
 tfvars file is not automatically used by the pipeline.
+
+The main site allows only the configured public IPv4 `/32` and denies all
+other addresses. Add `allowedClientIpCidr` to the `accounting-terraform`
+variable group, using your current public IP followed by `/32`. The Plan stage
+fails if it is missing, and Terraform validates the address. If your IP
+changes, update this variable and run a new Plan and Apply. Access is tied to
+the public network IP, not the physical PC; anyone sharing it can reach the
+site. The separately configured SCM deployment endpoint remains publicly
+reachable with authentication so the hosted agent can deploy.
 
 `terraform destroy` against one environment's state deletes its managed group,
 web app and plan. Keep unrelated resources out of those managed application groups.
@@ -188,6 +203,8 @@ Keep the existing `accounting-terraform` Library variable group for shared setti
 | `stateStorageAccount` | The existing storage account's exact name |
 | `stateContainer` | `tfstate` |
 | `stateKey` | Preserve the exact existing Dev blob name |
+| `allowedClientIpCidr` | Your public IPv4 address followed by `/32` |
+| `dbFileName` | `bas-reset.db` to retain the current database |
 
 Preserve `stateKey` exactly. If an old Dev deployment exists, losing/changing its
 key would make Terraform lose track of those existing resources.
