@@ -42,6 +42,26 @@ variable "name_prefix" {
   }
 }
 
+variable "allowed_client_ip_cidr" {
+  description = "Single public IPv4 address allowed to access the application, in /32 CIDR notation."
+  type        = string
+
+  validation {
+    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}/32$", var.allowed_client_ip_cidr)) && can(cidrhost(var.allowed_client_ip_cidr, 0))
+    error_message = "Supply one valid IPv4 address in /32 CIDR notation."
+  }
+}
+
+variable "db_file_name" {
+  description = "SQLite database filename within /home/bas-data."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[A-Za-z0-9][A-Za-z0-9._-]*$", var.db_file_name))
+    error_message = "Supply a database filename using letters, digits, dots, underscores or hyphens, starting with a letter or digit."
+  }
+}
+
 variable "sku_name" {
   description = "F1 is free development hosting. B1 is paid and enables Always On."
   type        = string
