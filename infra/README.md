@@ -1,7 +1,7 @@
 # Azure hosting for QuickBooks Accounting
 
-Terraform creates a resource group, Linux App Service plan and Python
-3.12 web app for **Dev only**, using the existing Dev state blob
+Terraform creates a resource group, Linux App Service plan, Python 3.12 web app,
+Application Insights component and Log Analytics workspace for **Dev only**, using the existing Dev state blob
 in the `tfstate` container. State storage is outside application
 Terraform and is expected in **`rg-tfstate-sa`**.
 
@@ -99,6 +99,27 @@ filesystem. This is not a backup; replacing or deleting the web app loses its
 associated data. Migrate to a managed relational database before production use.
 Existing application authentication and security limitations still apply.
 
+Terraform creates Application Insights and a Log Analytics workspace in the
+application resource group, with 30-day retention and pay-as-you-go ingestion.
+The deployment identity needs permission to create and manage both resources.
+Their connection string and workspace keys are stored in Terraform state and
+saved plans, so restrict access to both. The Linux Python App Service agent uses
+version `~3` for automatic telemetry. After applying, send a request from an
+allowed IP and confirm it appears in Application Insights. Existing sticky
+monitoring names are retained, including the legacy name with a trailing space.
+Application Insights and Log Analytics ingestion may incur charges; there is no
+configured daily ingestion cap.
+
+The manually created Application Insights component has the same name as the
+Terraform resource. Before applying, either delete the old component as planned
+or import it into `azurerm_application_insights.app` using the existing backend
+and then review the plan. Terraform cannot create it while an unmanaged resource
+with that name exists. Deletion or switching workspaces can leave historical
+telemetry in the old workspace; deleting that workspace removes its stored data
+and may affect other resources using it. Check its dependencies and preserve
+any needed data first. The new workspace has a different name and is independent
+of the old one.
+
 The Terraform variables `MOCK_ATO_LODGEMENT`,
 `MOCK_EMAIL_VERIFICATION_DEBUG_LINKS`, and `MOCK_PASSWORD_RESET_DEBUG_LINKS`
 set the corresponding App Service settings listed below. The pipeline maps the `mock`-prefixed
@@ -120,7 +141,7 @@ site. The separately configured SCM deployment endpoint remains publicly
 reachable with authentication so the hosted agent can deploy.
 
 `terraform destroy` against one environment's state deletes its managed group,
-web app and plan. Keep unrelated resources out of those managed application groups.
+web app, plan, Application Insights component and workspace. Keep unrelated resources out of those managed application groups.
 It does not manage/delete the external `rg-tfstate-sa` account. Back up application data before destructive changes.
 
 Provider-schema validation and live plans run on the Azure pipeline agents.

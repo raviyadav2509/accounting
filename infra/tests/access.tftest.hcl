@@ -1,4 +1,23 @@
-mock_provider "azurerm" {}
+mock_provider "azurerm" {
+  mock_resource "azurerm_service_plan" {
+    defaults = {
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-quickbooks-dev/providers/Microsoft.Web/serverFarms/test-plan"
+    }
+  }
+
+  mock_resource "azurerm_log_analytics_workspace" {
+    defaults = {
+      id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-quickbooks-dev/providers/Microsoft.OperationalInsights/workspaces/test-workspace"
+    }
+  }
+
+  mock_resource "azurerm_application_insights" {
+    defaults = {
+      instrumentation_key = "test-instrumentation-key"
+      connection_string   = "InstrumentationKey=test-instrumentation-key"
+    }
+  }
+}
 mock_provider "random" {}
 
 variables {
@@ -49,6 +68,25 @@ run "use_configured_development_settings" {
   assert {
     condition     = nonsensitive(azurerm_linux_web_app.app.app_settings["ENABLE_MOCK_ATO_LODGEMENT"]) == "false" && nonsensitive(azurerm_linux_web_app.app.app_settings["EMAIL_VERIFICATION_DEBUG_LINKS"]) == "true" && nonsensitive(azurerm_linux_web_app.app.app_settings["PASSWORD_RESET_DEBUG_LINKS"]) == "false"
     error_message = "App settings must match the configured development flags."
+  }
+}
+
+run "connect_application_insights" {
+  command = apply
+
+  assert {
+    condition     = nonsensitive(azurerm_linux_web_app.app.app_settings["APPLICATIONINSIGHTS_CONNECTION_STRING"]) == "InstrumentationKey=test-instrumentation-key" && nonsensitive(azurerm_linux_web_app.app.app_settings["APPINSIGHTS_INSTRUMENTATIONKEY"]) == "test-instrumentation-key" && nonsensitive(azurerm_linux_web_app.app.app_settings["ApplicationInsightsAgent_EXTENSION_VERSION"]) == "~3"
+    error_message = "The app must use the managed Application Insights connection and Linux Python agent."
+  }
+
+  assert {
+    condition     = azurerm_application_insights.app.workspace_id == azurerm_log_analytics_workspace.app.id && azurerm_application_insights.app.resource_group_name == azurerm_resource_group.environment.name && azurerm_log_analytics_workspace.app.resource_group_name == azurerm_resource_group.environment.name
+    error_message = "Application Insights must use the managed workspace in the application resource group."
+  }
+
+  assert {
+    condition     = contains(azurerm_linux_web_app.app.sticky_settings[0].app_setting_names, "APPLICATIONINSIGHTS_CONNECTION_STRING") && contains(azurerm_linux_web_app.app.sticky_settings[0].app_setting_names, "ApplicationInsightsAgent_EXTENSION_VERSION") && contains(azurerm_linux_web_app.app.sticky_settings[0].app_setting_names, "APPLICATIONINSIGHTS_CONNECTION_STRING ")
+    error_message = "The monitoring settings and existing sticky names must remain slot-specific."
   }
 }
 

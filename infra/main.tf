@@ -35,6 +35,25 @@ resource "azurerm_service_plan" "app" {
   tags                = local.tags
 }
 
+resource "azurerm_log_analytics_workspace" "app" {
+  name                = "law-${local.web_app_name}"
+  resource_group_name = azurerm_resource_group.environment.name
+  location            = azurerm_resource_group.environment.location
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+  tags                = local.tags
+}
+
+resource "azurerm_application_insights" "app" {
+  name                = local.web_app_name
+  resource_group_name = azurerm_resource_group.environment.name
+  location            = azurerm_resource_group.environment.location
+  application_type    = "web"
+  workspace_id        = azurerm_log_analytics_workspace.app.id
+  retention_in_days   = 30
+  tags                = local.tags
+}
+
 resource "azurerm_linux_web_app" "app" {
   name                = local.web_app_name
   resource_group_name = azurerm_resource_group.environment.name
@@ -71,23 +90,56 @@ resource "azurerm_linux_web_app" "app" {
   }
 
   app_settings = {
-    SCM_DO_BUILD_DURING_DEPLOYMENT      = "true"
-    ENABLE_ORYX_BUILD                   = "true"
-    WEBSITES_ENABLE_APP_SERVICE_STORAGE = "true"
-    BAS_DATABASE_FILE                   = "/home/bas-data/${var.db_file_name}"
-    FLASK_SECRET_KEY                    = random_password.flask_secret.result
-    QBO_CLIENT_ID                       = var.qbo_client_id
-    QBO_CLIENT_SECRET                   = var.qbo_client_secret
-    QBO_REDIRECT_URI                    = "https://${local.web_app_name}.azurewebsites.net/callback"
-    QBO_BASE_URL                        = var.qbo_environment == "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com"
-    OPENAI_API_KEY                      = var.openai_api_key
-    QBO_WAGE_ACCOUNT_ID                 = var.qbo_wage_account_id
-    QBO_PAYG_ACCOUNT_ID                 = var.qbo_payg_account_id
-    DEFAULT_BAS_START                   = var.default_bas_start
-    DEFAULT_BAS_END                     = var.default_bas_end
-    ENABLE_MOCK_ATO_LODGEMENT           = var.MOCK_ATO_LODGEMENT
-    EMAIL_VERIFICATION_DEBUG_LINKS      = var.MOCK_EMAIL_VERIFICATION_DEBUG_LINKS
-    PASSWORD_RESET_DEBUG_LINKS          = var.MOCK_PASSWORD_RESET_DEBUG_LINKS
+    SCM_DO_BUILD_DURING_DEPLOYMENT                  = "true"
+    ENABLE_ORYX_BUILD                               = "true"
+    WEBSITES_ENABLE_APP_SERVICE_STORAGE             = "true"
+    BAS_DATABASE_FILE                               = "/home/bas-data/${var.db_file_name}"
+    FLASK_SECRET_KEY                                = random_password.flask_secret.result
+    QBO_CLIENT_ID                                   = var.qbo_client_id
+    QBO_CLIENT_SECRET                               = var.qbo_client_secret
+    QBO_REDIRECT_URI                                = "https://${local.web_app_name}.azurewebsites.net/callback"
+    QBO_BASE_URL                                    = var.qbo_environment == "sandbox" ? "https://sandbox-quickbooks.api.intuit.com" : "https://quickbooks.api.intuit.com"
+    OPENAI_API_KEY                                  = var.openai_api_key
+    QBO_WAGE_ACCOUNT_ID                             = var.qbo_wage_account_id
+    QBO_PAYG_ACCOUNT_ID                             = var.qbo_payg_account_id
+    DEFAULT_BAS_START                               = var.default_bas_start
+    DEFAULT_BAS_END                                 = var.default_bas_end
+    ENABLE_MOCK_ATO_LODGEMENT                       = var.MOCK_ATO_LODGEMENT
+    EMAIL_VERIFICATION_DEBUG_LINKS                  = var.MOCK_EMAIL_VERIFICATION_DEBUG_LINKS
+    PASSWORD_RESET_DEBUG_LINKS                      = var.MOCK_PASSWORD_RESET_DEBUG_LINKS
+    APPINSIGHTS_INSTRUMENTATIONKEY                  = azurerm_application_insights.app.instrumentation_key
+    APPINSIGHTS_PROFILERFEATURE_VERSION             = "1.0.0"
+    APPINSIGHTS_SNAPSHOTFEATURE_VERSION             = "1.0.0"
+    APPLICATIONINSIGHTS_CONNECTION_STRING           = azurerm_application_insights.app.connection_string
+    ApplicationInsightsAgent_EXTENSION_VERSION      = "~3"
+    DiagnosticServices_EXTENSION_VERSION            = "~3"
+    InstrumentationEngine_EXTENSION_VERSION         = "disabled"
+    SnapshotDebugger_EXTENSION_VERSION              = "disabled"
+    XDT_MicrosoftApplicationInsights_BaseExtensions = "disabled"
+    XDT_MicrosoftApplicationInsights_Java           = "disabled"
+    XDT_MicrosoftApplicationInsights_Mode           = "recommended"
+    XDT_MicrosoftApplicationInsights_NodeJS         = "disabled"
+    XDT_MicrosoftApplicationInsights_PreemptSdk     = "disabled"
+  }
+
+  sticky_settings {
+    app_setting_names = [
+      "APPINSIGHTS_INSTRUMENTATIONKEY",
+      "APPLICATIONINSIGHTS_CONNECTION_STRING",
+      "APPLICATIONINSIGHTS_CONNECTION_STRING ",
+      "APPINSIGHTS_PROFILERFEATURE_VERSION",
+      "APPINSIGHTS_SNAPSHOTFEATURE_VERSION",
+      "ApplicationInsightsAgent_EXTENSION_VERSION",
+      "XDT_MicrosoftApplicationInsights_BaseExtensions",
+      "DiagnosticServices_EXTENSION_VERSION",
+      "InstrumentationEngine_EXTENSION_VERSION",
+      "SnapshotDebugger_EXTENSION_VERSION",
+      "XDT_MicrosoftApplicationInsights_Mode",
+      "XDT_MicrosoftApplicationInsights_PreemptSdk",
+      "APPLICATIONINSIGHTS_CONFIGURATION_CONTENT",
+      "XDT_MicrosoftApplicationInsightsJava",
+      "XDT_MicrosoftApplicationInsights_NodeJS",
+    ]
   }
 
   tags = local.tags
