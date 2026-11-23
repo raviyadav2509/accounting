@@ -85,9 +85,9 @@ resource "azurerm_linux_web_app" "app" {
     QBO_PAYG_ACCOUNT_ID                 = var.qbo_payg_account_id
     DEFAULT_BAS_START                   = var.default_bas_start
     DEFAULT_BAS_END                     = var.default_bas_end
-    ENABLE_MOCK_ATO_LODGEMENT           = var.ENABLE_MOCK_ATO_LODGEMENT
-    EMAIL_VERIFICATION_DEBUG_LINKS      = var.EMAIL_VERIFICATION_DEBUG_LINKS
-    PASSWORD_RESET_DEBUG_LINKS          = var.PASSWORD_RESET_DEBUG_LINKS
+    ENABLE_MOCK_ATO_LODGEMENT           = var.MOCK_ATO_LODGEMENT
+    EMAIL_VERIFICATION_DEBUG_LINKS      = var.MOCK_EMAIL_VERIFICATION_DEBUG_LINKS
+    PASSWORD_RESET_DEBUG_LINKS          = var.MOCK_PASSWORD_RESET_DEBUG_LINKS
   }
 
   tags = local.tags

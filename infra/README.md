@@ -99,10 +99,13 @@ filesystem. This is not a backup; replacing or deleting the web app loses its
 associated data. Migrate to a managed relational database before production use.
 Existing application authentication and security limitations still apply.
 
-The Terraform variables `ENABLE_MOCK_ATO_LODGEMENT`,
-`EMAIL_VERIFICATION_DEBUG_LINKS`, and `PASSWORD_RESET_DEBUG_LINKS` set the
-corresponding App Service settings and default to `"true"` for Dev. They accept
-`"true"` or `"false"`; set them to `"false"` outside restricted testing.
+The Terraform variables `MOCK_ATO_LODGEMENT`,
+`MOCK_EMAIL_VERIFICATION_DEBUG_LINKS`, and `MOCK_PASSWORD_RESET_DEBUG_LINKS`
+set the corresponding App Service settings listed below. The pipeline maps the `mock`-prefixed
+variable-group names below to these settings. Each must be `true` or `false`;
+missing values fail the Plan stage. Set them to `true` to retain the current
+Dev testing behavior, and to `false` outside restricted testing. Local Terraform
+defaults remain `"true"`.
 Debug links bypass email ownership checks and must not be enabled on publicly
 accessible apps. Mock lodgements are not real ATO submissions. The example
 tfvars file is not automatically used by the pipeline.
@@ -205,6 +208,9 @@ Keep the existing `accounting-terraform` Library variable group for shared setti
 | `stateKey` | Preserve the exact existing Dev blob name |
 | `allowedClientIpCidr` | Your public IPv4 address followed by `/32` |
 | `dbFileName` | `bas-reset.db` to retain the current database |
+| `mockAtoLodgement` | `true` or `false`; sets `ENABLE_MOCK_ATO_LODGEMENT` |
+| `mockEmailVerificationDebugLinks` | `true` or `false`; sets `EMAIL_VERIFICATION_DEBUG_LINKS` |
+| `mockPasswordResetDebugLinks` | `true` or `false`; sets `PASSWORD_RESET_DEBUG_LINKS` |
 
 Preserve `stateKey` exactly. If an old Dev deployment exists, losing/changing its
 key would make Terraform lose track of those existing resources.

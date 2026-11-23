@@ -9,9 +9,9 @@ allowed_client_ip_cidr = "REPLACE-WITH-YOUR-PUBLIC-IP/32"
 db_file_name           = "bas-reset.db"
 
 # Development only: use "false" for each setting outside restricted testing.
-ENABLE_MOCK_ATO_LODGEMENT      = "true"
-EMAIL_VERIFICATION_DEBUG_LINKS = "true"
-PASSWORD_RESET_DEBUG_LINKS     = "true"
+MOCK_ATO_LODGEMENT                 = "true"
+MOCK_EMAIL_VERIFICATION_DEBUG_LINKS = "true"
+MOCK_PASSWORD_RESET_DEBUG_LINKS    = "true"
 
 # Supply real QBO/OpenAI credentials through TF_VAR_* environment variables.
 # Use a different backend key for each environment. Never commit secrets/state.
