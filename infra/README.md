@@ -56,11 +56,11 @@ settings are still stored in state and saved plans.
 ## Deploy application code after infrastructure
 
 Terraform provisions infrastructure only. The application pipeline
-`Pipelines/azure-pipelines.yml` deploys the tested ZIP after CI succeeds on
-`main`. Authorize its `azure-accounting-wif` service connection with deployment
-permissions on `rg-quickbooks-dev`. The pipeline locates the single app with the
+`Pipelines/pipeline-app-deploy.yml` deploys the tested ZIP after a manually
+started run succeeds on `main`. Authorize its `azure-accounting-wif` service
+connection with deployment permissions on `rg-quickbooks-dev`. The pipeline locates the single app with the
 Terraform Dev tags and `quickbooks-dev-` prefix; it fails rather than guessing if
-none or multiple match. Feature and pull-request runs only test and package.
+none or multiple match. Runs on other branches only test and package.
 There is no separate application-deployment approval gate.
 
 For manual deployment, use a checkout initialized with the target environment's
@@ -227,7 +227,7 @@ for initial testing. Preserve the existing shared backend values in this group.
 
 Dev hosting defaults to the paid **B1** tier. Application deployment and Intuit callback registration
 remain separate; this pipeline provisions infrastructure only. The application
-pipeline deploys on successful `main` runs as described above.
+pipeline deploys on successful manually started `main` runs as described above.
 
 ### 4. Configure the Dev Environment gate
 

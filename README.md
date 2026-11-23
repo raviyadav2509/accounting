@@ -163,12 +163,13 @@ py -m pip install -r requirements-dev.txt
 py -m pytest
 ```
 
-Once registered in Azure DevOps, `Pipelines/azure-pipelines.yml` runs the same tests for
-`main`, `feature/*` and GitHub pull requests targeting those branches containing
-this YAML. It publishes JUnit results, code coverage and a tested application
+Once registered in Azure DevOps, `Pipelines/pipeline-app-deploy.yml` runs manually.
+It publishes JUnit results, code coverage and a tested application
 ZIP containing only allowlisted application files (no databases or credentials).
-After CI succeeds, runs from `main` deploy that ZIP to the Terraform-managed
-Dev Web App. Feature branches and pull requests do not deploy.
+After tests succeed, manually started runs from `main` deploy that ZIP to the
+Terraform-managed Dev Web App. Other branches do not deploy.
+Azure DevOps UI trigger overrides, schedules and branch build-validation
+policies must also be disabled if configured.
 Tests use a fresh temporary SQLite database per test, disable `.env` loading,
 block network connections, and stub external integrations. No real QuickBooks,
 OpenAI, SMTP or ATO credentials are required. Coverage measures the starting
@@ -177,15 +178,14 @@ baseline; there is not yet a minimum overall coverage gate.
 ### Register the Azure DevOps pipeline
 
 1. Connect the GitHub repository to your Azure DevOps project.
-2. Create a pipeline using the existing `/Pipelines/azure-pipelines.yml`.
+2. Create a pipeline using the existing `/Pipelines/pipeline-app-deploy.yml`.
 3. Run it on the feature branch and confirm test results, coverage and the
    `accounting` ZIP artifact are published.
-4. Configure the resulting build status as a required GitHub check separately
-   if merges should be blocked on failures; YAML alone does not protect branches.
+4. Start a run from `main` when you want to deploy.
 
 Authorize the `azure-accounting-wif` service connection for this pipeline; its
-identity needs access to deploy to `rg-quickbooks-dev`. A successful `main` run
-automatically deploys to the single Web App with Terraform's Dev tags and name
+identity needs access to deploy to `rg-quickbooks-dev`. A successful manual `main`
+run deploys to the single Web App with Terraform's Dev tags and name
 prefix in that group; the deployment fails if zero or multiple apps match.
 There is no application-deployment approval gate. Runtime settings and SQLite
 storage are configured by Terraform. This Dev deployment does not address the
