@@ -93,6 +93,14 @@ filesystem. This is not a backup; replacing or deleting the web app loses its
 associated data. Migrate to a managed relational database before production use.
 Existing application authentication and security limitations still apply.
 
+The Terraform variables `ENABLE_MOCK_ATO_LODGEMENT`,
+`EMAIL_VERIFICATION_DEBUG_LINKS`, and `PASSWORD_RESET_DEBUG_LINKS` set the
+corresponding App Service settings and default to `"true"` for Dev. They accept
+`"true"` or `"false"`; set them to `"false"` outside restricted testing.
+Debug links bypass email ownership checks and must not be enabled on publicly
+accessible apps. Mock lodgements are not real ATO submissions. The example
+tfvars file is not automatically used by the pipeline.
+
 `terraform destroy` against one environment's state deletes its managed group,
 web app and plan. Keep unrelated resources out of those managed application groups.
 It does not manage/delete the external `rg-tfstate-sa` account. Back up application data before destructive changes.

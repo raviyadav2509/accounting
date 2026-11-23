@@ -2,7 +2,7 @@ import json
 import os
 
 from config import REVIEW_FILE
-from services.database import (
+from database.store import (
     get_bas_record,
     mark_approved,
     mark_rejected,

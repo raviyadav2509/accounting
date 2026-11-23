@@ -1,6 +1,6 @@
 from flask import Blueprint, g, redirect, render_template, request, session, url_for
 
-from services.database import (
+from database.store import (
     claim_legacy_bas_records,
     create_client,
     get_client_for_user,

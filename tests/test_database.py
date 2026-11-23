@@ -1,4 +1,4 @@
-from services import database
+from database import store as database
 
 
 def test_database_initialization_and_tenant_scoped_records(database_file, user, client):

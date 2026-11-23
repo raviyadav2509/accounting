@@ -7,7 +7,7 @@ from routes.client_routes import clients_bp
 from routes.qbo_routes import qbo_bp
 from routes.tax_routes import tax_bp
 from routes.demo_routes import demo_bp
-from services.database import init_db
+from database.store import init_db
 
 
 def client_initials(company_name):

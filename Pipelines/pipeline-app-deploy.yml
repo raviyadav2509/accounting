@@ -39,7 +39,7 @@ steps:
       python -m pip install -r requirements-dev.txt
     displayName: Install dependencies
 
-  - script: python -m compileall -q app.py config.py routes services
+  - script: python -m compileall -q app.py config.py database routes services
     displayName: Compile Python sources
 
   - script: python -m pytest

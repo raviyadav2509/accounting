@@ -18,7 +18,7 @@ def package(source, output):
             raise ValueError(f"Missing {name}; --source must be the application repository root.")
 
     selected = [source / "app.py", source / "config.py"]
-    for folder in ("routes", "services", "templates", "static"):
+    for folder in ("database", "routes", "services", "templates", "static"):
         root = source / folder
         if not root.is_dir():
             raise ValueError(f"Missing application directory: {root}")
@@ -32,7 +32,7 @@ def package(source, output):
                 continue
             if path.name in ("tokens.json", "bas_review_status.json", "bas_approval.json"):
                 continue
-            if folder in ("routes", "services") and path.suffix != ".py":
+            if folder in ("database", "routes", "services") and path.suffix != ".py":
                 continue
             selected.append(path)
 

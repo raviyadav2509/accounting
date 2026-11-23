@@ -6,5 +6,10 @@ location               = "australiaeast"
 sku_name               = "B1"
 qbo_environment        = "sandbox"
 
+# Development only: use "false" for each setting outside restricted testing.
+ENABLE_MOCK_ATO_LODGEMENT      = "true"
+EMAIL_VERIFICATION_DEBUG_LINKS = "true"
+PASSWORD_RESET_DEBUG_LINKS     = "true"
+
 # Supply real QBO/OpenAI credentials through TF_VAR_* environment variables.
 # Use a different backend key for each environment. Never commit secrets/state.

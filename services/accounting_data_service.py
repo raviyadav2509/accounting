@@ -1,6 +1,6 @@
 """Select data by persisted client type, never by a request-supplied flag."""
 from services import qbo_service
-from services.database import get_client_by_id
+from database.store import get_client_by_id
 from services.demo_service import is_demo, demo_query, demo_profit_report
 
 
