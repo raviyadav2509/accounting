@@ -5,7 +5,8 @@ from datetime import date
 
 import pytest
 
-from services import database, accounting_data_service, qbo_service
+from database import store as database
+from services import accounting_data_service, qbo_service
 from services.bas_service import calculate_bas, bas_signature
 from services.demo_service import (
     create_demo_client, reset_demo_client, demo_periods, demo_query, demo_review,

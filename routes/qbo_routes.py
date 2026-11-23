@@ -4,7 +4,7 @@ from flask import Blueprint, abort, g, redirect, request, session, url_for
 from services.demo_service import is_demo
 
 from config import DEFAULT_BAS_END, DEFAULT_BAS_START
-from services.database import get_client_for_user, update_client
+from database.store import get_client_for_user, update_client
 from services.qbo_service import (
     build_authorization_url,
     exchange_authorization_code,

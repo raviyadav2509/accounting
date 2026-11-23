@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import pytest
 from werkzeug.security import check_password_hash
 
-from services import database
+from database import store as database
 from services.email_verification_service import hash_verification_token
 
 

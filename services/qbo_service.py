@@ -10,7 +10,7 @@ from config import (
     QBO_REDIRECT_URI,
     QBO_TOKEN_URL,
 )
-from services.database import get_qbo_connection, save_qbo_connection, get_client_by_id
+from database.store import get_qbo_connection, save_qbo_connection, get_client_by_id
 
 
 def _reject_demo(client_id):

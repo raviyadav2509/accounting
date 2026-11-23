@@ -2,7 +2,7 @@ import secrets
 
 from flask import Blueprint, abort, g, redirect, render_template, request, session, url_for
 
-from services.database import get_client_for_user
+from database.store import get_client_for_user
 from services.demo_service import create_demo_client, reset_demo_client, is_demo, demo_periods, demo_query
 
 demo_bp = Blueprint("demo", __name__, url_prefix="/demo")

@@ -18,7 +18,7 @@ from services.financial_year_service import (
     financial_year_for_date,
     financial_year_sort_key,
 )
-from services.database import (
+from database.store import (
     get_client_for_user,
     get_firm_for_user,
     get_history,

@@ -9,7 +9,7 @@ from config import (
     PASSWORD_RESET_DEBUG_LINKS,
     PASSWORD_RESET_EXPIRY_MINUTES,
 )
-from services.database import (
+from database.store import (
     clear_password_reset,
     create_user,
     get_client_for_user,

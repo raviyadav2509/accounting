@@ -1,9 +1,11 @@
 import json
+import importlib.util
 import os
 from pathlib import Path
 import shutil
 import subprocess
 import sys
+import zipfile
 
 import pytest
 
@@ -116,3 +118,35 @@ def test_deployment_and_discovery_errors_fail_the_step(deployment):
     assert not log.exists()
     assert run(["quickbooks-dev-12345678"], FAIL_DEPLOY="1").returncode != 0
     assert log.exists()
+
+
+def test_deployment_package_includes_database_and_starts(tmp_path):
+    packager_path = ROOT / "Pipelines" / "utility" / "package_app.py"
+    spec = importlib.util.spec_from_file_location("package_app", packager_path)
+    packager = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(packager)
+    archive_path = tmp_path / "app.zip"
+    packager.package(ROOT, archive_path)
+
+    extracted = tmp_path / "app"
+    with zipfile.ZipFile(archive_path) as archive:
+        assert {"database/__init__.py", "database/store.py"} <= set(archive.namelist())
+        archive.extractall(extracted)
+
+    env = os.environ.copy()
+    env.update(
+        BAS_DATABASE_FILE=str(tmp_path / "app.db"),
+        PYTHON_DOTENV_DISABLED="1",
+        OPENAI_API_KEY="test-only-not-a-real-key",
+        FLASK_SECRET_KEY="test-only-session-key",
+    )
+    env.pop("PYTHONPATH", None)
+    result = subprocess.run(
+        [sys.executable, "-c", "from azure_wsgi import app; assert app"],
+        cwd=extracted,
+        env=env,
+        text=True,
+        capture_output=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr

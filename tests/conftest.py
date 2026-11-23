@@ -10,7 +10,7 @@ os.environ["ENABLE_MOCK_ATO_LODGEMENT"] = "false"
 
 import pytest
 
-from services import database
+from database import store as database
 
 
 @pytest.fixture(autouse=True)

@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 
 from config import PAYG_ACCOUNT_ID, WAGE_ACCOUNT_ID
-from services.database import get_connection, get_client_by_id, get_client_for_user
+from database.store import get_connection, get_client_by_id, get_client_for_user
 
 
 def is_demo(client):
@@ -61,7 +61,7 @@ def _seed(connection, client_id, scenario):
 def create_demo_client(owner_user_id, scenario):
     if scenario not in {"clean", "review"}:
         raise ValueError("Choose a valid demo scenario.")
-    from services.database import _now
+    from database.store import _now
     now = _now()
     with get_connection() as connection:
         # Limit accidental repeated creation without changing normal client limits.

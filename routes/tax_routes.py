@@ -5,7 +5,7 @@ from flask import Blueprint, g, redirect, render_template, request, session, url
 from config import ENABLE_MOCK_ATO_LODGEMENT
 from services.demo_service import is_demo
 
-from services.database import (
+from database.store import (
     add_tax_adjustment,
     create_tax_return,
     delete_tax_adjustment,

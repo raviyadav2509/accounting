@@ -61,6 +61,9 @@ The SQLite database contains:
 - `qbo_connections` — one QuickBooks connection per client
 - `bas_records` — BAS records scoped by `client_id`
 
+Database initialization and persistence functions are maintained in
+`database/store.py`.
+
 All BAS history, AI review state, approval state and QuickBooks API calls are scoped to the selected client.
 
 Existing BAS records from the earlier single-client schema are migrated with a nullable client ID. When the first client is created, any legacy unassigned BAS records are attached to that first client.
