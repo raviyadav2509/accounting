@@ -136,35 +136,35 @@ variable "default_bas_end" {
   default = "2026-09-30"
 }
 
-variable "ENABLE_MOCK_ATO_LODGEMENT" {
+variable "MOCK_ATO_LODGEMENT" {
   description = "Enable simulated ATO lodgement for development."
   type        = string
   default     = "true"
 
   validation {
-    condition     = contains(["true", "false"], var.ENABLE_MOCK_ATO_LODGEMENT)
-    error_message = "Set ENABLE_MOCK_ATO_LODGEMENT to true or false."
+    condition     = contains(["true", "false"], var.MOCK_ATO_LODGEMENT)
+    error_message = "Set MOCK_ATO_LODGEMENT to true or false."
   }
 }
 
-variable "EMAIL_VERIFICATION_DEBUG_LINKS" {
+variable "MOCK_EMAIL_VERIFICATION_DEBUG_LINKS" {
   description = "Show email verification links for development; do not enable on a public app."
   type        = string
   default     = "true"
 
   validation {
-    condition     = contains(["true", "false"], var.EMAIL_VERIFICATION_DEBUG_LINKS)
-    error_message = "Set EMAIL_VERIFICATION_DEBUG_LINKS to true or false."
+    condition     = contains(["true", "false"], var.MOCK_EMAIL_VERIFICATION_DEBUG_LINKS)
+    error_message = "Set MOCK_EMAIL_VERIFICATION_DEBUG_LINKS to true or false."
   }
 }
 
-variable "PASSWORD_RESET_DEBUG_LINKS" {
+variable "MOCK_PASSWORD_RESET_DEBUG_LINKS" {
   description = "Show password reset links for development; do not enable on a public app."
   type        = string
   default     = "true"
 
   validation {
-    condition     = contains(["true", "false"], var.PASSWORD_RESET_DEBUG_LINKS)
-    error_message = "Set PASSWORD_RESET_DEBUG_LINKS to true or false."
+    condition     = contains(["true", "false"], var.MOCK_PASSWORD_RESET_DEBUG_LINKS)
+    error_message = "Set MOCK_PASSWORD_RESET_DEBUG_LINKS to true or false."
   }
 }

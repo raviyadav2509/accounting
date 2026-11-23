@@ -37,6 +37,31 @@ run "use_configured_database_filename" {
   }
 }
 
+run "use_configured_development_settings" {
+  command = plan
+
+  variables {
+    MOCK_ATO_LODGEMENT                  = "false"
+    MOCK_EMAIL_VERIFICATION_DEBUG_LINKS = "true"
+    MOCK_PASSWORD_RESET_DEBUG_LINKS     = "false"
+  }
+
+  assert {
+    condition     = nonsensitive(azurerm_linux_web_app.app.app_settings["ENABLE_MOCK_ATO_LODGEMENT"]) == "false" && nonsensitive(azurerm_linux_web_app.app.app_settings["EMAIL_VERIFICATION_DEBUG_LINKS"]) == "true" && nonsensitive(azurerm_linux_web_app.app.app_settings["PASSWORD_RESET_DEBUG_LINKS"]) == "false"
+    error_message = "App settings must match the configured development flags."
+  }
+}
+
+run "reject_invalid_development_setting" {
+  command = plan
+
+  variables {
+    MOCK_EMAIL_VERIFICATION_DEBUG_LINKS = "yes"
+  }
+
+  expect_failures = [var.MOCK_EMAIL_VERIFICATION_DEBUG_LINKS]
+}
+
 run "reject_database_path" {
   command = plan
 

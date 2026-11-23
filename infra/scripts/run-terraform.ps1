@@ -37,7 +37,10 @@ try {
         $required += @(
             'TF_VAR_qbo_client_id', 'TF_VAR_qbo_client_secret',
             'TF_VAR_openai_api_key', 'TF_VAR_qbo_environment',
-            'TF_VAR_allowed_client_ip_cidr', 'TF_VAR_db_file_name'
+            'TF_VAR_allowed_client_ip_cidr', 'TF_VAR_db_file_name',
+            'TF_VAR_MOCK_ATO_LODGEMENT',
+            'TF_VAR_MOCK_EMAIL_VERIFICATION_DEBUG_LINKS',
+            'TF_VAR_MOCK_PASSWORD_RESET_DEBUG_LINKS'
         )
     }
     elseif ($env:TF_ACTION -eq 'apply') {
